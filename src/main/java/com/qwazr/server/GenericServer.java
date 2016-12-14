@@ -168,6 +168,9 @@ public abstract class GenericServer {
 
 	public synchronized void stopAll() {
 
+		if (LOGGER.isInfoEnabled())
+			LOGGER.info("The server is stopping...");
+
 		executeListener(shutdownListeners);
 
 		if (udpServer != null)
@@ -187,6 +190,9 @@ public abstract class GenericServer {
 		undertows.forEach(Undertow::stop);
 
 		executorService.shutdown();
+
+		if (LOGGER.isInfoEnabled())
+			LOGGER.info("The server is stopped.");
 	}
 
 	private IdentityManager getIdentityManager(final ServerConfiguration.WebConnector connector) throws IOException {
@@ -205,7 +211,8 @@ public abstract class GenericServer {
 		final DeploymentManager manager = Servlets.defaultContainer().addDeployment(deploymentInfo);
 		manager.deploy();
 
-		LOGGER.info("Start the connector " + configuration.listenAddress + ":" + connector.port);
+		if (LOGGER.isInfoEnabled())
+			LOGGER.info("Start the connector " + configuration.listenAddress + ":" + connector.port);
 
 		HttpHandler httpHandler = manager.start();
 		final LogMetricsHandler logMetricsHandler =
@@ -238,13 +245,21 @@ public abstract class GenericServer {
 	final public void start(boolean shutdownHook)
 			throws IOException, ServletException, ReflectiveOperationException, OperationsException, MBeanException {
 
+		if (LOGGER.isInfoEnabled())
+			LOGGER.info("The server is starting...");
+
+		if (LOGGER.isInfoEnabled())
+			LOGGER.info("Data directory sets to: " + configuration.dataDirectory);
+
 		java.util.logging.Logger.getLogger("").setLevel(Level.WARNING);
 
 		if (!configuration.dataDirectory.exists())
 			throw new IOException("The data directory does not exists: " + configuration.dataDirectory);
 		if (!configuration.dataDirectory.isDirectory())
 			throw new IOException("The data directory path is not a directory: " + configuration.dataDirectory);
-		LOGGER.info("Data directory sets to: " + configuration.dataDirectory);
+
+		if (LOGGER.isInfoEnabled())
+			LOGGER.info("Data directory sets to: " + configuration.dataDirectory);
 
 		if (udpServer != null)
 			udpServer.checkStarted();
@@ -274,6 +289,9 @@ public abstract class GenericServer {
 		}
 
 		executeListener(startedListeners);
+
+		if (LOGGER.isInfoEnabled())
+			LOGGER.info("The server started successfully.");
 	}
 
 	public Collection<ConnectorStatisticsMXBean> getConnectorsStatistics() {
