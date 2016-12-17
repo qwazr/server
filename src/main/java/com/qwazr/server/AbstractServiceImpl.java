@@ -22,13 +22,9 @@ import javax.ws.rs.core.Context;
 public abstract class AbstractServiceImpl implements ServiceInterface {
 
 	@Context
-	final protected ServletContext context;
+	protected ServletContext context;
 
 	protected GenericServer server;
-
-	public AbstractServiceImpl() {
-		this.context = null;
-	}
 
 	@PostConstruct
 	public void init() {
