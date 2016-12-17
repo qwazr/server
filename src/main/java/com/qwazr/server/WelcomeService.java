@@ -16,26 +16,17 @@
 package com.qwazr.server;
 
 import javax.annotation.security.RolesAllowed;
-import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 
 @RolesAllowed(WelcomeService.SERVICE_NAME)
 @Path("/")
 @ServiceName(WelcomeService.SERVICE_NAME)
-public class WelcomeService implements ServiceInterface {
+public class WelcomeService extends AbstractServiceImpl {
 
 	public final static String SERVICE_NAME = "welcome";
-
-	@Context
-	protected final ServletContext context;
-
-	public WelcomeService() {
-		context = null;
-	}
 
 	@GET
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
