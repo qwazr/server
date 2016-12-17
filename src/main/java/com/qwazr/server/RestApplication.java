@@ -25,7 +25,9 @@ import io.undertow.servlet.api.ServletInfo;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 import org.glassfish.jersey.servlet.ServletContainer;
 
+import javax.servlet.ServletContext;
 import javax.ws.rs.core.Application;
+import javax.ws.rs.core.Context;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -36,6 +38,9 @@ class RestApplication {
 
 	public static class WithoutAuth extends Application {
 
+		@Context
+		private ServletContext context;
+
 		@Override
 		public Set<Class<?>> getClasses() {
 			final Set<Class<?>> classes = new LinkedHashSet<>();
@@ -43,7 +48,7 @@ class RestApplication {
 			classes.add(JacksonJsonProvider.class);
 			classes.add(JsonMappingExceptionMapper.class);
 			// Get the service from the generic server instance
-			final GenericServer server = GenericServer.getInstance();
+			final GenericServer server = GenericServer.getInstance(context);
 			if (server != null)
 				server.forEachWebServices(classes::add);
 			return classes;
@@ -59,7 +64,7 @@ class RestApplication {
 		}
 	}
 
-	final static DeploymentInfo getDeploymentInfo(final IdentityManager identityManager) {
+	static DeploymentInfo getDeploymentInfo(final IdentityManager identityManager) {
 		final DeploymentInfo deploymentInfo = Servlets.deployment()
 				.setClassLoader(RestApplication.class.getClassLoader())
 				.setContextPath("/")

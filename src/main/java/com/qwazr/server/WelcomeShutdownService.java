@@ -32,12 +32,15 @@ public class WelcomeShutdownService extends WelcomeService {
 	@DELETE
 	@Path("/shutdown")
 	public void shutdown() {
-		new ShutdownThread();
+		new ShutdownThread(GenericServer.getInstance(context));
 	}
 
 	private static class ShutdownThread implements Runnable {
 
-		private ShutdownThread() {
+		private final GenericServer server;
+
+		private ShutdownThread(GenericServer server) {
+			this.server = server;
 			new Thread(this).start();
 		}
 
@@ -45,7 +48,7 @@ public class WelcomeShutdownService extends WelcomeService {
 		public void run() {
 			try {
 				Thread.sleep(5000);
-				GenericServer.getInstance().stopAll();
+				server.stopAll();
 			} catch (InterruptedException e) {
 				LOGGER.warn(e.getMessage(), e);
 			}

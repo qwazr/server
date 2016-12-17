@@ -34,8 +34,7 @@ public class WelcomeStatus {
 	public final SortedMap<String, Object> properties;
 	public final SortedMap<String, String> env;
 
-	public WelcomeStatus(final Boolean showProperties, final Boolean showEnvVars) {
-		final GenericServer server = GenericServer.getInstance();
+	public WelcomeStatus(final GenericServer server, final Boolean showProperties, final Boolean showEnvVars) {
 		if (server != null) {
 			endpoints = new TreeSet<>();
 			server.forEachServicePath(endpoints::add);

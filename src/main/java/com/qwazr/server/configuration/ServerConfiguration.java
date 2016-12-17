@@ -26,8 +26,21 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.*;
-import java.util.*;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class ServerConfiguration implements ConfigurationProperties {
@@ -113,6 +126,20 @@ public class ServerConfiguration implements ConfigurationProperties {
 		this.masters = set.isEmpty() ? null : Collections.unmodifiableSet(set);
 
 		this.groups = buildSet(getStringProperty(QWAZR_GROUPS, null), ",; \t", true);
+	}
+
+	public Collection<File> getEtcFiles() {
+		// List the configuration files
+		if (etcDirectories == null)
+			return null;
+		final Set<File> etcFiles = new LinkedHashSet<>();
+		etcDirectories.forEach(dir -> {
+			final File[] files = etcFileFilter == null ? dir.listFiles() : dir.listFiles(etcFileFilter);
+			if (files != null)
+				for (File file : files)
+					etcFiles.add(file);
+		});
+		return etcFiles;
 	}
 
 	public String getStringProperty(final String propName, final String defaultValue) {

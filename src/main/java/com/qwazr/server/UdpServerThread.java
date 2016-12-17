@@ -33,8 +33,7 @@ public class UdpServerThread extends Thread {
 	private final Integer multicastPort;
 
 	private UdpServerThread(final InetSocketAddress socketAddress, final InetAddress multicastGroupAddress,
-			final Integer multicastPort, final Integer dataBufferSize,
-			final Collection<PacketListener> packetListeners) {
+			final Integer multicastPort, final Collection<PacketListener> packetListeners) {
 		super();
 		setName("UDP Server");
 		setDaemon(true);
@@ -44,14 +43,13 @@ public class UdpServerThread extends Thread {
 		this.packetListeners = packetListeners.toArray(new PacketListener[packetListeners.size()]);
 	}
 
-	public UdpServerThread(final InetSocketAddress socketAddress, final Integer dataBufferSize,
-			final Collection<PacketListener> packetListeners) {
-		this(socketAddress, null, null, dataBufferSize, packetListeners);
+	public UdpServerThread(final InetSocketAddress socketAddress, final Collection<PacketListener> packetListeners) {
+		this(socketAddress, null, null, packetListeners);
 	}
 
-	public UdpServerThread(final String multicastGroupAddress, final int multicastPort, final Integer dataBufferSize,
+	public UdpServerThread(final String multicastGroupAddress, final int multicastPort,
 			final Collection<PacketListener> packetListeners) throws UnknownHostException {
-		this(null, InetAddress.getByName(multicastGroupAddress), multicastPort, dataBufferSize, packetListeners);
+		this(null, InetAddress.getByName(multicastGroupAddress), multicastPort, packetListeners);
 	}
 
 	@Override

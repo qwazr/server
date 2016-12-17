@@ -26,7 +26,7 @@ import java.util.Map;
 
 class ServletApplication {
 
-	final static DeploymentInfo getDeploymentInfo(final Collection<SecurableServletInfo> servletInfos,
+	static DeploymentInfo getDeploymentInfo(final Collection<SecurableServletInfo> servletInfos,
 			final IdentityManager identityManager, final Map<String, FilterInfo> filterInfos,
 			final Collection<ListenerInfo> listenersInfos, final SessionPersistenceManager sessionPersistenceManager,
 			final SessionListener sessionListener) {
