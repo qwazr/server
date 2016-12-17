@@ -69,7 +69,7 @@ public class ServerConfiguration implements ConfigurationProperties {
 		this(System.getenv(), System.getProperties(), argsToMap(args));
 	}
 
-	protected ServerConfiguration(final Map<?, ?>... propertiesMaps) throws IOException {
+	public ServerConfiguration(final Map<?, ?>... propertiesMaps) throws IOException {
 
 		// Merge the maps.
 		properties = new HashMap<>();
