@@ -358,6 +358,10 @@ final public class GenericServer {
 			shutdownListeners = new LinkedHashSet<>();
 		}
 
+		public ServerConfiguration getConfiguration() {
+			return configuration;
+		}
+
 		public GenericServer build() throws IOException {
 			return new GenericServer(this);
 		}
