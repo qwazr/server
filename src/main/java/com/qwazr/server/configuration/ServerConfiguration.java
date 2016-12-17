@@ -69,7 +69,7 @@ public class ServerConfiguration implements ConfigurationProperties {
 		this(System.getenv(), System.getProperties(), argsToMap(args));
 	}
 
-	public ServerConfiguration(final Map<?, ?>... propertiesMaps) throws IOException {
+	protected ServerConfiguration(final Map<?, ?>... propertiesMaps) throws IOException {
 
 		// Merge the maps.
 		properties = new HashMap<>();
@@ -352,7 +352,11 @@ public class ServerConfiguration implements ConfigurationProperties {
 	}
 
 	public static Builder of() {
-		return new Builder();
+		return of(null);
+	}
+
+	public static Builder of(Map<String, String> map) {
+		return new Builder(map);
 	}
 
 	public static class Builder {
@@ -363,8 +367,8 @@ public class ServerConfiguration implements ConfigurationProperties {
 		private final Set<String> etcFilters;
 		private final Set<String> etcDirectories;
 
-		protected Builder() {
-			this.map = new HashMap<>();
+		protected Builder(Map<String, String> map) {
+			this.map = map == null ? new HashMap<>() : new HashMap<>(map);
 			this.masters = new LinkedHashSet<>();
 			this.groups = new LinkedHashSet<>();
 			this.etcFilters = new LinkedHashSet<>();
