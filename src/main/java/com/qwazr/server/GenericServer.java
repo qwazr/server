@@ -27,6 +27,7 @@ import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
 import io.undertow.servlet.api.FilterInfo;
 import io.undertow.servlet.api.ListenerInfo;
+import io.undertow.servlet.api.ServletContainer;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.SessionPersistenceManager;
 import org.slf4j.Logger;
@@ -52,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -60,6 +62,7 @@ final public class GenericServer {
 	public static final String CONTEXT_ATTRIBUTE_SERVER = "server";
 
 	final private ExecutorService executorService;
+	final private ServletContainer servletContainer;
 
 	final private Map<String, Object> contextAttributes;
 	final private Collection<Class<?>> webServices;
@@ -93,6 +96,7 @@ final public class GenericServer {
 		this.configuration = builder.configuration;
 
 		this.executorService = Executors.newCachedThreadPool();
+		this.servletContainer = Servlets.newContainer();
 
 		this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
 		this.contextAttributes.put(CONTEXT_ATTRIBUTE_SERVER, this);
@@ -173,9 +177,16 @@ final public class GenericServer {
 					LOGGER.warn("Cannot stop the manager: " + e.getMessage(), e);
 			}
 		}
+
 		undertows.forEach(Undertow::stop);
 
 		executorService.shutdown();
+		try {
+			executorService.awaitTermination(2, TimeUnit.MINUTES);
+		} catch (InterruptedException e) {
+			if (LOGGER.isWarnEnabled())
+				LOGGER.warn(e.getMessage(), e);
+		}
 
 		if (LOGGER.isInfoEnabled())
 			LOGGER.info("The server is stopped.");
@@ -196,7 +207,7 @@ final public class GenericServer {
 		if (deploymentInfo.getIdentityManager() != null)
 			deploymentInfo.setLoginConfig(Servlets.loginConfig("BASIC", connector.realm));
 
-		final DeploymentManager manager = Servlets.defaultContainer().addDeployment(deploymentInfo);
+		final DeploymentManager manager = servletContainer.addDeployment(deploymentInfo);
 		manager.deploy();
 
 		if (LOGGER.isInfoEnabled())
@@ -219,7 +230,7 @@ final public class GenericServer {
 		final Hashtable<String, String> props = new Hashtable<>();
 		props.put("type", "connector");
 		props.put("name", jmxName);
-		final ObjectName name = new ObjectName("com.qwazr.server", props);
+		final ObjectName name = new ObjectName("com.qwazr.server." + this.hashCode(), props);
 		mbs.registerMBean(logMetricsHandler, name);
 		connectorsStatistics.add(logMetricsHandler);
 	}
