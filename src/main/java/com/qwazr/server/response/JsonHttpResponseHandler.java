@@ -36,7 +36,7 @@ public class JsonHttpResponseHandler {
 		final public JsonNode handleResponse(final HttpResponse response) throws IOException {
 			try {
 				super.handleResponse(response);
-				return JsonMapper.MAPPER.readTree(entity.getContent());
+				return entity == null ? null : JsonMapper.MAPPER.readTree(entity.getContent());
 			} finally {
 				IOUtils.close((CloseableHttpResponse) response);
 			}
@@ -56,7 +56,7 @@ public class JsonHttpResponseHandler {
 		final public T handleResponse(final HttpResponse response) throws IOException {
 			try {
 				super.handleResponse(response);
-				return JsonMapper.MAPPER.readValue(entity.getContent(), jsonClass);
+				return entity == null ? null : JsonMapper.MAPPER.readValue(entity.getContent(), jsonClass);
 			} finally {
 				IOUtils.close((CloseableHttpResponse) response);
 			}
@@ -76,7 +76,7 @@ public class JsonHttpResponseHandler {
 		final public T handleResponse(final HttpResponse response) throws IOException {
 			try {
 				super.handleResponse(response);
-				return JsonMapper.MAPPER.readValue(entity.getContent(), typeReference);
+				return entity == null ? null : JsonMapper.MAPPER.readValue(entity.getContent(), typeReference);
 			} finally {
 				IOUtils.close((CloseableHttpResponse) response);
 			}

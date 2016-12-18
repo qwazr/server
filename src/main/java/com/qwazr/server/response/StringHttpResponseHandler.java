@@ -34,7 +34,7 @@ public class StringHttpResponseHandler extends AbstractHttpResponseHandler<Strin
 	final public String handleResponse(final HttpResponse response) throws IOException {
 		try {
 			super.handleResponse(response);
-			return EntityUtils.toString(entity, CharsetUtils.CharsetUTF8);
+			return entity == null ? null : EntityUtils.toString(entity, CharsetUtils.CharsetUTF8);
 		} finally {
 			IOUtils.close((CloseableHttpResponse) response);
 		}
