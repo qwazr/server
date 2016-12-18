@@ -203,7 +203,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		final CloseableHttpResponse response = HttpClients.HTTP_CLIENT.execute(request.request, getContext(msTimeOut));
 		if (validator != null) {
 			try {
-				validator.checkResponse(response.getStatusLine(), response.getEntity());
+				validator.checkResponse(response.getAllHeaders(), response.getStatusLine(), response.getEntity());
 			} catch (ClientProtocolException e) {
 				IOUtils.closeQuietly(response);
 				throw e;

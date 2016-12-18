@@ -15,6 +15,7 @@
  */
 package com.qwazr.server.response;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -26,6 +27,7 @@ import java.io.IOException;
 public abstract class AbstractHttpResponseHandler<T> implements ResponseHandler<T> {
 
 	private final ResponseValidator validator;
+	protected Header[] headers;
 	protected HttpEntity entity;
 	protected StatusLine statusLine;
 
@@ -37,10 +39,11 @@ public abstract class AbstractHttpResponseHandler<T> implements ResponseHandler<
 	public T handleResponse(final HttpResponse response) throws IOException {
 		if (response == null)
 			throw new ClientProtocolException("No response");
+		headers = response.getAllHeaders();
 		entity = response.getEntity();
 		statusLine = response.getStatusLine();
 		if (validator != null)
-			validator.check(statusLine, entity);
+			validator.check(headers, statusLine, entity);
 		return null;
 	}
 

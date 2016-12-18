@@ -17,7 +17,9 @@
 package com.qwazr.server.response;
 
 import com.qwazr.utils.StringUtils;
-import com.qwazr.utils.http.HttpResponseEntityException;import org.apache.http.HttpEntity;
+import com.qwazr.utils.http.HttpResponseEntityException;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
@@ -50,14 +52,15 @@ public class ResponseValidator {
 		return new Content(this, contentType);
 	}
 
-	final public void checkResponse(final StatusLine statusLine, final HttpEntity entity)
+	final public void checkResponse(final Header[] headers, final StatusLine statusLine, final HttpEntity entity)
 			throws ClientProtocolException {
-		check(statusLine, entity);
+		check(headers, statusLine, entity);
 	}
 
-	protected void check(final StatusLine statusLine, final HttpEntity entity) throws ClientProtocolException {
+	protected void check(final Header[] headers, final StatusLine statusLine, final HttpEntity entity)
+			throws ClientProtocolException {
 		if (parent != null)
-			parent.check(statusLine, entity);
+			parent.check(headers, statusLine, entity);
 	}
 
 	private class Status extends ResponseValidator {
@@ -70,14 +73,14 @@ public class ResponseValidator {
 		}
 
 		@Override
-		final protected void check(final StatusLine statusLine, final HttpEntity entity)
+		final protected void check(final Header[] headers, final StatusLine statusLine, final HttpEntity entity)
 				throws ClientProtocolException {
-			super.check(statusLine, entity);
+			super.check(headers, statusLine, entity);
 			if (statusLine == null)
 				throw new ClientProtocolException("Response does not contains any status");
 			if (expectedCodes == null)
 				return;
-			int statusCode = statusLine.getStatusCode();
+			final int statusCode = statusLine.getStatusCode();
 			for (int code : expectedCodes)
 				if (code == statusCode)
 					return;
@@ -96,14 +99,12 @@ public class ResponseValidator {
 		}
 
 		@Override
-		final protected void check(final StatusLine statusLine, final HttpEntity entity)
+		final protected void check(final Header[] headers, final StatusLine statusLine, final HttpEntity entity)
 				throws ClientProtocolException {
-			super.check(statusLine, entity);
-			if (entity == null)
-				throw new ClientProtocolException("Response does not contains any content entity");
-			if (expectedContentType == null)
+			super.check(headers, statusLine, entity);
+			if (entity == null || expectedContentType == null)
 				return;
-			ContentType contentType = ContentType.get(entity);
+			final ContentType contentType = ContentType.get(entity);
 			if (contentType == null)
 				throw new HttpResponseEntityException(statusLine, entity, "Unknown content type");
 			if (!expectedContentType.getMimeType().equals(contentType.getMimeType()))
