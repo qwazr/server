@@ -15,7 +15,6 @@
  **/
 package com.qwazr.server;
 
-import javax.annotation.PostConstruct;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
@@ -24,15 +23,8 @@ public abstract class AbstractServiceImpl implements ServiceInterface {
 	@Context
 	protected ServletContext context;
 
-	protected GenericServer server;
-
-	@PostConstruct
-	public void init() {
-		server = GenericServer.getInstance(context);
-	}
-
-	protected <T> T getContextAttribute(final String name) {
-		return context == null ? null : (T) context.getAttribute(name);
+	protected <T> T getContextAttribute(final Class<T> clazz) {
+		return context == null ? null : (T) context.getAttribute(clazz.getName());
 	}
 
 }

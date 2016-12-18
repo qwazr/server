@@ -34,12 +34,16 @@ import java.util.Set;
 /**
  * Generic RestApplication
  */
-class RestApplication {
+public class RestApplication extends Application {
 
-	public static class WithoutAuth extends Application {
+	@Context
+	private ServletContext context;
 
-		@Context
-		private ServletContext context;
+	protected <T> T getContextAttribute(final Class<T> clazz) {
+		return context == null || clazz == null ? null : (T) context.getAttribute(clazz.getName());
+	}
+
+	public static class WithoutAuth extends RestApplication {
 
 		@Override
 		public Set<Class<?>> getClasses() {
@@ -48,7 +52,7 @@ class RestApplication {
 			classes.add(JacksonJsonProvider.class);
 			classes.add(JsonMappingExceptionMapper.class);
 			// Get the service from the generic server instance
-			final GenericServer server = GenericServer.getInstance(context);
+			final GenericServer server = getContextAttribute(GenericServer.class);
 			if (server != null)
 				server.forEachWebServices(classes::add);
 			return classes;

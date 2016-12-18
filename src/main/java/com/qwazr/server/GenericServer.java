@@ -37,7 +37,6 @@ import javax.management.MBeanException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.OperationsException;
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.ws.rs.Path;
 import java.io.IOException;
@@ -58,8 +57,6 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 
 final public class GenericServer {
-
-	public static final String CONTEXT_ATTRIBUTE_SERVER = "server";
 
 	final private ExecutorService executorService;
 	final private ServletContainer servletContainer;
@@ -98,8 +95,9 @@ final public class GenericServer {
 		this.executorService = Executors.newCachedThreadPool();
 		this.servletContainer = Servlets.newContainer();
 
+		builder.contextAttribute(this);
+
 		this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
-		this.contextAttributes.put(CONTEXT_ATTRIBUTE_SERVER, this);
 		this.webServices = builder.webServices.isEmpty() ? null : new ArrayList<>(builder.webServices);
 		this.webServiceNames = builder.webServiceNames.isEmpty() ? null : new ArrayList<>(builder.webServiceNames);
 		this.webServicePaths = builder.webServicePaths.isEmpty() ? null : new ArrayList<>(builder.webServicePaths);
@@ -297,10 +295,6 @@ final public class GenericServer {
 		return connectorsStatistics;
 	}
 
-	public static <T extends GenericServer> T getInstance(final ServletContext context) {
-		return (context == null) ? null : (T) context.getAttribute(CONTEXT_ATTRIBUTE_SERVER);
-	}
-
 	public interface Listener {
 
 		void accept(GenericServer server);
@@ -397,6 +391,11 @@ final public class GenericServer {
 			Objects.requireNonNull(object, "The context attribute " + name + " is null");
 			this.contextAttributes.put(name, object);
 			return this;
+		}
+
+		public Builder contextAttribute(final Object object) {
+			Objects.requireNonNull(object, "The context attribute object is null");
+			return contextAttribute(object.getClass().getName(), object);
 		}
 
 		public Builder servlet(final SecurableServletInfo servlet) {

@@ -32,7 +32,7 @@ public class WelcomeShutdownService extends WelcomeService {
 	@DELETE
 	@Path("/shutdown")
 	public void shutdown() {
-		new ShutdownThread(GenericServer.getInstance(context));
+		new ShutdownThread(getContextAttribute(GenericServer.class));
 	}
 
 	private static class ShutdownThread implements Runnable {
