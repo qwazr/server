@@ -87,7 +87,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 	private void setBody(final HttpRequest request, final Object bodyObject) throws JsonProcessingException {
 		if (bodyObject == null)
 			return;
-		HttpRequest.Entity requestEntity = (HttpRequest.Entity) request;
+		final HttpRequest.Entity requestEntity = (HttpRequest.Entity) request;
 		if (bodyObject instanceof String)
 			requestEntity.bodyString(bodyObject.toString(), ContentType.TEXT_PLAIN);
 		else if (bodyObject instanceof InputStream)
@@ -99,7 +99,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 	private <T> T executeJsonEx(final HttpRequest request, final Object bodyObject, final Integer msTimeOut,
 			final Class<T> jsonResultClass, final ResponseValidator validator) throws IOException {
 		setBody(request, bodyObject);
-		JsonHttpResponseHandler.JsonValueResponse<T> responseHandler =
+		final JsonHttpResponseHandler.JsonValueResponse<T> responseHandler =
 				new JsonHttpResponseHandler.JsonValueResponse<T>(jsonResultClass, validator);
 		request.addHeader("Accept", ContentType.APPLICATION_JSON.toString());
 		return HttpClients.HTTP_CLIENT.execute(request.request, responseHandler, getContext(msTimeOut));
