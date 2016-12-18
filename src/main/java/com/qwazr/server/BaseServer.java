@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Emmanuel Keller / QWAZR
+ * Copyright 2014-2016 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,39 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwazr.server.test;
-
-import com.qwazr.server.WelcomeShutdownService;
-import org.junit.Assert;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+package com.qwazr.server;
 
 import javax.management.MBeanException;
 import javax.management.OperationsException;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class SimpleServerTest {
+public interface BaseServer {
 
-	private static SimpleServer server;
+	GenericServer getServer();
 
-	@Test
-	public void test100createServer()
-			throws IOException, ReflectiveOperationException, OperationsException, ServletException, MBeanException {
-		server = new SimpleServer();
-		Assert.assertTrue(server.getServer().getWebServiceNames().contains(WelcomeShutdownService.SERVICE_NAME));
-	}
-
-	@Test
-	public void test200startServer()
+	default void start()
 			throws ReflectiveOperationException, OperationsException, MBeanException, ServletException, IOException {
-		server.start();
+		getServer().start(true);
 	}
 
-	@Test
-	public void test900stopServer() {
-		server.stop();
+	default void stop() {
+		getServer().stopAll();
 	}
+
 }

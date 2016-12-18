@@ -15,6 +15,7 @@
  */
 package com.qwazr.server.test;
 
+import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.server.configuration.ServerConfiguration;
@@ -22,20 +23,24 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 import java.io.IOException;
 
-public class SimpleServer {
+public class SimpleServer implements BaseServer {
 
 	public final static String CONTEXT_ATTRIBUTE_TEST = "test";
 
 	public final String contextAttribute = RandomStringUtils.randomAlphanumeric(5);
 
-	public final GenericServer server;
+	private GenericServer server;
 
 	public SimpleServer() throws IOException {
-		final ServerConfiguration.Builder config = ServerConfiguration.of();
-		final GenericServer.Builder builder = GenericServer.of(config.build())
+		server = GenericServer.of(ServerConfiguration.of().build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
-				.webService(WelcomeShutdownService.class);
-		server = builder.build();
+				.webService(WelcomeShutdownService.class)
+				.build();
+	}
+
+	@Override
+	public GenericServer getServer() {
+		return server;
 	}
 
 }
