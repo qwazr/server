@@ -19,8 +19,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
+import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UdpServerThread extends Thread {
 
@@ -28,19 +34,24 @@ public class UdpServerThread extends Thread {
 
 	private final PacketListener[] packetListeners;
 
+	private final AtomicBoolean isShutdown;
+
 	private final InetSocketAddress socketAddress;
 	private final InetAddress multicastGroupAddress;
 	private final Integer multicastPort;
+	private volatile DatagramSocket datagramSocket;
 
 	private UdpServerThread(final InetSocketAddress socketAddress, final InetAddress multicastGroupAddress,
 			final Integer multicastPort, final Collection<PacketListener> packetListeners) {
 		super();
 		setName("UDP Server");
 		setDaemon(true);
+		this.isShutdown = new AtomicBoolean(false);
 		this.socketAddress = socketAddress;
 		this.multicastGroupAddress = multicastGroupAddress;
 		this.multicastPort = multicastPort;
 		this.packetListeners = packetListeners.toArray(new PacketListener[packetListeners.size()]);
+		this.datagramSocket = null;
 	}
 
 	public UdpServerThread(final InetSocketAddress socketAddress, final Collection<PacketListener> packetListeners) {
@@ -57,11 +68,12 @@ public class UdpServerThread extends Thread {
 		try (final DatagramSocket socket = multicastGroupAddress != null ?
 				new MulticastSocket(multicastPort) :
 				new DatagramSocket(socketAddress)) {
+			this.datagramSocket = socket;
 			if (multicastGroupAddress != null)
 				((MulticastSocket) socket).joinGroup(multicastGroupAddress);
 			if (LOGGER.isInfoEnabled())
 				LOGGER.info("UDP Server started: " + socket.getLocalSocketAddress());
-			for (; ; ) {
+			while (!isShutdown.get()) {
 				final byte[] dataBuffer = new byte[65536];
 				final DatagramPacket datagramPacket = new DatagramPacket(dataBuffer, dataBuffer.length);
 				socket.receive(datagramPacket);
@@ -74,7 +86,8 @@ public class UdpServerThread extends Thread {
 				}
 			}
 		} catch (IOException e) {
-			throw new RuntimeException("Cannot start the server " + socketAddress, e);
+			if (!isShutdown.get())
+				throw new RuntimeException("Error on UDP server " + socketAddress, e);
 		} finally {
 			if (LOGGER.isInfoEnabled())
 				LOGGER.info("UDP Server exit: " + socketAddress);
@@ -90,10 +103,17 @@ public class UdpServerThread extends Thread {
 		this.start();
 	}
 
-	public void shutdown() {
-		if (isInterrupted())
-			return;
-		this.interrupt();
+	public void shutdown() throws InterruptedException, IOException {
+		isShutdown.set(true);
+		if (datagramSocket != null) {
+			if (multicastGroupAddress != null)
+				((MulticastSocket) datagramSocket).leaveGroup(multicastGroupAddress);
+			if (datagramSocket.isConnected())
+				datagramSocket.disconnect();
+			if (!datagramSocket.isClosed())
+				datagramSocket.close();
+			datagramSocket = null;
+		}
 	}
 
 	public interface PacketListener {

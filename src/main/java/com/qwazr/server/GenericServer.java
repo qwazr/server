@@ -161,8 +161,14 @@ final public class GenericServer {
 
 		executeListener(shutdownListeners);
 
-		if (udpServer != null)
-			udpServer.shutdown();
+		if (udpServer != null) {
+			try {
+				udpServer.shutdown();
+			} catch (IOException | InterruptedException e) {
+				if (LOGGER.isWarnEnabled())
+					LOGGER.warn(e.getMessage(), e);
+			}
+		}
 
 		for (DeploymentManager manager : deploymentManagers) {
 			try {
