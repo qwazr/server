@@ -28,7 +28,7 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class UdpServerThread extends Thread {
+class UdpServerThread extends Thread {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(UdpServerThread.class);
 
@@ -54,11 +54,11 @@ public class UdpServerThread extends Thread {
 		this.datagramSocket = null;
 	}
 
-	public UdpServerThread(final InetSocketAddress socketAddress, final Collection<PacketListener> packetListeners) {
+	UdpServerThread(final InetSocketAddress socketAddress, final Collection<PacketListener> packetListeners) {
 		this(socketAddress, null, null, packetListeners);
 	}
 
-	public UdpServerThread(final String multicastGroupAddress, final int multicastPort,
+	UdpServerThread(final String multicastGroupAddress, final int multicastPort,
 			final Collection<PacketListener> packetListeners) throws UnknownHostException {
 		this(null, InetAddress.getByName(multicastGroupAddress), multicastPort, packetListeners);
 	}
@@ -97,17 +97,22 @@ public class UdpServerThread extends Thread {
 	/**
 	 * Start or restart the thread if it is stopped
 	 */
-	public synchronized void checkStarted() throws UnknownHostException {
+	synchronized void checkStarted() throws UnknownHostException {
 		if (isAlive())
 			return;
 		this.start();
 	}
 
-	public void shutdown() throws InterruptedException, IOException {
+	void shutdown() throws InterruptedException {
 		isShutdown.set(true);
 		if (datagramSocket != null) {
-			if (multicastGroupAddress != null)
-				((MulticastSocket) datagramSocket).leaveGroup(multicastGroupAddress);
+			if (multicastGroupAddress != null) {
+				try {
+					((MulticastSocket) datagramSocket).leaveGroup(multicastGroupAddress);
+				} catch (IOException e) {
+					LOGGER.warn(e.getMessage(), e);
+				}
+			}
 			if (datagramSocket.isConnected())
 				datagramSocket.disconnect();
 			if (!datagramSocket.isClosed())

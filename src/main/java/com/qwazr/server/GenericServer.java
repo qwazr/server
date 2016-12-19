@@ -165,7 +165,7 @@ final public class GenericServer {
 		if (udpServer != null) {
 			try {
 				udpServer.shutdown();
-			} catch (IOException | InterruptedException e) {
+			} catch (InterruptedException e) {
 				if (LOGGER.isWarnEnabled())
 					LOGGER.warn(e.getMessage(), e);
 			}
