@@ -28,7 +28,7 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-class UdpServerThread extends Thread {
+public class UdpServerThread extends Thread {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(UdpServerThread.class);
 
