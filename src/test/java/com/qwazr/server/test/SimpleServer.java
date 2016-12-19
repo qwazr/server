@@ -22,6 +22,8 @@ import com.qwazr.server.configuration.ServerConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SimpleServer implements BaseServer {
 
@@ -32,7 +34,8 @@ public class SimpleServer implements BaseServer {
 	private GenericServer server;
 
 	public SimpleServer() throws IOException {
-		server = GenericServer.of(ServerConfiguration.of().build())
+		final ExecutorService executorService = Executors.newCachedThreadPool();
+		server = GenericServer.of(ServerConfiguration.of().build(), executorService)
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.webService(WelcomeShutdownService.class)
 				.build();

@@ -92,7 +92,8 @@ final public class GenericServer {
 
 		this.configuration = builder.configuration;
 
-		this.executorService = Executors.newCachedThreadPool();
+		this.executorService =
+				builder.executorService == null ? Executors.newCachedThreadPool() : builder.executorService;
 		this.servletContainer = Servlets.newContainer();
 
 		builder.contextAttribute(this);
@@ -324,13 +325,14 @@ final public class GenericServer {
 
 	}
 
-	public static Builder of(ServerConfiguration config) {
-		return new Builder(config);
+	public static Builder of(ServerConfiguration config, ExecutorService executorService) {
+		return new Builder(config, executorService);
 	}
 
 	public static class Builder {
 
 		final ServerConfiguration configuration;
+		final ExecutorService executorService;
 		final Map<String, Object> contextAttributes;
 		final Collection<Class<?>> webServices;
 		final Collection<String> webServicePaths;
@@ -349,8 +351,9 @@ final public class GenericServer {
 		final Collection<GenericServer.Listener> startedListeners;
 		final Collection<GenericServer.Listener> shutdownListeners;
 
-		private Builder(final ServerConfiguration configuration) {
+		private Builder(final ServerConfiguration configuration, final ExecutorService executorService) {
 			this.configuration = configuration;
+			this.executorService = executorService;
 			contextAttributes = new LinkedHashMap<>();
 			webServices = new LinkedHashSet<>();
 			webServicePaths = new LinkedHashSet<>();
