@@ -16,6 +16,8 @@
 package com.qwazr.server.test;
 
 import com.qwazr.server.WelcomeShutdownService;
+import com.qwazr.utils.http.HttpRequest;
+import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -42,6 +44,13 @@ public class SimpleServerTest {
 	public void test200startServer()
 			throws ReflectiveOperationException, OperationsException, MBeanException, ServletException, IOException {
 		server.start();
+		Assert.assertNotNull(server.contextAttribute);
+	}
+
+	@Test
+	public void test300servlet() throws IOException {
+		Assert.assertEquals(server.contextAttribute,
+				EntityUtils.toString(HttpRequest.Get("http://localhost:9090/test").execute().getEntity()));
 	}
 
 	@Test

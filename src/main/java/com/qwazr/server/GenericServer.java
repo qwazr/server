@@ -37,6 +37,7 @@ import javax.management.MBeanException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.OperationsException;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.ws.rs.Path;
 import java.io.IOException;
@@ -128,6 +129,37 @@ final public class GenericServer {
 	public void forEachServicePath(final Consumer<String> consumer) {
 		if (webServicePaths != null)
 			webServicePaths.forEach(consumer::accept);
+	}
+
+	/**
+	 * Returns the named attribute. The method checks the type of the object.
+	 *
+	 * @param context
+	 * @param name
+	 * @param type
+	 * @param <T>
+	 * @return
+	 */
+	public static <T> T getContextAttribute(final ServletContext context, final String name, final Class<T> type) {
+		final Object object = context.getAttribute(name);
+		if (object == null)
+			return null;
+		if (!object.getClass().isAssignableFrom(type))
+			throw new RuntimeException(
+					"Wrong returned type: " + object.getClass().getName() + " - Expected: " + type.getName());
+		return (T) object;
+	}
+
+	/**
+	 * Returns an attribute where the name of the attribute in the name of the class
+	 *
+	 * @param context
+	 * @param cls
+	 * @param <T>
+	 * @return
+	 */
+	public static <T> T getContextAttribute(final ServletContext context, final Class<T> cls) {
+		return getContextAttribute(context, cls.getName(), cls);
 	}
 
 	public Collection<String> getWebServiceNames() {

@@ -24,7 +24,7 @@ public abstract class AbstractServiceImpl implements ServiceInterface {
 	protected ServletContext context;
 
 	protected <T> T getContextAttribute(final Class<T> clazz) {
-		return context == null ? null : (T) context.getAttribute(clazz.getName());
+		return GenericServer.getContextAttribute(context, clazz);
 	}
 
 }

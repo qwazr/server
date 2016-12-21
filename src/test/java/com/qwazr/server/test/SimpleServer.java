@@ -17,6 +17,7 @@ package com.qwazr.server.test;
 
 import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
+import com.qwazr.server.SecurableServletInfo;
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.server.configuration.ServerConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -38,6 +39,8 @@ public class SimpleServer implements BaseServer {
 		server = GenericServer.of(ServerConfiguration.of().build(), executorService)
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.webService(WelcomeShutdownService.class)
+				.servlet((SecurableServletInfo) SecurableServletInfo.servlet("test", SimpleServlet.class)
+						.addMapping("/test"))
 				.build();
 	}
 
