@@ -47,6 +47,7 @@ import java.io.InputStream;
 
 public abstract class JsonClientAbstract implements JsonClientInterface {
 
+	public final static String CONTENT_TYPE_JSON_UTF8 = ContentType.APPLICATION_JSON.toString();
 	private final static int DEFAULT_TIMEOUT;
 
 	static {
@@ -101,7 +102,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		setBody(request, bodyObject);
 		final JsonHttpResponseHandler.JsonValueResponse<T> responseHandler =
 				new JsonHttpResponseHandler.JsonValueResponse<T>(jsonResultClass, validator);
-		request.addHeader("Accept", ContentType.APPLICATION_JSON.toString());
+		request.addHeader("Accept", CONTENT_TYPE_JSON_UTF8);
 		return HttpClients.HTTP_CLIENT.execute(request.request, responseHandler, getContext(msTimeOut));
 	}
 
@@ -114,8 +115,6 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 			throw ServerException.getServerException(e).getJsonException();
 		}
 	}
-
-	private final static String CONTENT_TYPE_JSON_UTF8 = ContentType.APPLICATION_JSON.toString();
 
 	private <T> T executeJsonEx(final HttpRequest request, final Object bodyObject, final Integer msTimeOut,
 			final TypeReference<T> typeRef, final ResponseValidator validator) throws IOException {
@@ -137,8 +136,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 	private JsonNode executeJsonNodeEx(final HttpRequest request, final Object bodyObject, final Integer msTimeOut,
 			final ResponseValidator validator) throws IOException {
 		setBody(request, bodyObject);
-		return HttpClients.HTTP_CLIENT.execute(
-				request.addHeader("accept", ContentType.APPLICATION_JSON.toString()).request,
+		return HttpClients.HTTP_CLIENT.execute(request.addHeader("accept", CONTENT_TYPE_JSON_UTF8).request,
 				new JsonHttpResponseHandler.JsonTreeResponse(validator), getContext(msTimeOut));
 	}
 
