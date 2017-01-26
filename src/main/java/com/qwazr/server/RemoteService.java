@@ -89,7 +89,7 @@ public class RemoteService {
 		serviceAddress = null;
 	}
 
-	private RemoteService(final Builder builder) {
+	protected RemoteService(final Builder builder) {
 		this.scheme = builder.scheme == null ? "http" : builder.scheme;
 		this.host = builder.host == null ? "localhost" : builder.host;
 		this.path = builder.getPathSegment(0);
