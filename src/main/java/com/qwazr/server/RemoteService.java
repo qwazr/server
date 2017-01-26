@@ -29,6 +29,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class RemoteService {
@@ -88,7 +89,7 @@ public class RemoteService {
 		serviceAddress = null;
 	}
 
-	public RemoteService(final Builder builder) {
+	private RemoteService(final Builder builder) {
 		this.scheme = builder.scheme == null ? "http" : builder.scheme;
 		this.host = builder.host == null ? "localhost" : builder.host;
 		this.path = builder.getPathSegment(0);
@@ -100,21 +101,47 @@ public class RemoteService {
 		this.serviceAddress = (this.serverAddress + '/' + (this.path == null ? StringUtils.EMPTY : this.path)).intern();
 	}
 
-	public RemoteService(final URI uri) {
-		this(new Builder(uri));
-	}
-
-	public RemoteService(final String url) throws URISyntaxException {
-		this(new Builder(url));
-	}
-
-	public RemoteService(final URI uri, final Integer timeout) {
-		this(new Builder(uri).setTimeout(timeout));
+	@Override
+	public boolean equals(final Object o) {
+		if (o == null || !(o instanceof RemoteService))
+			return false;
+		final RemoteService rs = (RemoteService) o;
+		if (!Objects.equals(scheme, rs.scheme))
+			return false;
+		if (!Objects.equals(host, rs.host))
+			return false;
+		if (!Objects.equals(port, rs.port))
+			return false;
+		if (!Objects.equals(path, rs.path))
+			return false;
+		if (!Objects.equals(timeout, rs.timeout))
+			return false;
+		if (!Objects.equals(username, rs.username))
+			return false;
+		if (!Objects.equals(password, rs.password))
+			return false;
+		if (!Objects.equals(serverAddress, rs.serverAddress))
+			return false;
+		if (!Objects.equals(serviceAddress, rs.serviceAddress))
+			return false;
+		return true;
 	}
 
 	@JsonIgnore
 	final public Credentials getCredentials() {
 		return username == null ? null : new UsernamePasswordCredentials(username, password);
+	}
+
+	public static Builder of() {
+		return new Builder();
+	}
+
+	public static Builder of(final URI uri) {
+		return new Builder(uri);
+	}
+
+	public static Builder of(final String url) throws URISyntaxException {
+		return new Builder(url);
 	}
 
 	public static class Builder {
@@ -130,7 +157,7 @@ public class RemoteService {
 		private String password;
 		private MultivaluedMap<String, String> queryParams;
 
-		public Builder() {
+		private Builder() {
 			initialURI = null;
 			scheme = null;
 			host = null;
@@ -142,7 +169,7 @@ public class RemoteService {
 			queryParams = null;
 		}
 
-		public Builder(final URI uri) {
+		private Builder(final URI uri) {
 			initialURI = uri;
 			setScheme(uri.getScheme());
 			setHost(uri.getHost());
@@ -152,7 +179,7 @@ public class RemoteService {
 			setQuery(uri.getQuery());
 		}
 
-		public Builder(final String url) throws URISyntaxException {
+		private Builder(final String url) throws URISyntaxException {
 			this(new URI(url));
 		}
 
