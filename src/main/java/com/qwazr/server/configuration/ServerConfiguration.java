@@ -405,21 +405,23 @@ public class ServerConfiguration implements ConfigurationProperties {
 			return this;
 		}
 
-		public Builder group(final String group) {
-			if (group != null)
-				groups.add(group);
+		public Builder group(final String... groups) {
+			if (groups != null)
+				for (String group : groups)
+					this.groups.add(group);
 			return this;
 		}
 
-		public Builder etcFilter(final String etcFilter) {
-			if (etcFilter != null)
-				etcFilters.add(etcFilter);
+		public Builder etcFilter(final String... etcFilters) {
+			if (etcFilters != null)
+				Collections.addAll(this.etcFilters, etcFilters);
 			return this;
 		}
 
-		public Builder etcDirectory(final File etcDirectory) {
-			if (etcDirectory != null)
-				etcDirectories.add(etcDirectory.getAbsolutePath());
+		public Builder etcDirectory(final File... etcDirectories) {
+			if (etcDirectories != null)
+				for (File etcDirectory : etcDirectories)
+					this.etcDirectories.add(etcDirectory.getAbsolutePath());
 			return this;
 		}
 
