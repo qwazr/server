@@ -405,9 +405,21 @@ public class ServerConfiguration implements ConfigurationProperties {
 			return this;
 		}
 
+		public Builder master(final Collection<String> masters) {
+			if (masters != null)
+				this.masters.addAll(masters);
+			return this;
+		}
+
 		public Builder group(final String... groups) {
 			if (groups != null)
 				Collections.addAll(this.groups, groups);
+			return this;
+		}
+
+		public Builder group(final Collection<String> groups) {
+			if (groups != null)
+				this.groups.addAll(groups);
 			return this;
 		}
 
@@ -417,7 +429,20 @@ public class ServerConfiguration implements ConfigurationProperties {
 			return this;
 		}
 
-		public Builder etcDirectory(final File... etcDirectories) {
+		public Builder etcFilter(final Collection<String> etcFilters) {
+			if (etcFilters != null)
+				this.etcFilters.addAll(etcFilters);
+			return this;
+		}
+
+		public Builder etcDirectory(File... etcDirectories) {
+			if (etcDirectories != null)
+				for (File etcDirectory : etcDirectories)
+					this.etcDirectories.add(etcDirectory.getAbsolutePath());
+			return this;
+		}
+
+		public Builder etcDirectory(final Collection<File> etcDirectories) {
 			if (etcDirectories != null)
 				for (File etcDirectory : etcDirectories)
 					this.etcDirectories.add(etcDirectory.getAbsolutePath());

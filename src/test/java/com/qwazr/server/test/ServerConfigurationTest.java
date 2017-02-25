@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Properties;
 
 public class ServerConfigurationTest {
@@ -217,9 +218,10 @@ public class ServerConfigurationTest {
 		ServerConfiguration config = ServerConfiguration.of()
 				.data(dataDir)
 				.temp(tempDir)
-				.etcDirectory(etcDir)
-				.etcDirectory(confDir)
-				.etcFilter("*.json")
+				.etcDirectory(etcDir, confDir)
+				.etcDirectory(Arrays.asList(etcDir, confDir))
+				.etcFilter("*.json", "*.json")
+				.etcFilter(Arrays.asList("*.json", "*.json"))
 				.publicAddress("localhost")
 				.listenAddress("0.0.0.0")
 				.webAppRealm("webapprealm")
@@ -228,8 +230,10 @@ public class ServerConfigurationTest {
 				.webServiceRealm("webservicerealm")
 				.multicastPort(9392)
 				.multicastAddress("224.0.0.1")
-				.group("group1")
-				.master("localhost:9090")
+				.group("group1", "group2")
+				.group(Arrays.asList("group1", "group2"))
+				.master("localhost:9090", "localhost:9091")
+				.master(Arrays.asList("localhost:9090", "localhost:9091"))
 				.build();
 		Assert.assertEquals(dataDir, config.dataDirectory);
 		Assert.assertEquals(tempDir, config.tempDirectory);
@@ -244,6 +248,9 @@ public class ServerConfigurationTest {
 		Assert.assertEquals(9392, config.multicastConnector.port);
 		Assert.assertEquals("224.0.0.1", config.multicastConnector.address);
 		Assert.assertTrue(config.groups.contains("group1"));
-		Assert.assertEquals(1, config.groups.size());
+		Assert.assertTrue(config.groups.contains("group2"));
+		Assert.assertTrue(config.masters.contains("localhost:9090"));
+		Assert.assertTrue(config.masters.contains("localhost:9091"));
+		Assert.assertEquals(2, config.groups.size());
 	}
 }
