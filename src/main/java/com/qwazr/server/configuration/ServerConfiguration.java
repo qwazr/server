@@ -399,16 +399,15 @@ public class ServerConfiguration implements ConfigurationProperties {
 			return this;
 		}
 
-		public Builder master(final String master) {
-			if (master != null)
-				masters.add(master);
+		public Builder master(final String... masters) {
+			if (masters != null)
+				Collections.addAll(this.masters, masters);
 			return this;
 		}
 
 		public Builder group(final String... groups) {
 			if (groups != null)
-				for (String group : groups)
-					this.groups.add(group);
+				Collections.addAll(this.groups, groups);
 			return this;
 		}
 
