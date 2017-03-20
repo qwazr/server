@@ -19,6 +19,10 @@
         <url>git@github.com:qwazr/server.git</url>
     </scm>
 
+    <properties>
+        <undertow.version>1.4.11.Final</undertow.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.qwazr</groupId>
