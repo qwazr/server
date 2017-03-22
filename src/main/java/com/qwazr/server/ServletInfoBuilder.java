@@ -29,7 +29,7 @@ import javax.servlet.annotation.ServletSecurity;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
 
-class ServletInfoBuilder {
+public class ServletInfoBuilder {
 
 	public static ServletInfo of(Class<? extends Servlet> servletClass) {
 		final ServletInfo servletInfo;
