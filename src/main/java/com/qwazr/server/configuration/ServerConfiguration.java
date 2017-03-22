@@ -109,12 +109,16 @@ public class ServerConfiguration implements ConfigurationProperties {
 
 		//Set the connectors
 		webAppConnector = new WebConnector(publicAddress, getIntegerProperty(WEBAPP_PORT, null), 9090,
+				WebConnector.Authentication.valueOf(
+						getStringProperty(WEBAPP_AUTHENTICATION, WebConnector.Authentication.NONE.name())),
 				getStringProperty(WEBAPP_REALM, null));
 		webServiceConnector = new WebConnector(publicAddress, getIntegerProperty(WEBSERVICE_PORT, null), 9091,
+				WebConnector.Authentication.valueOf(
+						getStringProperty(WEBSERVICE_AUTHENTICATION, WebConnector.Authentication.NONE.name())),
 				getStringProperty(WEBSERVICE_REALM, null));
 		multicastConnector =
 				new WebConnector(getStringProperty(MULTICAST_ADDR, null), getIntegerProperty(MULTICAST_PORT, null),
-						9091, null);
+						9091, null, null);
 
 		// Collect the master address.
 		final LinkedHashSet<String> set = new LinkedHashSet<>();
@@ -205,13 +209,20 @@ public class ServerConfiguration implements ConfigurationProperties {
 
 	public static class WebConnector {
 
+		public enum Authentication {
+			NONE, BASIC, DIGEST
+		}
+
+		public final Authentication authentication;
 		public final String address;
 		public final String realm;
 		public final int port;
 		public final String addressPort;
 
-		private WebConnector(final String address, final Integer port, final int defaulPort, final String realm) {
+		private WebConnector(final String address, final Integer port, final int defaulPort,
+				final Authentication authentication, final String realm) {
 			this.address = address;
+			this.authentication = authentication == null ? Authentication.NONE : authentication;
 			this.realm = realm;
 			this.port = port == null ? defaulPort : port;
 			this.addressPort = this.address == null ? null : this.address + ":" + this.port;
@@ -461,9 +472,21 @@ public class ServerConfiguration implements ConfigurationProperties {
 			return this;
 		}
 
+		public Builder webAppAuthentication(WebConnector.Authentication authentication) {
+			if (authentication != null)
+				map.put(WEBAPP_AUTHENTICATION, authentication.name());
+			return this;
+		}
+
 		public Builder webAppRealm(String webAppRealm) {
 			if (webAppRealm != null)
 				map.put(WEBAPP_REALM, webAppRealm);
+			return this;
+		}
+
+		public Builder webServiceAuthentication(WebConnector.Authentication authentication) {
+			if (authentication != null)
+				map.put(WEBSERVICE_AUTHENTICATION, authentication.name());
 			return this;
 		}
 

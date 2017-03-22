@@ -18,7 +18,11 @@ package com.qwazr.server;
 import io.undertow.security.idm.IdentityManager;
 import io.undertow.server.session.SessionListener;
 import io.undertow.servlet.Servlets;
-import io.undertow.servlet.api.*;
+import io.undertow.servlet.api.DeploymentInfo;
+import io.undertow.servlet.api.FilterInfo;
+import io.undertow.servlet.api.ListenerInfo;
+import io.undertow.servlet.api.ServletInfo;
+import io.undertow.servlet.api.SessionPersistenceManager;
 
 import javax.servlet.DispatcherType;
 import java.util.Collection;

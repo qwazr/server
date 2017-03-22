@@ -20,7 +20,7 @@ import javax.servlet.annotation.ServletSecurity;
 import javax.servlet.annotation.WebServlet;
 
 @WebServlet("/secured")
-@ServletSecurity(value = @HttpConstraint(rolesAllowed = { "secured" }))
+@ServletSecurity(@HttpConstraint(rolesAllowed = { "secured" }))
 public class SecuredServlet extends SimpleServlet {
 
 }

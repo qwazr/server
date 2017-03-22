@@ -15,24 +15,34 @@
  */
 package com.qwazr.server;
 
+import com.qwazr.utils.CharsetUtils;
 import io.undertow.security.idm.Account;
 import io.undertow.security.idm.Credential;
+import io.undertow.security.idm.DigestCredential;
 import io.undertow.security.idm.IdentityManager;
+import io.undertow.security.idm.PasswordCredential;
+import io.undertow.util.HexConverter;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.auth.UsernamePasswordCredentials;
 
+import java.security.MessageDigest;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MemoryIdentityManager implements IdentityManager {
 
-	private final ConcurrentHashMap<String, BasicAccount> accounts = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, UserAccount> accounts = new ConcurrentHashMap<>();
 
-	public void add(String id, String name, String password, String... roles) {
+	public void addBasic(String id, String name, String password, String... roles) {
 		accounts.put(id, new BasicAccount(name, password, roles));
+	}
+
+	public void addDigest(String realm, String id, String name, String password, String... roles) {
+		accounts.put(id, new DigestAccount(realm, name, password, roles));
 	}
 
 	@Override
@@ -54,15 +64,13 @@ public class MemoryIdentityManager implements IdentityManager {
 		return null;
 	}
 
-	private static class BasicAccount implements Account, Principal {
+	private static abstract class UserAccount implements Account, Principal {
 
 		private final String name;
-		private final String password;
 		private final Set<String> roles;
 
-		private BasicAccount(String name, String password, String... roles) {
+		protected UserAccount(String name, String... roles) {
 			this.name = name;
-			this.password = password;
 			if (roles == null || roles.length == 0)
 				this.roles = Collections.emptySet();
 			else {
@@ -86,12 +94,53 @@ public class MemoryIdentityManager implements IdentityManager {
 			return name;
 		}
 
-		private Account check(final Credential credential) {
-			if (!(credential instanceof UsernamePasswordCredentials))
+		protected abstract Account check(final Credential credential);
+	}
+
+	private static class BasicAccount extends UserAccount {
+
+		private final char[] password;
+
+		private BasicAccount(String name, String password, String... roles) {
+			super(name, roles);
+			this.password = password.toCharArray();
+		}
+
+		@Override
+		protected Account check(final Credential credential) {
+			if (!(credential instanceof PasswordCredential))
 				return null;
-			final UsernamePasswordCredentials usernamePasswordCredentials = (UsernamePasswordCredentials) credential;
-			return Objects.equals(password, usernamePasswordCredentials.getPassword()) ? this : null;
+			final PasswordCredential passwordCredential = (PasswordCredential) credential;
+			return Arrays.equals(password, passwordCredential.getPassword()) ? this : null;
 		}
 	}
-	
+
+	private static class DigestAccount extends UserAccount {
+
+		private final byte[] digestPassword;
+
+		private DigestAccount(String realm, String name, String password, String... roles) {
+			super(name, roles);
+			final MessageDigest digest = DigestUtils.getMd5Digest();
+			try {
+				digest.update(getPrincipal().getName().getBytes(CharsetUtils.CharsetUTF8));
+				digest.update((byte) ':');
+				digest.update(realm.getBytes(CharsetUtils.CharsetUTF8));
+				digest.update((byte) ':');
+				digest.update(password.getBytes(CharsetUtils.CharsetUTF8));
+				digestPassword = HexConverter.convertToHexBytes(digest.digest());
+			} finally {
+				digest.reset();
+			}
+		}
+
+		@Override
+		protected Account check(final Credential credential) {
+			if (!(credential instanceof DigestCredential))
+				return null;
+			final DigestCredential digestCredential = (DigestCredential) credential;
+			return digestCredential.verifyHA1(digestPassword) ? this : null;
+		}
+	}
+
 }

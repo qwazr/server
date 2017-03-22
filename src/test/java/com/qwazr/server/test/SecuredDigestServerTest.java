@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Emmanuel Keller / QWAZR
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package com.qwazr.server.test;
 
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.utils.http.HttpRequest;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.impl.auth.DigestScheme;
 import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -29,14 +31,14 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class SimpleServerTest {
+public class SecuredDigestServerTest {
 
-	private static SimpleServer server;
+	private static SecuredDigestServer server;
 
 	@Test
 	public void test100createServer()
 			throws IOException, ReflectiveOperationException, OperationsException, ServletException, MBeanException {
-		server = new SimpleServer();
+		server = new SecuredDigestServer();
 		Assert.assertTrue(server.getServer().getWebServiceNames().contains(WelcomeShutdownService.SERVICE_NAME));
 	}
 
@@ -51,6 +53,34 @@ public class SimpleServerTest {
 	public void test300SimpleServlet() throws IOException {
 		Assert.assertEquals(server.contextAttribute,
 				EntityUtils.toString(HttpRequest.Get("http://localhost:9090/test").execute().getEntity()));
+	}
+
+	@Test
+	public void test400SecuredNonAuthServlet() throws IOException {
+		Assert.assertEquals(401,
+				HttpRequest.Get("http://localhost:9090/secured").execute().getStatusLine().getStatusCode());
+	}
+
+	@Test
+	public void test410SecuredLoginSuccessfulServlet() throws IOException {
+		Assert.assertEquals(200, HttpRequest.Get("http://localhost:9090/secured")
+				.execute(getDigestAuthContext(server.digestUsername, server.digestPassword))
+				.getStatusLine()
+				.getStatusCode());
+	}
+
+	@Test
+	public void test415SecuredLoginFailureServlet() throws IOException {
+		Assert.assertEquals(401, HttpRequest.Get("http://localhost:9090/secured")
+				.execute(getDigestAuthContext(server.digestUsername, "--"))
+				.getStatusLine()
+				.getStatusCode());
+	}
+
+	HttpClientContext getDigestAuthContext(String username, String password) {
+		DigestScheme digestAuth = new DigestScheme();
+		digestAuth.overrideParamter("realm", server.realm);
+		return SecuredBasicServerTest.getAuthContext(digestAuth, username, password);
 	}
 
 	@Test

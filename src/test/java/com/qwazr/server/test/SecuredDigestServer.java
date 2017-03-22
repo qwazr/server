@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Emmanuel Keller / QWAZR
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.qwazr.server.test;
 
 import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
+import com.qwazr.server.MemoryIdentityManager;
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.server.configuration.ServerConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -25,20 +26,33 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SimpleServer implements BaseServer {
+public class SecuredDigestServer implements BaseServer {
 
 	public final static String CONTEXT_ATTRIBUTE_TEST = "test";
 
 	public final String contextAttribute = RandomStringUtils.randomAlphanumeric(5);
 
+	public final String digestUsername = RandomStringUtils.randomAlphanumeric(8);
+
+	public final String digestPassword = RandomStringUtils.randomAlphanumeric(12);
+
+	public final String realm = RandomStringUtils.randomAlphanumeric(6);
+
 	private GenericServer server;
 
-	public SimpleServer() throws IOException {
+	public SecuredDigestServer() throws IOException {
 		final ExecutorService executorService = Executors.newCachedThreadPool();
-		server = GenericServer.of(ServerConfiguration.of().build(), executorService)
+		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
+		identityManager.addDigest(realm, digestUsername, digestUsername, digestPassword, "secured");
+		server = GenericServer.of(ServerConfiguration.of()
+				.webAppRealm(realm)
+				.webAppAuthentication(ServerConfiguration.WebConnector.Authentication.DIGEST)
+				.build(), executorService)
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
+				.identityManagerProvider(realm -> identityManager)
 				.webService(WelcomeShutdownService.class)
 				.servlet(SimpleServlet.class)
+				.servlet(SecuredServlet.class)
 				.build();
 	}
 
