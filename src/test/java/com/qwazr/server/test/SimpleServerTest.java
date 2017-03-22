@@ -17,6 +17,15 @@ package com.qwazr.server.test;
 
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.utils.http.HttpRequest;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.AuthCache;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -48,9 +57,37 @@ public class SimpleServerTest {
 	}
 
 	@Test
-	public void test300servlet() throws IOException {
+	public void test300SimpleServlet() throws IOException {
 		Assert.assertEquals(server.contextAttribute,
 				EntityUtils.toString(HttpRequest.Get("http://localhost:9090/test").execute().getEntity()));
+	}
+
+	@Test
+	public void test400SecuredNonAuthServlet() throws IOException {
+		Assert.assertEquals(403,
+				HttpRequest.Get("http://localhost:9090/secured").execute().getStatusLine().getStatusCode());
+	}
+
+	@Test
+	public void test400SecuredLoginServlet() throws IOException {
+
+		HttpHost target = new HttpHost("localhost", 9090, "http");
+		// Create AuthCache instance
+		AuthCache authCache = new BasicAuthCache();
+		// Generate BASIC scheme object and add it to the local
+		// auth cache
+		BasicScheme basicAuth = new BasicScheme();
+		authCache.put(target, basicAuth);
+
+		CredentialsProvider credsProvider = new BasicCredentialsProvider();
+		credsProvider.setCredentials(new AuthScope(target.getHostName(), target.getPort()),
+				new UsernamePasswordCredentials(server.username, server.password));
+		HttpClientContext localContext = HttpClientContext.create();
+		localContext.setCredentialsProvider(credsProvider);
+		localContext.setAuthCache(authCache);
+
+		Assert.assertEquals(200,
+				HttpRequest.Get("http://localhost:9090/secured").execute(localContext).getStatusLine().getStatusCode());
 	}
 
 	@Test

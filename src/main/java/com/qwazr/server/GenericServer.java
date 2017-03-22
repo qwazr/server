@@ -37,6 +37,7 @@ import javax.management.MBeanException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.OperationsException;
+import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.ws.rs.Path;
@@ -77,7 +78,7 @@ final public class GenericServer {
 
 	final private ServerConfiguration configuration;
 
-	final private Collection<SecurableServletInfo> servletInfos;
+	final private Collection<ServletInfo> servletInfos;
 	final private Map<String, FilterInfo> filterInfos;
 	final private Collection<ListenerInfo> listenerInfos;
 	final private SessionPersistenceManager sessionPersistenceManager;
@@ -370,7 +371,7 @@ final public class GenericServer {
 		final Collection<String> webServicePaths;
 		final Collection<String> webServiceNames;
 		final Collection<UdpServerThread.PacketListener> packetListeners;
-		final Collection<SecurableServletInfo> servletInfos;
+		final Collection<ServletInfo> servletInfos;
 		final Collection<ServletInfo> securedServlets;
 		final Map<String, FilterInfo> filterInfos;
 		final Collection<ListenerInfo> listenerInfos;
@@ -439,8 +440,13 @@ final public class GenericServer {
 			return contextAttribute(object.getClass().getName(), object);
 		}
 
-		public Builder servlet(final SecurableServletInfo servlet) {
+		public Builder servlet(final ServletInfo servlet) {
 			this.servletInfos.add(servlet);
+			return this;
+		}
+
+		public Builder servlet(final Class<? extends Servlet> servletClass) {
+			this.servletInfos.add(ServletInfoBuilder.of(servletClass));
 			return this;
 		}
 

@@ -17,7 +17,7 @@ package com.qwazr.server.test;
 
 import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
-import com.qwazr.server.SecurableServletInfo;
+import com.qwazr.server.MemoryIdentityManager;
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.server.configuration.ServerConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -32,15 +32,24 @@ public class SimpleServer implements BaseServer {
 
 	public final String contextAttribute = RandomStringUtils.randomAlphanumeric(5);
 
+	public final String username = RandomStringUtils.randomAlphanumeric(8);
+
+	public final String password = RandomStringUtils.randomAlphanumeric(12);
+
+	private final String realm = RandomStringUtils.randomAlphanumeric(6);
+
 	private GenericServer server;
 
 	public SimpleServer() throws IOException {
 		final ExecutorService executorService = Executors.newCachedThreadPool();
-		server = GenericServer.of(ServerConfiguration.of().build(), executorService)
+		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
+		identityManager.add(username, password, username);
+		server = GenericServer.of(ServerConfiguration.of().webAppRealm(realm).build(), executorService)
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
+				.identityManagerProvider(realm -> identityManager)
 				.webService(WelcomeShutdownService.class)
-				.servlet((SecurableServletInfo) SecurableServletInfo.servlet("test", SimpleServlet.class)
-						.addMapping("/test"))
+				.servlet(SimpleServlet.class)
+				.servlet(SecuredServlet.class)
 				.build();
 	}
 
