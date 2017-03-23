@@ -15,6 +15,7 @@
  */
 package com.qwazr.server;
 
+import com.qwazr.utils.AnnotationsUtils;
 import com.qwazr.utils.StringUtils;
 import io.undertow.servlet.api.HttpMethodSecurityInfo;
 import io.undertow.servlet.api.SecurityInfo;
@@ -32,17 +33,19 @@ import javax.servlet.annotation.HttpMethodConstraint;
 import javax.servlet.annotation.ServletSecurity;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
+import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.core.Application;
 import java.util.Map;
 
 public class ServletInfoBuilder {
 
-	public static ServletInfo of(final String name, final Class<? extends Servlet> servletClass) {
+	public static ServletInfo servlet(final String name, final Class<? extends Servlet> servletClass) {
 		final ServletInfo servletInfo;
 
 		// WebServlet annotation
-		if (servletClass.isAnnotationPresent(WebServlet.class)) {
+		final WebServlet webServlet = AnnotationsUtils.getFirstAnnotation(servletClass, WebServlet.class);
+		if (webServlet != null) {
 
-			final WebServlet webServlet = servletClass.getAnnotation(WebServlet.class);
 			servletInfo = new ServletInfo(StringUtils.isEmpty(name) ?
 					StringUtils.isEmpty(webServlet.name()) ? servletClass.getName() : webServlet.name() :
 					name, servletClass);
@@ -59,9 +62,10 @@ public class ServletInfoBuilder {
 			servletInfo = new ServletInfo(StringUtils.isEmpty(name) ? servletClass.getName() : name, servletClass);
 
 		// ServletSecurity
-		if (servletClass.isAnnotationPresent(ServletSecurity.class)) {
+		final ServletSecurity servletSecurity =
+				AnnotationsUtils.getFirstAnnotation(servletClass, ServletSecurity.class);
+		if (servletSecurity != null) {
 
-			final ServletSecurity servletSecurity = servletClass.getAnnotation(ServletSecurity.class);
 			final ServletSecurityInfo servletSecurityInfo = new ServletSecurityInfo();
 
 			// HttpConstraint
@@ -87,6 +91,16 @@ public class ServletInfoBuilder {
 		return servletInfo;
 	}
 
+	public static ServletInfo jaxrs(String name, Class<? extends Application> applicationClass) {
+		final ServletInfo servletInfo = new ServletInfo(StringUtils.isEmpty(name) ? applicationClass.getName() : name,
+				ServletContainer.class).addInitParam("javax.ws.rs.Application", applicationClass.getName());
+		final ApplicationPath path = AnnotationsUtils.getFirstAnnotation(applicationClass, ApplicationPath.class);
+		servletInfo.setAsyncSupported(true)
+				.addMapping(path == null ? StringUtils.EMPTY : path.value())
+				.setLoadOnStartup(1);
+		return servletInfo;
+	}
+
 	static boolean isJaxRsAuthentication(final ClassLoader classLoader, final ServletInfo servletInfo)
 			throws ClassNotFoundException {
 		Class<? extends Servlet> servletClass = servletInfo.getServletClass();
@@ -104,6 +118,10 @@ public class ServletInfoBuilder {
 							return true;
 					}
 				}
+				final String appClass = initParams.get("javax.ws.rs.Application");
+				if (!StringUtils.isEmpty(appClass))
+					if (isJaxRsAuthentication(classLoader.loadClass(appClass)))
+						return true;
 			}
 		}
 		return isJaxRsAuthentication(servletClass);

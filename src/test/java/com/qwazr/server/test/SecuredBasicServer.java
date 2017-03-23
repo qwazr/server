@@ -53,6 +53,7 @@ public class SecuredBasicServer implements BaseServer {
 				.webService(WelcomeShutdownService.class)
 				.servlet(SimpleServlet.class)
 				.servlet(SecuredServlet.class)
+				.jaxrs(TestJaxRsAppAuth.class)
 				.build();
 	}
 

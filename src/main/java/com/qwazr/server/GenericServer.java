@@ -41,6 +41,7 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.ws.rs.Path;
+import javax.ws.rs.core.Application;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
@@ -449,11 +450,19 @@ final public class GenericServer {
 		}
 
 		public Builder servlet(final String name, final Class<? extends Servlet> servletClass) {
-			return servlet(ServletInfoBuilder.of(name, servletClass));
+			return servlet(ServletInfoBuilder.servlet(name, servletClass));
 		}
 
 		public Builder servlet(final Class<? extends Servlet> servletClass) {
 			return servlet(null, servletClass);
+		}
+
+		public Builder jaxrs(final String name, final Class<? extends Application> applicationClass) {
+			return servlet(ServletInfoBuilder.jaxrs(name, applicationClass));
+		}
+
+		public Builder jaxrs(final Class<? extends Application> applicationClass) {
+			return jaxrs(null, applicationClass);
 		}
 
 		public Builder filter(final String path, final FilterInfo filter) {

@@ -85,6 +85,26 @@ public class SecuredBasicServerTest {
 				.getStatusCode());
 	}
 
+	@Test
+	public void test500AppJaxRsAuth() throws IOException {
+		Assert.assertEquals(401, HttpRequest.Get("http://localhost:9090/jaxrs-app-auth/auth/test")
+				.execute()
+				.getStatusLine()
+				.getStatusCode());
+		Assert.assertEquals(401, HttpRequest.Get("http://localhost:9090/jaxrs-app-auth/auth/test")
+				.execute(getBasicAuthContext(server.basicUsername, "--"))
+				.getStatusLine()
+				.getStatusCode());
+		Assert.assertEquals(403, HttpRequest.Get("http://localhost:9090/jaxrs-app-auth/auth/wrong-role")
+				.execute(getBasicAuthContext(server.basicUsername, server.basicPassword))
+				.getStatusLine()
+				.getStatusCode());
+		Assert.assertEquals(200, HttpRequest.Get("http://localhost:9090/jaxrs-app-auth/auth/test")
+				.execute(getBasicAuthContext(server.basicUsername, server.basicPassword))
+				.getStatusLine()
+				.getStatusCode());
+	}
+
 	static HttpClientContext getAuthContext(AuthScheme authScheme, String username, String password) {
 		HttpHost target = new HttpHost("localhost", 9090, "http");
 		AuthCache authCache = new BasicAuthCache();
