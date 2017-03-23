@@ -242,7 +242,7 @@ final public class GenericServer {
 
 		contextAttributes.forEach(deploymentInfo::addServletContextAttribute);
 
-		if (deploymentInfo.getIdentityManager() != null)
+		if (deploymentInfo.getIdentityManager() != null && connector.authentication != null)
 			deploymentInfo.setLoginConfig(Servlets.loginConfig(connector.authentication.name(), connector.realm));
 
 		final DeploymentManager manager = servletContainer.addDeployment(deploymentInfo);

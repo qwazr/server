@@ -109,12 +109,10 @@ public class ServerConfiguration implements ConfigurationProperties {
 
 		//Set the connectors
 		webAppConnector = new WebConnector(publicAddress, getIntegerProperty(WEBAPP_PORT, null), 9090,
-				WebConnector.Authentication.valueOf(
-						getStringProperty(WEBAPP_AUTHENTICATION, WebConnector.Authentication.NONE.name())),
+				WebConnector.Authentication.find(getStringProperty(WEBAPP_AUTHENTICATION, null)),
 				getStringProperty(WEBAPP_REALM, null));
 		webServiceConnector = new WebConnector(publicAddress, getIntegerProperty(WEBSERVICE_PORT, null), 9091,
-				WebConnector.Authentication.valueOf(
-						getStringProperty(WEBSERVICE_AUTHENTICATION, WebConnector.Authentication.NONE.name())),
+				WebConnector.Authentication.find(getStringProperty(WEBSERVICE_AUTHENTICATION, null)),
 				getStringProperty(WEBSERVICE_REALM, null));
 		multicastConnector =
 				new WebConnector(getStringProperty(MULTICAST_ADDR, null), getIntegerProperty(MULTICAST_PORT, null),
@@ -210,7 +208,15 @@ public class ServerConfiguration implements ConfigurationProperties {
 	public static class WebConnector {
 
 		public enum Authentication {
-			NONE, BASIC, DIGEST
+			BASIC, DIGEST;
+
+			public static Authentication find(String name) {
+				try {
+					return name == null ? null : valueOf(name);
+				} catch (IllegalArgumentException e) {
+					return null;
+				}
+			}
 		}
 
 		public final Authentication authentication;
@@ -222,7 +228,7 @@ public class ServerConfiguration implements ConfigurationProperties {
 		private WebConnector(final String address, final Integer port, final int defaulPort,
 				final Authentication authentication, final String realm) {
 			this.address = address;
-			this.authentication = authentication == null ? Authentication.NONE : authentication;
+			this.authentication = authentication;
 			this.realm = realm;
 			this.port = port == null ? defaulPort : port;
 			this.addressPort = this.address == null ? null : this.address + ":" + this.port;
