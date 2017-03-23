@@ -21,6 +21,7 @@ import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.FilterInfo;
 import io.undertow.servlet.api.ListenerInfo;
+import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.SessionPersistenceManager;
 
@@ -33,7 +34,7 @@ class ServletApplication {
 	static DeploymentInfo getDeploymentInfo(final Collection<ServletInfo> servletInfos,
 			final IdentityManager identityManager, final Map<String, FilterInfo> filterInfos,
 			final Collection<ListenerInfo> listenersInfos, final SessionPersistenceManager sessionPersistenceManager,
-			final SessionListener sessionListener) {
+			final SessionListener sessionListener, final ClassLoader classLoader) throws ClassNotFoundException {
 
 		final DeploymentInfo deploymentInfo = Servlets.deployment()
 				.setClassLoader(Thread.currentThread().getContextClassLoader())
@@ -47,8 +48,18 @@ class ServletApplication {
 		if (identityManager != null)
 			deploymentInfo.setIdentityManager(identityManager);
 
-		if (servletInfos != null)
-			servletInfos.forEach(deploymentInfo::addServlet);
+		if (servletInfos != null) {
+			for (ServletInfo servletInfo : servletInfos) {
+				deploymentInfo.addServlet(servletInfo);
+				if (identityManager != null && ServletInfoBuilder.isJaxRsAuthentication(classLoader, servletInfo)) {
+					deploymentInfo.addSecurityConstraint(Servlets.securityConstraint()
+							.setEmptyRoleSemantic(SecurityInfo.EmptyRoleSemantic.AUTHENTICATE)
+							.addWebResourceCollection(
+									Servlets.webResourceCollection().addUrlPatterns(servletInfo.getMappings())));
+				}
+			}
+		}
+
 		if (filterInfos != null) {
 			filterInfos.forEach((path, filterInfo) -> {
 				deploymentInfo.addFilter(filterInfo);

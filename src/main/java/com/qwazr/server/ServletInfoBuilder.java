@@ -21,26 +21,31 @@ import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSecurityInfo;
 import io.undertow.servlet.api.TransportGuaranteeType;
+import org.glassfish.jersey.servlet.ServletContainer;
 
+import javax.annotation.security.DenyAll;
+import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import javax.servlet.Servlet;
 import javax.servlet.annotation.HttpConstraint;
 import javax.servlet.annotation.HttpMethodConstraint;
 import javax.servlet.annotation.ServletSecurity;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
+import java.util.Map;
 
 public class ServletInfoBuilder {
 
-	public static ServletInfo of(Class<? extends Servlet> servletClass) {
+	public static ServletInfo of(final String name, final Class<? extends Servlet> servletClass) {
 		final ServletInfo servletInfo;
 
 		// WebServlet annotation
 		if (servletClass.isAnnotationPresent(WebServlet.class)) {
 
 			final WebServlet webServlet = servletClass.getAnnotation(WebServlet.class);
-			servletInfo =
-					new ServletInfo(StringUtils.isEmpty(webServlet.name()) ? servletClass.getName() : webServlet.name(),
-							servletClass);
+			servletInfo = new ServletInfo(StringUtils.isEmpty(name) ?
+					StringUtils.isEmpty(webServlet.name()) ? servletClass.getName() : webServlet.name() :
+					name, servletClass);
 			servletInfo.setLoadOnStartup(webServlet.loadOnStartup());
 			servletInfo.setAsyncSupported(webServlet.asyncSupported());
 
@@ -51,7 +56,7 @@ public class ServletInfoBuilder {
 				servletInfo.addInitParam(webInitParam.name(), webInitParam.value());
 
 		} else
-			servletInfo = new ServletInfo(servletClass.getName(), servletClass);
+			servletInfo = new ServletInfo(StringUtils.isEmpty(name) ? servletClass.getName() : name, servletClass);
 
 		// ServletSecurity
 		if (servletClass.isAnnotationPresent(ServletSecurity.class)) {
@@ -79,8 +84,34 @@ public class ServletInfoBuilder {
 
 			servletInfo.setServletSecurityInfo(servletSecurityInfo);
 		}
-
 		return servletInfo;
+	}
+
+	static boolean isJaxRsAuthentication(final ClassLoader classLoader, final ServletInfo servletInfo)
+			throws ClassNotFoundException {
+		Class<? extends Servlet> servletClass = servletInfo.getServletClass();
+		if (servletClass == null)
+			return false;
+		if (servletClass.isAssignableFrom(ServletContainer.class)) {
+			final Map<String, String> initParams = servletInfo.getInitParams();
+			if (initParams != null) {
+				final String classList = initParams.get("jersey.config.server.provider.classnames");
+				if (!StringUtils.isEmpty(classList)) {
+					final String[] classes = StringUtils.split(classList, " ,");
+					for (String clazz : classes) {
+						Class<?> cl = classLoader.loadClass(clazz);
+						if (isJaxRsAuthentication(cl))
+							return true;
+					}
+				}
+			}
+		}
+		return isJaxRsAuthentication(servletClass);
+	}
+
+	static boolean isJaxRsAuthentication(Class<?> clazz) {
+		return clazz.isAnnotationPresent(RolesAllowed.class) || clazz.isAnnotationPresent(PermitAll.class)
+				|| clazz.isAnnotationPresent(DenyAll.class);
 	}
 
 	private static SecurityInfo.EmptyRoleSemantic get(ServletSecurity.EmptyRoleSemantic emptyRoleSemantic) {

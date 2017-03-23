@@ -61,6 +61,7 @@ import java.util.logging.Level;
 final public class GenericServer {
 
 	final private ExecutorService executorService;
+	final private ClassLoader classLoader;
 	final private ServletContainer servletContainer;
 
 	final private Map<String, Object> contextAttributes;
@@ -93,7 +94,7 @@ final public class GenericServer {
 	private GenericServer(final Builder builder) throws IOException {
 
 		this.configuration = builder.configuration;
-
+		this.classLoader = builder.classLoader;
 		this.executorService =
 				builder.executorService == null ? Executors.newCachedThreadPool() : builder.executorService;
 		this.servletContainer = Servlets.newContainer();
@@ -306,7 +307,7 @@ final public class GenericServer {
 			final IdentityManager identityManager = getIdentityManager(configuration.webAppConnector);
 			startHttpServer(configuration.webAppConnector,
 					ServletApplication.getDeploymentInfo(servletInfos, identityManager, filterInfos, listenerInfos,
-							sessionPersistenceManager, sessionListener), servletAccessLogger, "WEBAPP");
+							sessionPersistenceManager, sessionListener, classLoader), servletAccessLogger, "WEBAPP");
 		}
 
 		// Launch the jaxrs application if any
@@ -317,12 +318,7 @@ final public class GenericServer {
 		}
 
 		if (shutdownHook) {
-			Runtime.getRuntime().addShutdownHook(new Thread() {
-				@Override
-				public void run() {
-					stopAll();
-				}
-			});
+			Runtime.getRuntime().addShutdownHook(new Thread(() -> stopAll()));
 		}
 
 		executeListener(startedListeners);
@@ -358,14 +354,19 @@ final public class GenericServer {
 
 	}
 
+	public static Builder of(ServerConfiguration config, ExecutorService executorService, ClassLoader classLoader) {
+		return new Builder(config, executorService, classLoader);
+	}
+
 	public static Builder of(ServerConfiguration config, ExecutorService executorService) {
-		return new Builder(config, executorService);
+		return of(config, executorService, Thread.currentThread().getContextClassLoader());
 	}
 
 	public static class Builder {
 
 		final ServerConfiguration configuration;
 		final ExecutorService executorService;
+		final ClassLoader classLoader;
 		final Map<String, Object> contextAttributes;
 		final Collection<Class<?>> webServices;
 		final Collection<String> webServicePaths;
@@ -384,9 +385,11 @@ final public class GenericServer {
 		final Collection<GenericServer.Listener> startedListeners;
 		final Collection<GenericServer.Listener> shutdownListeners;
 
-		private Builder(final ServerConfiguration configuration, final ExecutorService executorService) {
+		private Builder(final ServerConfiguration configuration, final ExecutorService executorService,
+				final ClassLoader classLoader) {
 			this.configuration = configuration;
 			this.executorService = executorService;
+			this.classLoader = classLoader;
 			contextAttributes = new LinkedHashMap<>();
 			webServices = new LinkedHashSet<>();
 			webServicePaths = new LinkedHashSet<>();
@@ -445,9 +448,12 @@ final public class GenericServer {
 			return this;
 		}
 
+		public Builder servlet(final String name, final Class<? extends Servlet> servletClass) {
+			return servlet(ServletInfoBuilder.of(name, servletClass));
+		}
+
 		public Builder servlet(final Class<? extends Servlet> servletClass) {
-			this.servletInfos.add(ServletInfoBuilder.of(servletClass));
-			return this;
+			return servlet(null, servletClass);
 		}
 
 		public Builder filter(final String path, final FilterInfo filter) {
