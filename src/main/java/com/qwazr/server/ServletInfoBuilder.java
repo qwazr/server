@@ -95,10 +95,9 @@ public class ServletInfoBuilder {
 		final ServletInfo servletInfo = new ServletInfo(StringUtils.isEmpty(name) ? applicationClass.getName() : name,
 				ServletContainer.class).addInitParam("javax.ws.rs.Application", applicationClass.getName());
 		final ApplicationPath path = AnnotationsUtils.getFirstAnnotation(applicationClass, ApplicationPath.class);
-		servletInfo.setAsyncSupported(true)
-				.addMapping(path == null ? StringUtils.EMPTY : path.value())
-				.setLoadOnStartup(1);
-		return servletInfo;
+		if (path != null)
+			servletInfo.addMapping(path.value());
+		return servletInfo.setAsyncSupported(true).setLoadOnStartup(1);
 	}
 
 	static boolean isJaxRsAuthentication(final ClassLoader classLoader, final ServletInfo servletInfo)
