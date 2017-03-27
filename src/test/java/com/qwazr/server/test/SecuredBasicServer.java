@@ -15,12 +15,14 @@
  */
 package com.qwazr.server.test;
 
+import com.qwazr.server.ApplicationBuilder;
 import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
 import com.qwazr.server.MemoryIdentityManager;
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.server.configuration.ServerConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -54,6 +56,8 @@ public class SecuredBasicServer implements BaseServer {
 				.servlet(SimpleServlet.class)
 				.servlet(SecuredServlet.class)
 				.jaxrs(TestJaxRsAppAuth.class)
+				.jaxrs(new ApplicationBuilder("/jaxrs-app-auth-singletons/*").classes(RolesAllowedDynamicFeature.class)
+						.singletons(new TestJaxRsAppAuth.ServiceAuth()))
 				.build();
 	}
 

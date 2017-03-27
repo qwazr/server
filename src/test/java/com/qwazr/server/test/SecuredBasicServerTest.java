@@ -85,24 +85,30 @@ public class SecuredBasicServerTest {
 				.getStatusCode());
 	}
 
-	@Test
-	public void test500AppJaxRsAuth() throws IOException {
-		Assert.assertEquals(401, HttpRequest.Get("http://localhost:9090/jaxrs-app-auth/auth/test")
-				.execute()
-				.getStatusLine()
-				.getStatusCode());
-		Assert.assertEquals(401, HttpRequest.Get("http://localhost:9090/jaxrs-app-auth/auth/test")
+	private void checkAppAuth(String path) throws IOException {
+		Assert.assertEquals(401, HttpRequest.Get(path + "auth/test").execute().getStatusLine().getStatusCode());
+		Assert.assertEquals(401, HttpRequest.Get(path + "auth/test")
 				.execute(getBasicAuthContext(server.basicUsername, "--"))
 				.getStatusLine()
 				.getStatusCode());
-		Assert.assertEquals(403, HttpRequest.Get("http://localhost:9090/jaxrs-app-auth/auth/wrong-role")
+		Assert.assertEquals(403, HttpRequest.Get(path + "auth/wrong-role")
 				.execute(getBasicAuthContext(server.basicUsername, server.basicPassword))
 				.getStatusLine()
 				.getStatusCode());
-		Assert.assertEquals(200, HttpRequest.Get("http://localhost:9090/jaxrs-app-auth/auth/test")
+		Assert.assertEquals(200, HttpRequest.Get(path + "auth/test")
 				.execute(getBasicAuthContext(server.basicUsername, server.basicPassword))
 				.getStatusLine()
 				.getStatusCode());
+	}
+
+	@Test
+	public void test500AppJaxRsAuth() throws IOException {
+		checkAppAuth("http://localhost:9090/jaxrs-app-auth/");
+	}
+
+	@Test
+	public void test505AppJaxRsAuthSingletons() throws IOException {
+		checkAppAuth("http://localhost:9090/jaxrs-app-auth-singletons/");
 	}
 
 	static HttpClientContext getAuthContext(AuthScheme authScheme, String username, String password) {

@@ -465,6 +465,14 @@ final public class GenericServer {
 			return jaxrs(null, applicationClass);
 		}
 
+		public Builder jaxrs(final String name, final ApplicationBuilder applicationBuilder) {
+			return servlet(ServletInfoBuilder.jaxrs(name, applicationBuilder));
+		}
+
+		public Builder jaxrs(final ApplicationBuilder applicationBuilder) {
+			return jaxrs(null, applicationBuilder);
+		}
+
 		public Builder filter(final String path, final FilterInfo filter) {
 			this.filterInfos.put(path, filter);
 			return this;

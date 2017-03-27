@@ -18,11 +18,14 @@ package com.qwazr.server;
 import com.qwazr.utils.AnnotationsUtils;
 import com.qwazr.utils.StringUtils;
 import io.undertow.servlet.api.HttpMethodSecurityInfo;
+import io.undertow.servlet.api.InstanceFactory;
 import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSecurityInfo;
 import io.undertow.servlet.api.TransportGuaranteeType;
+import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.glassfish.jersey.servlet.ServletProperties;
 
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
@@ -35,6 +38,7 @@ import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
+import java.util.Collection;
 import java.util.Map;
 
 public class ServletInfoBuilder {
@@ -93,16 +97,34 @@ public class ServletInfoBuilder {
 
 	public static ServletInfo jaxrs(String name, Class<? extends Application> applicationClass) {
 		final ServletInfo servletInfo = new ServletInfo(StringUtils.isEmpty(name) ? applicationClass.getName() : name,
-				ServletContainer.class).addInitParam("javax.ws.rs.Application", applicationClass.getName());
+				ServletContainer.class).addInitParam(ServletProperties.JAXRS_APPLICATION_CLASS,
+				applicationClass.getName());
 		final ApplicationPath path = AnnotationsUtils.getFirstAnnotation(applicationClass, ApplicationPath.class);
 		if (path != null)
 			servletInfo.addMapping(path.value());
 		return servletInfo.setAsyncSupported(true).setLoadOnStartup(1);
 	}
 
+	public static ServletInfo jaxrs(String name, final ApplicationBuilder applicationBuilder) {
+		final ServletJaxRsApplication servletJaxRsApplication = new ServletJaxRsApplication(applicationBuilder);
+		final ServletInfo servletInfo = new ServletInfo(
+				StringUtils.isEmpty(name) ? applicationBuilder.getClass() + "@" + applicationBuilder.hashCode() : name,
+				servletJaxRsApplication.getClass());
+		servletInfo.setInstanceFactory(new ServletFactory.FromInstance<>(servletJaxRsApplication));
+		return servletInfo.addMappings(applicationBuilder.applicationPaths).setAsyncSupported(true).setLoadOnStartup(1);
+	}
+
 	static boolean isJaxRsAuthentication(final ClassLoader classLoader, final ServletInfo servletInfo)
 			throws ClassNotFoundException {
-		Class<? extends Servlet> servletClass = servletInfo.getServletClass();
+		final InstanceFactory<? extends Servlet> instanceFactory = servletInfo.getInstanceFactory();
+		if (instanceFactory != null && instanceFactory instanceof ServletFactory.FromInstance) {
+			final Object instance = ((ServletFactory.FromInstance) instanceFactory).instance;
+			if (instance instanceof ServletJaxRsApplication) {
+				if (((ServletJaxRsApplication) instance).isJaxRsAuthentication)
+					return true;
+			}
+		}
+		final Class<? extends Servlet> servletClass = servletInfo.getServletClass();
 		if (servletClass == null)
 			return false;
 		if (servletClass.isAssignableFrom(ServletContainer.class)) {
@@ -117,13 +139,29 @@ public class ServletInfoBuilder {
 							return true;
 					}
 				}
-				final String appClass = initParams.get("javax.ws.rs.Application");
+				final String appClass = initParams.get(ServletProperties.JAXRS_APPLICATION_CLASS);
 				if (!StringUtils.isEmpty(appClass))
 					if (isJaxRsAuthentication(classLoader.loadClass(appClass)))
 						return true;
 			}
 		}
 		return isJaxRsAuthentication(servletClass);
+	}
+
+	static boolean isJaxRsAuthentication(ResourceConfig configuration) {
+		final Collection<Class<?>> classes = configuration.getClasses();
+		if (classes != null) {
+			for (Class<?> clazz : classes)
+				if (isJaxRsAuthentication(clazz))
+					return true;
+		}
+		final Collection<Object> singletons = configuration.getSingletons();
+		if (singletons != null) {
+			for (Object singleton : singletons)
+				if (singleton != null && isJaxRsAuthentication(singleton.getClass()))
+					return true;
+		}
+		return false;
 	}
 
 	static boolean isJaxRsAuthentication(Class<?> clazz) {
