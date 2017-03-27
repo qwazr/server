@@ -46,6 +46,10 @@ public class ApplicationBuilder {
 			this.applicationPaths.addAll(applicationPaths);
 	}
 
+	public Collection<String> getApplicationPaths() {
+		return Collections.unmodifiableCollection(applicationPaths);
+	}
+
 	public ApplicationBuilder classes(Class<?>... classes) {
 		if (classes != null)
 			Collections.addAll(this.classes, classes);
