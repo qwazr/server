@@ -68,11 +68,9 @@ public class RestApplication extends Application {
 		}
 	}
 
-	static DeploymentInfo getDeploymentInfo(final IdentityManager identityManager) {
-		final DeploymentInfo deploymentInfo = Servlets.deployment()
-				.setClassLoader(RestApplication.class.getClassLoader())
-				.setContextPath("/")
-				.setDeploymentName("REST");
+	static DeploymentInfo getDeploymentInfo(final IdentityManager identityManager, final ClassLoader classLoader) {
+		final DeploymentInfo deploymentInfo =
+				Servlets.deployment().setClassLoader(classLoader).setContextPath("/").setDeploymentName("REST");
 		final Class<? extends Application> applicationClass =
 				identityManager == null ? WithoutAuth.class : WithAuth.class;
 		deploymentInfo.addServlets(

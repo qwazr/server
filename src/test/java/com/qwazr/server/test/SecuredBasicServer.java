@@ -25,8 +25,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class SecuredBasicServer implements BaseServer {
 
@@ -43,13 +41,12 @@ public class SecuredBasicServer implements BaseServer {
 	private GenericServer server;
 
 	public SecuredBasicServer() throws IOException {
-		final ExecutorService executorService = Executors.newCachedThreadPool();
 		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
 		identityManager.addBasic(basicUsername, basicUsername, basicPassword, "secured");
 		server = GenericServer.of(ServerConfiguration.of()
 				.webAppAuthentication(ServerConfiguration.WebConnector.Authentication.BASIC)
 				.webAppRealm(realm)
-				.build(), executorService)
+				.build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.identityManagerProvider(realm -> identityManager)
 				.webService(WelcomeShutdownService.class)

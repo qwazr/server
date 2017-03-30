@@ -37,7 +37,7 @@ class ServletApplication {
 			final SessionListener sessionListener, final ClassLoader classLoader) throws ClassNotFoundException {
 
 		final DeploymentInfo deploymentInfo = Servlets.deployment()
-				.setClassLoader(Thread.currentThread().getContextClassLoader())
+				.setClassLoader(classLoader)
 				.setContextPath("/")
 				.setDefaultEncoding("UTF-8")
 				.setDeploymentName(ServletApplication.class.getName());

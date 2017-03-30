@@ -95,7 +95,8 @@ final public class GenericServer {
 	private GenericServer(final Builder builder) throws IOException {
 
 		this.configuration = builder.configuration;
-		this.classLoader = builder.classLoader;
+		this.classLoader =
+				builder.classLoader == null ? Thread.currentThread().getContextClassLoader() : builder.classLoader;
 		this.executorService =
 				builder.executorService == null ? Executors.newCachedThreadPool() : builder.executorService;
 		this.servletContainer = Servlets.newContainer();
@@ -314,8 +315,8 @@ final public class GenericServer {
 		// Launch the jaxrs application if any
 		if (webServices != null && !webServices.isEmpty()) {
 			final IdentityManager identityManager = getIdentityManager(configuration.webServiceConnector);
-			startHttpServer(configuration.webServiceConnector, RestApplication.getDeploymentInfo(identityManager),
-					restAccessLogger, "WEBSERVICE");
+			startHttpServer(configuration.webServiceConnector,
+					RestApplication.getDeploymentInfo(identityManager, classLoader), restAccessLogger, "WEBSERVICE");
 		}
 
 		if (shutdownHook) {
@@ -360,7 +361,11 @@ final public class GenericServer {
 	}
 
 	public static Builder of(ServerConfiguration config, ExecutorService executorService) {
-		return of(config, executorService, Thread.currentThread().getContextClassLoader());
+		return of(config, executorService, null);
+	}
+
+	public static Builder of(ServerConfiguration config) {
+		return of(config, null);
 	}
 
 	public static class Builder {

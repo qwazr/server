@@ -23,8 +23,6 @@ import com.qwazr.server.configuration.ServerConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class SecuredDigestServer implements BaseServer {
 
@@ -41,13 +39,12 @@ public class SecuredDigestServer implements BaseServer {
 	private GenericServer server;
 
 	public SecuredDigestServer() throws IOException {
-		final ExecutorService executorService = Executors.newCachedThreadPool();
 		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
 		identityManager.addDigest(realm, digestUsername, digestUsername, digestPassword, "secured");
 		server = GenericServer.of(ServerConfiguration.of()
 				.webAppRealm(realm)
 				.webAppAuthentication(ServerConfiguration.WebConnector.Authentication.DIGEST)
-				.build(), executorService)
+				.build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.identityManagerProvider(realm -> identityManager)
 				.webService(WelcomeShutdownService.class)
