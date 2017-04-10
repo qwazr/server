@@ -454,8 +454,13 @@ final public class GenericServer {
 			return this;
 		}
 
-		public Builder servlet(final String name, final Class<? extends Servlet> servletClass) {
-			return servlet(ServletInfoBuilder.servlet(name, servletClass));
+		public <T extends Servlet> Builder servlet(final String name, final Class<T> servletClass) {
+			return servlet(name, servletClass, null);
+		}
+
+		public <T extends Servlet> Builder servlet(final String name, final Class<T> servletClass,
+				final ServletFactory<T> servletFactory) {
+			return servlet(ServletInfoBuilder.servlet(name, servletClass, servletFactory));
 		}
 
 		public Builder servlet(final Class<? extends Servlet> servletClass) {

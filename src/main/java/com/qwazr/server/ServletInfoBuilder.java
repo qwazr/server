@@ -43,16 +43,23 @@ import java.util.Map;
 
 public class ServletInfoBuilder {
 
-	public static ServletInfo servlet(final String name, final Class<? extends Servlet> servletClass) {
+	static <T extends Servlet> ServletInfo of(final String name, final Class<T> servletClass,
+			final ServletFactory<T> servletFactory) {
+		return servletFactory == null ?
+				new ServletInfo(name, servletClass) :
+				new ServletInfo(name, servletClass, servletFactory);
+	}
+
+	public static ServletInfo servlet(final String name, final Class<? extends Servlet> servletClass,
+			final ServletFactory servletFactory) {
 		final ServletInfo servletInfo;
 
 		// WebServlet annotation
 		final WebServlet webServlet = AnnotationsUtils.getFirstAnnotation(servletClass, WebServlet.class);
 		if (webServlet != null) {
-
-			servletInfo = new ServletInfo(StringUtils.isEmpty(name) ?
+			servletInfo = of(StringUtils.isEmpty(name) ?
 					StringUtils.isEmpty(webServlet.name()) ? servletClass.getName() : webServlet.name() :
-					name, servletClass);
+					name, servletClass, servletFactory);
 			servletInfo.setLoadOnStartup(webServlet.loadOnStartup());
 			servletInfo.setAsyncSupported(webServlet.asyncSupported());
 
@@ -63,7 +70,7 @@ public class ServletInfoBuilder {
 				servletInfo.addInitParam(webInitParam.name(), webInitParam.value());
 
 		} else
-			servletInfo = new ServletInfo(StringUtils.isEmpty(name) ? servletClass.getName() : name, servletClass);
+			servletInfo = of(StringUtils.isEmpty(name) ? servletClass.getName() : name, servletClass, servletFactory);
 
 		// ServletSecurity
 		final ServletSecurity servletSecurity =
