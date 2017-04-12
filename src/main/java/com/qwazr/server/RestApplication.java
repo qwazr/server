@@ -62,7 +62,7 @@ public class RestApplication extends Application {
 	public static class WithAuth extends WithoutAuth {
 
 		public Set<Class<?>> getClasses() {
-			Set<Class<?>> classes = super.getClasses();
+			final Set<Class<?>> classes = super.getClasses();
 			classes.add(RolesAllowedDynamicFeature.class);
 			return classes;
 		}
