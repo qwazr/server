@@ -212,7 +212,7 @@ public class ServerConfiguration implements ConfigurationProperties {
 
 			public static Authentication find(String name) {
 				try {
-					return name == null ? null : valueOf(name);
+					return name == null ? null : valueOf(name.toUpperCase());
 				} catch (IllegalArgumentException e) {
 					return null;
 				}
