@@ -51,7 +51,7 @@ class ServletApplication {
 		if (servletInfos != null) {
 			for (ServletInfo servletInfo : servletInfos) {
 				deploymentInfo.addServlet(servletInfo);
-				if (identityManager != null && ServletInfoBuilder.isJaxRsAuthentication(classLoader, servletInfo)) {
+				if (identityManager != null && ServletInfoBuilder.isSecurity(classLoader, servletInfo)) {
 					deploymentInfo.addSecurityConstraint(Servlets.securityConstraint()
 							.setEmptyRoleSemantic(SecurityInfo.EmptyRoleSemantic.AUTHENTICATE)
 							.addWebResourceCollection(

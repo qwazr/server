@@ -121,13 +121,13 @@ public class ServletInfoBuilder {
 		return servletInfo.addMappings(applicationBuilder.applicationPaths).setAsyncSupported(true).setLoadOnStartup(1);
 	}
 
-	static boolean isJaxRsAuthentication(final ClassLoader classLoader, final ServletInfo servletInfo)
+	static boolean isSecurity(final ClassLoader classLoader, final ServletInfo servletInfo)
 			throws ClassNotFoundException {
 		final InstanceFactory<? extends Servlet> instanceFactory = servletInfo.getInstanceFactory();
 		if (instanceFactory != null && instanceFactory instanceof ServletFactory.FromInstance) {
 			final Object instance = ((ServletFactory.FromInstance) instanceFactory).instance;
 			if (instance instanceof ServletJaxRsApplication) {
-				if (((ServletJaxRsApplication) instance).isJaxRsAuthentication)
+				if (((ServletJaxRsApplication) instance).isSecurity)
 					return true;
 			}
 		}
@@ -142,38 +142,38 @@ public class ServletInfoBuilder {
 					final String[] classes = StringUtils.split(classList, " ,");
 					for (String clazz : classes) {
 						Class<?> cl = classLoader.loadClass(clazz);
-						if (isJaxRsAuthentication(cl))
+						if (isSecurity(cl))
 							return true;
 					}
 				}
 				final String appClass = initParams.get(ServletProperties.JAXRS_APPLICATION_CLASS);
 				if (!StringUtils.isEmpty(appClass))
-					if (isJaxRsAuthentication(classLoader.loadClass(appClass)))
+					if (isSecurity(classLoader.loadClass(appClass)))
 						return true;
 			}
 		}
-		return isJaxRsAuthentication(servletClass);
+		return isSecurity(servletClass);
 	}
 
-	static boolean isJaxRsAuthentication(ResourceConfig configuration) {
+	static boolean isSecurity(ResourceConfig configuration) {
 		final Collection<Class<?>> classes = configuration.getClasses();
 		if (classes != null) {
 			for (Class<?> clazz : classes)
-				if (isJaxRsAuthentication(clazz))
+				if (isSecurity(clazz))
 					return true;
 		}
 		final Collection<Object> singletons = configuration.getSingletons();
 		if (singletons != null) {
 			for (Object singleton : singletons)
-				if (singleton != null && isJaxRsAuthentication(singleton.getClass()))
+				if (singleton != null && isSecurity(singleton.getClass()))
 					return true;
 		}
 		return false;
 	}
 
-	static boolean isJaxRsAuthentication(Class<?> clazz) {
+	static boolean isSecurity(Class<?> clazz) {
 		return clazz.isAnnotationPresent(RolesAllowed.class) || clazz.isAnnotationPresent(PermitAll.class)
-				|| clazz.isAnnotationPresent(DenyAll.class);
+				|| clazz.isAnnotationPresent(DenyAll.class) || clazz.isAnnotationPresent(HttpConstraint.class);
 	}
 
 	private static SecurityInfo.EmptyRoleSemantic get(ServletSecurity.EmptyRoleSemantic emptyRoleSemantic) {

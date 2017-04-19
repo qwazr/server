@@ -20,14 +20,14 @@ import org.glassfish.jersey.servlet.ServletContainer;
 
 public class ServletJaxRsApplication extends ServletContainer {
 
-	final boolean isJaxRsAuthentication;
+	final boolean isSecurity;
 
 	public ServletJaxRsApplication() {
-		isJaxRsAuthentication = false;
+		isSecurity = false;
 	}
 
 	ServletJaxRsApplication(ApplicationBuilder applicationBuilder) {
 		super(applicationBuilder.build());
-		isJaxRsAuthentication = ServletInfoBuilder.isJaxRsAuthentication(applicationBuilder.cache);
+		isSecurity = ServletInfoBuilder.isSecurity(applicationBuilder.cache);
 	}
 }
