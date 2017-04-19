@@ -16,6 +16,7 @@
 package com.qwazr.server;
 
 import com.qwazr.utils.AnnotationsUtils;
+import com.qwazr.utils.ClassLoaderUtils;
 import com.qwazr.utils.StringUtils;
 import io.undertow.servlet.api.HttpMethodSecurityInfo;
 import io.undertow.servlet.api.InstanceFactory;
@@ -113,27 +114,31 @@ public class ServletInfoBuilder {
 	}
 
 	public static ServletInfo jaxrs(String name, final ApplicationBuilder applicationBuilder) {
-		final ServletJaxRsApplication servletJaxRsApplication = new ServletJaxRsApplication(applicationBuilder);
+		final JaxRsServlet jaxRsServlet = new JaxRsServlet(applicationBuilder.build());
 		final ServletInfo servletInfo = new ServletInfo(
 				StringUtils.isEmpty(name) ? applicationBuilder.getClass() + "@" + applicationBuilder.hashCode() : name,
-				servletJaxRsApplication.getClass());
-		servletInfo.setInstanceFactory(new GenericFactory.FromInstance<>(servletJaxRsApplication));
-		return servletInfo.addMappings(applicationBuilder.applicationPaths).setAsyncSupported(true).setLoadOnStartup(1);
+				jaxRsServlet.getClass());
+		servletInfo.setInstanceFactory(new GenericFactory.FromInstance<>(jaxRsServlet));
+		servletInfo.addMappings(applicationBuilder.applicationPaths).setAsyncSupported(true).setLoadOnStartup(1);
+		return servletInfo;
 	}
 
-	static boolean isSecurity(final ClassLoader classLoader, final ServletInfo servletInfo)
-			throws ClassNotFoundException {
-		final InstanceFactory<? extends Servlet> instanceFactory = servletInfo.getInstanceFactory();
+	static boolean isJaxRsAuthentication(final ServletInfo servletInfo)
+			throws ClassNotFoundException, InstantiationException {
+
+		// Check if this is a JaxRsServlet
+		final InstanceFactory instanceFactory = servletInfo.getInstanceFactory();
 		if (instanceFactory != null && instanceFactory instanceof GenericFactory.FromInstance) {
-			final Object instance = ((GenericFactory.FromInstance) instanceFactory).instance;
-			if (instance instanceof ServletJaxRsApplication) {
-				if (((ServletJaxRsApplication) instance).isSecurity)
-					return true;
-			}
+			final Object instance = instanceFactory.createInstance().getInstance();
+			if (instance != null && instance instanceof JaxRsServlet)
+				return isJaxRsAuthentication(((JaxRsServlet) instance).resourceConfig);
 		}
+
 		final Class<? extends Servlet> servletClass = servletInfo.getServletClass();
 		if (servletClass == null)
 			return false;
+
+		// Check a generic ServletContainer
 		if (servletClass.isAssignableFrom(ServletContainer.class)) {
 			final Map<String, String> initParams = servletInfo.getInitParams();
 			if (initParams != null) {
@@ -141,37 +146,38 @@ public class ServletInfoBuilder {
 				if (!StringUtils.isEmpty(classList)) {
 					final String[] classes = StringUtils.split(classList, " ,");
 					for (String clazz : classes) {
-						Class<?> cl = classLoader.loadClass(clazz);
-						if (isSecurity(cl))
+						Class<?> cl = ClassLoaderUtils.findClass(clazz);
+						if (isJaxRsAuthentication(cl))
 							return true;
 					}
 				}
 				final String appClass = initParams.get(ServletProperties.JAXRS_APPLICATION_CLASS);
 				if (!StringUtils.isEmpty(appClass))
-					if (isSecurity(classLoader.loadClass(appClass)))
+					if (isJaxRsAuthentication(ClassLoaderUtils.findClass(appClass)))
 						return true;
 			}
 		}
-		return isSecurity(servletClass);
+
+		return isJaxRsAuthentication(servletClass);
 	}
 
-	static boolean isSecurity(ResourceConfig configuration) {
+	private static boolean isJaxRsAuthentication(ResourceConfig configuration) {
 		final Collection<Class<?>> classes = configuration.getClasses();
 		if (classes != null) {
 			for (Class<?> clazz : classes)
-				if (isSecurity(clazz))
+				if (isJaxRsAuthentication(clazz))
 					return true;
 		}
 		final Collection<Object> singletons = configuration.getSingletons();
 		if (singletons != null) {
 			for (Object singleton : singletons)
-				if (singleton != null && isSecurity(singleton.getClass()))
+				if (singleton != null && isJaxRsAuthentication(singleton.getClass()))
 					return true;
 		}
 		return false;
 	}
 
-	static boolean isSecurity(Class<?> clazz) {
+	private static boolean isJaxRsAuthentication(Class<?> clazz) {
 		return clazz.isAnnotationPresent(RolesAllowed.class) || clazz.isAnnotationPresent(PermitAll.class)
 				|| clazz.isAnnotationPresent(DenyAll.class) || clazz.isAnnotationPresent(ServletSecurity.class);
 	}

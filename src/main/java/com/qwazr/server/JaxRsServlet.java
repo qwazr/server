@@ -13,21 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.qwazr.server;
 
+import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 
-public class ServletJaxRsApplication extends ServletContainer {
+class JaxRsServlet extends ServletContainer {
 
-	final boolean isSecurity;
+	final ResourceConfig resourceConfig;
 
-	public ServletJaxRsApplication() {
-		isSecurity = false;
+	public JaxRsServlet() {
+		this(null);
 	}
 
-	ServletJaxRsApplication(ApplicationBuilder applicationBuilder) {
-		super(applicationBuilder.build());
-		isSecurity = ServletInfoBuilder.isSecurity(applicationBuilder.cache);
+	JaxRsServlet(ResourceConfig resourceConfig) {
+		super(resourceConfig);
+		this.resourceConfig = resourceConfig;
 	}
 }

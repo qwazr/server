@@ -86,7 +86,7 @@ public class SecuredBasicServerTest {
 	}
 
 	private void checkAppAuth(String path) throws IOException {
-		Assert.assertEquals(403, HttpRequest.Get(path + "auth/test").execute().getStatusLine().getStatusCode());
+		Assert.assertEquals(401, HttpRequest.Get(path + "auth/test").execute().getStatusLine().getStatusCode());
 		Assert.assertEquals(401, HttpRequest.Get(path + "auth/test")
 				.execute(getBasicAuthContext(server.basicUsername, "--"))
 				.getStatusLine()
