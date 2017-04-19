@@ -173,7 +173,7 @@ public class ServletInfoBuilder {
 
 	static boolean isSecurity(Class<?> clazz) {
 		return clazz.isAnnotationPresent(RolesAllowed.class) || clazz.isAnnotationPresent(PermitAll.class)
-				|| clazz.isAnnotationPresent(DenyAll.class) || clazz.isAnnotationPresent(HttpConstraint.class);
+				|| clazz.isAnnotationPresent(DenyAll.class) || clazz.isAnnotationPresent(ServletSecurity.class);
 	}
 
 	private static SecurityInfo.EmptyRoleSemantic get(ServletSecurity.EmptyRoleSemantic emptyRoleSemantic) {
