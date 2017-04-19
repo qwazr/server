@@ -18,8 +18,6 @@ package com.qwazr.server.test;
 import com.qwazr.server.GenericServer;
 
 import javax.servlet.ServletConfig;
-import javax.servlet.annotation.HttpConstraint;
-import javax.servlet.annotation.ServletSecurity;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -27,7 +25,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @WebServlet("/test")
-@ServletSecurity(@HttpConstraint(ServletSecurity.EmptyRoleSemantic.PERMIT))
 public class SimpleServlet extends HttpServlet {
 
 	private String testString;
