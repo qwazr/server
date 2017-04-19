@@ -208,6 +208,7 @@ public class ServerConfiguration implements ConfigurationProperties {
 	public static class WebConnector {
 
 		public enum Authentication {
+
 			BASIC, DIGEST;
 
 			public static Authentication find(String name) {
@@ -217,6 +218,7 @@ public class ServerConfiguration implements ConfigurationProperties {
 					return null;
 				}
 			}
+
 		}
 
 		public final Authentication authentication;

@@ -21,7 +21,6 @@ import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.FilterInfo;
 import io.undertow.servlet.api.ListenerInfo;
-import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.SessionPersistenceManager;
 
@@ -48,24 +47,16 @@ class ServletApplication {
 		if (identityManager != null)
 			deploymentInfo.setIdentityManager(identityManager);
 
-		if (servletInfos != null) {
-			for (ServletInfo servletInfo : servletInfos) {
-				deploymentInfo.addServlet(servletInfo);
-				if (identityManager != null && ServletInfoBuilder.isSecurity(classLoader, servletInfo)) {
-					deploymentInfo.addSecurityConstraint(Servlets.securityConstraint()
-							.setEmptyRoleSemantic(SecurityInfo.EmptyRoleSemantic.AUTHENTICATE)
-							.addWebResourceCollection(
-									Servlets.webResourceCollection().addUrlPatterns(servletInfo.getMappings())));
-				}
-			}
-		}
+		if (servletInfos != null)
+			deploymentInfo.addServlets(servletInfos);
 
 		if (filterInfos != null) {
 			filterInfos.forEach((path, filterInfo) -> {
-				deploymentInfo.addFilter(filterInfo);
+				deploymentInfo.addFilters(filterInfo);
 				deploymentInfo.addFilterUrlMapping(filterInfo.getName(), path, DispatcherType.REQUEST);
 			});
 		}
+
 		if (listenersInfos != null)
 			deploymentInfo.addListeners(listenersInfos);
 		if (sessionListener != null)
