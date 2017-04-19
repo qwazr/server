@@ -44,14 +44,14 @@ import java.util.Map;
 public class ServletInfoBuilder {
 
 	static <T extends Servlet> ServletInfo of(final String name, final Class<T> servletClass,
-			final ServletFactory<T> servletFactory) {
-		return servletFactory == null ?
+			final GenericFactory<T> instanceFactory) {
+		return instanceFactory == null ?
 				new ServletInfo(name, servletClass) :
-				new ServletInfo(name, servletClass, servletFactory);
+				new ServletInfo(name, servletClass, instanceFactory);
 	}
 
 	public static ServletInfo servlet(final String name, final Class<? extends Servlet> servletClass,
-			final ServletFactory servletFactory) {
+			final GenericFactory instanceFactory) {
 		final ServletInfo servletInfo;
 
 		// WebServlet annotation
@@ -59,7 +59,7 @@ public class ServletInfoBuilder {
 		if (webServlet != null) {
 			servletInfo = of(StringUtils.isEmpty(name) ?
 					StringUtils.isEmpty(webServlet.name()) ? servletClass.getName() : webServlet.name() :
-					name, servletClass, servletFactory);
+					name, servletClass, instanceFactory);
 			servletInfo.setLoadOnStartup(webServlet.loadOnStartup());
 			servletInfo.setAsyncSupported(webServlet.asyncSupported());
 
@@ -70,7 +70,7 @@ public class ServletInfoBuilder {
 				servletInfo.addInitParam(webInitParam.name(), webInitParam.value());
 
 		} else
-			servletInfo = of(StringUtils.isEmpty(name) ? servletClass.getName() : name, servletClass, servletFactory);
+			servletInfo = of(StringUtils.isEmpty(name) ? servletClass.getName() : name, servletClass, instanceFactory);
 
 		// ServletSecurity
 		final ServletSecurity servletSecurity =
@@ -117,15 +117,15 @@ public class ServletInfoBuilder {
 		final ServletInfo servletInfo = new ServletInfo(
 				StringUtils.isEmpty(name) ? applicationBuilder.getClass() + "@" + applicationBuilder.hashCode() : name,
 				servletJaxRsApplication.getClass());
-		servletInfo.setInstanceFactory(new ServletFactory.FromInstance<>(servletJaxRsApplication));
+		servletInfo.setInstanceFactory(new GenericFactory.FromInstance<>(servletJaxRsApplication));
 		return servletInfo.addMappings(applicationBuilder.applicationPaths).setAsyncSupported(true).setLoadOnStartup(1);
 	}
 
 	static boolean isSecurity(final ClassLoader classLoader, final ServletInfo servletInfo)
 			throws ClassNotFoundException {
 		final InstanceFactory<? extends Servlet> instanceFactory = servletInfo.getInstanceFactory();
-		if (instanceFactory != null && instanceFactory instanceof ServletFactory.FromInstance) {
-			final Object instance = ((ServletFactory.FromInstance) instanceFactory).instance;
+		if (instanceFactory != null && instanceFactory instanceof GenericFactory.FromInstance) {
+			final Object instance = ((GenericFactory.FromInstance) instanceFactory).instance;
 			if (instance instanceof ServletJaxRsApplication) {
 				if (((ServletJaxRsApplication) instance).isSecurity)
 					return true;

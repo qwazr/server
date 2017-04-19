@@ -19,11 +19,9 @@ import io.undertow.servlet.api.InstanceFactory;
 import io.undertow.servlet.api.InstanceHandle;
 import io.undertow.servlet.util.ImmediateInstanceHandle;
 
-import javax.servlet.Servlet;
+public interface GenericFactory<T> extends InstanceFactory<T> {
 
-public interface ServletFactory<S extends Servlet> extends InstanceFactory<S> {
-
-	class FromInstance<T extends Servlet> implements ServletFactory<T> {
+	class FromInstance<T> implements InstanceFactory<T> {
 
 		protected final T instance;
 
