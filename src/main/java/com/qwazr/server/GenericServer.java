@@ -234,9 +234,10 @@ final public class GenericServer {
 	}
 
 	private IdentityManager getIdentityManager(final ServerConfiguration.WebConnector connector) throws IOException {
-		if (identityManagerProvider == null || connector == null || connector.realm == null)
+		if (identityManagerProvider == null)
 			return null;
-		return identityManagerProvider.getIdentityManager(connector.realm);
+		return identityManagerProvider.getIdentityManager(
+				connector == null || connector.realm == null ? null : connector.realm);
 	}
 
 	private void startHttpServer(final ServerConfiguration.WebConnector connector, final DeploymentInfo deploymentInfo,

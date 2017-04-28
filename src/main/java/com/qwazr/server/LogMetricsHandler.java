@@ -97,7 +97,7 @@ public class LogMetricsHandler implements HttpHandler, ConnectorStatisticsMXBean
 
 	private class CompletionListener implements ExchangeCompletionListener {
 
-		private final long startTime = System.currentTimeMillis();
+		private final long newTime = System.currentTimeMillis();
 
 		@Override
 		final public void exchangeEvent(final HttpServerExchange exchange, final NextListener nextListener) {
@@ -108,6 +108,8 @@ public class LogMetricsHandler implements HttpHandler, ConnectorStatisticsMXBean
 
 				final InetSocketAddress destinationAddress = exchange.getDestinationAddress();
 				final InetSocketAddress sourceAddress = exchange.getSourceAddress();
+
+				final long startTime = exchange.getRequestStartTime();
 
 				final long endTime = System.currentTimeMillis();
 
@@ -125,7 +127,7 @@ public class LogMetricsHandler implements HttpHandler, ConnectorStatisticsMXBean
 				MDC.put("s-ip", destinationAddress.getAddress().getHostAddress());
 				MDC.put("s-port", Integer.toString(destinationAddress.getPort()));
 				MDC.put("time", getTime(calendar));
-				MDC.put("time-taken", Long.toString(endTime - startTime));
+				MDC.put("time-taken", Long.toString(endTime - (startTime == -1 ? newTime : startTime)));
 				MDC.put("cs-bytes", Long.toString(exchange.getRequestContentLength()));
 				MDC.put("sc-bytes", Long.toString(exchange.getResponseBytesSent()));
 
