@@ -36,15 +36,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MemoryIdentityManager implements IdentityManager {
 
 	private final ConcurrentHashMap<String, UserAccount> accounts;
-	private final Account guestAccount;
-
-	public MemoryIdentityManager(final Account guestAccount) {
-		this.accounts = new ConcurrentHashMap<>();
-		this.guestAccount = guestAccount;
-	}
 
 	public MemoryIdentityManager() {
-		this(null);
+		this.accounts = new ConcurrentHashMap<>();
 	}
 
 	public void addBasic(String id, String name, String password, String... roles) {
@@ -63,7 +57,7 @@ public class MemoryIdentityManager implements IdentityManager {
 	@Override
 	public Account verify(String id, Credential credential) {
 		final UserAccount account = accounts.get(id);
-		return account == null ? guestAccount : account.check(credential);
+		return account == null ? null : account.check(credential);
 	}
 
 	@Override
