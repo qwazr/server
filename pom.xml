@@ -20,7 +20,7 @@
     </scm>
 
     <properties>
-        <undertow.version>1.4.11.Final</undertow.version>
+        <undertow.version>1.4.13.Final</undertow.version>
     </properties>
 
     <dependencies>
@@ -58,22 +58,22 @@
         <dependency>
             <groupId>org.jboss.logging</groupId>
             <artifactId>jboss-logging</artifactId>
-            <version>3.2.1.Final</version>
+            <version>3.3.1.Final</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpmime</artifactId>
-            <version>${httpclient.version}</version>
+            <version>4.5.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpcore</artifactId>
-            <version>${httpcore.version}</version>
+            <version>4.4.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpcore-nio</artifactId>
-            <version>${httpcore.version}</version>
+            <version>4.4.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -89,7 +89,7 @@
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-servlet</artifactId>
-            <version>${jersey.version}</version>
+            <version>2.25.1</version>
         </dependency>
     </dependencies>
 
