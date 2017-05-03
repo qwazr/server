@@ -55,7 +55,7 @@ class ServletInfoBuilder {
 	}
 
 	static ServletInfo servlet(final String name, final Class<? extends Servlet> servletClass,
-			final GenericFactory instanceFactory) {
+			final GenericFactory instanceFactory, final String... urlPatterns) {
 
 		final ServletInfo servletInfo;
 
@@ -69,6 +69,8 @@ class ServletInfoBuilder {
 
 			servletInfo.addMappings(webServlet.value());
 			servletInfo.addMappings(webServlet.urlPatterns());
+			if (urlPatterns != null)
+				servletInfo.addMappings(urlPatterns);
 
 			for (WebInitParam webInitParam : webServlet.initParams())
 				servletInfo.addInitParam(webInitParam.name(), webInitParam.value());
@@ -215,5 +217,5 @@ class ServletInfoBuilder {
 		}
 		return null;
 	}
-	
+
 }

@@ -33,9 +33,8 @@ public class SimpleServer implements BaseServer {
 
 	public SimpleServer() throws IOException {
 		server = GenericServer.of(ServerConfiguration.of().build())
-							  .contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
-							  .webService(WelcomeShutdownService.class).servlet(SimpleServlet.class)
-							  .filter(SimpleFilter.class).build();
+				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute).webService(WelcomeShutdownService.class)
+				.servlet(SimpleServlet.class, "test_bis").filter(SimpleFilter.class).build();
 	}
 
 	@Override

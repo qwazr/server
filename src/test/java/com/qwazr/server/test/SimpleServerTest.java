@@ -49,10 +49,17 @@ public class SimpleServerTest {
 	}
 
 	@Test
-	public void test300SimpleServlet() throws IOException {
+	public void test300SimpleServletWithFilter() throws IOException {
 		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9090/test").execute()) {
 			Assert.assertEquals(server.contextAttribute, EntityUtils.toString(response.getEntity()));
 			Assert.assertEquals(SimpleFilter.TEST_VALUE, response.getFirstHeader(SimpleFilter.HEADER_NAME).getValue());
+		}
+	}
+
+	@Test
+	public void test301SimpleServletUrlMappingBis() throws IOException {
+		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9090/test_bis").execute()) {
+			Assert.assertEquals(server.contextAttribute, EntityUtils.toString(response.getEntity()));
 		}
 	}
 

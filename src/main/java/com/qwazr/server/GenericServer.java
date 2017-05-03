@@ -472,17 +472,18 @@ final public class GenericServer {
 			return this;
 		}
 
-		public <T extends Servlet> Builder servlet(final String name, final Class<T> servletClass) {
-			return servlet(name, servletClass, null);
+		public <T extends Servlet> Builder servlet(final String name, final Class<T> servletClass,
+				final String... urlPatterns) {
+			return servlet(name, servletClass, null, urlPatterns);
 		}
 
 		public <T extends Servlet> Builder servlet(final String name, final Class<T> servletClass,
-				final GenericFactory<T> instanceFactory) {
-			return servlet(ServletInfoBuilder.servlet(name, servletClass, instanceFactory));
+				final GenericFactory<T> instanceFactory, final String... urlPatterns) {
+			return servlet(ServletInfoBuilder.servlet(name, servletClass, instanceFactory, urlPatterns));
 		}
 
-		public Builder servlet(final Class<? extends Servlet> servletClass) {
-			return servlet(null, servletClass);
+		public Builder servlet(final Class<? extends Servlet> servletClass, final String... urlPatterns) {
+			return servlet(null, servletClass, urlPatterns);
 		}
 
 		public Builder jaxrs(final String name, final Class<? extends Application> applicationClass) {
