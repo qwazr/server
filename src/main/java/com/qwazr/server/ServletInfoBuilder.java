@@ -69,8 +69,6 @@ public class ServletInfoBuilder {
 
 			servletInfo.addMappings(webServlet.value());
 			servletInfo.addMappings(webServlet.urlPatterns());
-			if (urlPatterns != null)
-				servletInfo.addMappings(urlPatterns);
 
 			for (WebInitParam webInitParam : webServlet.initParams())
 				servletInfo.addInitParam(webInitParam.name(), webInitParam.value());
@@ -78,6 +76,9 @@ public class ServletInfoBuilder {
 		} else
 			servletInfo = of(StringUtils.isEmpty(name) ? servletClass.getName() : name, servletClass, instanceFactory);
 
+		if (urlPatterns != null)
+			servletInfo.addMappings(urlPatterns);
+		
 		// ServletSecurity
 		final ServletSecurity servletSecurity =
 				AnnotationsUtils.getFirstAnnotation(servletClass, ServletSecurity.class);
