@@ -45,7 +45,7 @@ import javax.ws.rs.core.Application;
 import java.util.Collection;
 import java.util.Map;
 
-class ServletInfoBuilder {
+public class ServletInfoBuilder {
 
 	static <T extends Servlet> ServletInfo of(final String name, final Class<T> servletClass,
 			final GenericFactory<T> instanceFactory) {
@@ -54,7 +54,7 @@ class ServletInfoBuilder {
 				new ServletInfo(name, servletClass, instanceFactory);
 	}
 
-	static ServletInfo servlet(final String name, final Class<? extends Servlet> servletClass,
+	public static ServletInfo servlet(final String name, final Class<? extends Servlet> servletClass,
 			final GenericFactory instanceFactory, final String... urlPatterns) {
 
 		final ServletInfo servletInfo;
@@ -119,7 +119,7 @@ class ServletInfoBuilder {
 		return servletInfo;
 	}
 
-	static ServletInfo jaxrs(String name, Class<? extends Application> applicationClass) {
+	public static ServletInfo jaxrs(String name, Class<? extends Application> applicationClass) {
 		final ServletInfo servletInfo =
 				new ServletInfo(StringUtils.isEmpty(name) ? applicationClass.getName() : name, ServletContainer.class)
 						.addInitParam(ServletProperties.JAXRS_APPLICATION_CLASS, applicationClass.getName());
@@ -129,7 +129,7 @@ class ServletInfoBuilder {
 		return servletInfo.setAsyncSupported(true).setLoadOnStartup(1);
 	}
 
-	static ServletInfo jaxrs(String name, final ApplicationBuilder applicationBuilder) {
+	public static ServletInfo jaxrs(String name, final ApplicationBuilder applicationBuilder) {
 		final JaxRsServlet jaxRsServlet = new JaxRsServlet(applicationBuilder.build());
 		final ServletInfo servletInfo = new ServletInfo(
 				StringUtils.isEmpty(name) ? applicationBuilder.getClass() + "@" + applicationBuilder.hashCode() : name,

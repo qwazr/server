@@ -24,10 +24,10 @@ import javax.servlet.Filter;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.annotation.WebInitParam;
 
-class FilterInfoBuilder {
+public class FilterInfoBuilder {
 
-	static <T extends Filter> void filter(String filterName, Class<T> filterClass, GenericFactory<T> instanceFactory,
-			GenericServer.Builder builder) {
+	public static <T extends Filter> void filter(String filterName, Class<T> filterClass,
+			GenericFactory<T> instanceFactory, GenericServer.Builder builder) {
 
 		// WebServlet annotation
 		final WebFilter webFilter = AnnotationsUtils.getFirstAnnotation(filterClass, WebFilter.class);
@@ -44,9 +44,9 @@ class FilterInfoBuilder {
 				filterInfo.addInitParam(webInitParam.name(), webInitParam.value());
 
 			buildMappings(filterName, webFilter.dispatcherTypes(), FilterMappingInfo.MappingType.URL,
-						  webFilter.urlPatterns(), builder);
+					webFilter.urlPatterns(), builder);
 			buildMappings(filterName, webFilter.dispatcherTypes(), FilterMappingInfo.MappingType.SERVLET,
-						  webFilter.servletNames(), builder);
+					webFilter.servletNames(), builder);
 		}
 
 		builder.filter(filterInfo);
