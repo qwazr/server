@@ -42,7 +42,7 @@ import javax.ws.rs.core.Application;
 import java.util.Collection;
 import java.util.Map;
 
-public class ServletInfoBuilder {
+class ServletInfoBuilder {
 
 	static <T extends Servlet> ServletInfo of(final String name, final Class<T> servletClass,
 			final GenericFactory<T> instanceFactory) {
@@ -51,16 +51,16 @@ public class ServletInfoBuilder {
 				new ServletInfo(name, servletClass, instanceFactory);
 	}
 
-	public static ServletInfo servlet(final String name, final Class<? extends Servlet> servletClass,
+	static ServletInfo servlet(final String name, final Class<? extends Servlet> servletClass,
 			final GenericFactory instanceFactory) {
+
 		final ServletInfo servletInfo;
 
 		// WebServlet annotation
 		final WebServlet webServlet = AnnotationsUtils.getFirstAnnotation(servletClass, WebServlet.class);
 		if (webServlet != null) {
-			servletInfo = of(StringUtils.isEmpty(name) ?
-					StringUtils.isEmpty(webServlet.name()) ? servletClass.getName() : webServlet.name() :
-					name, servletClass, instanceFactory);
+
+			servletInfo = of(StringUtils.isEmpty(name) ? webServlet.name() : name, servletClass, instanceFactory);
 			servletInfo.setLoadOnStartup(webServlet.loadOnStartup());
 			servletInfo.setAsyncSupported(webServlet.asyncSupported());
 
@@ -103,17 +103,17 @@ public class ServletInfoBuilder {
 		return servletInfo;
 	}
 
-	public static ServletInfo jaxrs(String name, Class<? extends Application> applicationClass) {
-		final ServletInfo servletInfo = new ServletInfo(StringUtils.isEmpty(name) ? applicationClass.getName() : name,
-				ServletContainer.class).addInitParam(ServletProperties.JAXRS_APPLICATION_CLASS,
-				applicationClass.getName());
+	static ServletInfo jaxrs(String name, Class<? extends Application> applicationClass) {
+		final ServletInfo servletInfo =
+				new ServletInfo(StringUtils.isEmpty(name) ? applicationClass.getName() : name, ServletContainer.class)
+						.addInitParam(ServletProperties.JAXRS_APPLICATION_CLASS, applicationClass.getName());
 		final ApplicationPath path = AnnotationsUtils.getFirstAnnotation(applicationClass, ApplicationPath.class);
 		if (path != null)
 			servletInfo.addMapping(path.value());
 		return servletInfo.setAsyncSupported(true).setLoadOnStartup(1);
 	}
 
-	public static ServletInfo jaxrs(String name, final ApplicationBuilder applicationBuilder) {
+	static ServletInfo jaxrs(String name, final ApplicationBuilder applicationBuilder) {
 		final JaxRsServlet jaxRsServlet = new JaxRsServlet(applicationBuilder.build());
 		final ServletInfo servletInfo = new ServletInfo(
 				StringUtils.isEmpty(name) ? applicationBuilder.getClass() + "@" + applicationBuilder.hashCode() : name,
@@ -178,8 +178,8 @@ public class ServletInfoBuilder {
 	}
 
 	private static boolean isJaxRsAuthentication(Class<?> clazz) {
-		return clazz.isAnnotationPresent(RolesAllowed.class) || clazz.isAnnotationPresent(PermitAll.class)
-				|| clazz.isAnnotationPresent(DenyAll.class) || clazz.isAnnotationPresent(ServletSecurity.class);
+		return clazz.isAnnotationPresent(RolesAllowed.class) || clazz.isAnnotationPresent(PermitAll.class) ||
+				clazz.isAnnotationPresent(DenyAll.class) || clazz.isAnnotationPresent(ServletSecurity.class);
 	}
 
 	private static SecurityInfo.EmptyRoleSemantic get(ServletSecurity.EmptyRoleSemantic emptyRoleSemantic) {

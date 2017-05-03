@@ -17,6 +17,7 @@ package com.qwazr.server.test;
 
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.utils.http.HttpRequest;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -49,8 +50,10 @@ public class SimpleServerTest {
 
 	@Test
 	public void test300SimpleServlet() throws IOException {
-		Assert.assertEquals(server.contextAttribute,
-				EntityUtils.toString(HttpRequest.Get("http://localhost:9090/test").execute().getEntity()));
+		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9090/test").execute()) {
+			Assert.assertEquals(server.contextAttribute, EntityUtils.toString(response.getEntity()));
+			Assert.assertEquals(SimpleFilter.TEST_VALUE, response.getFirstHeader(SimpleFilter.HEADER_NAME).getValue());
+		}
 	}
 
 	@Test

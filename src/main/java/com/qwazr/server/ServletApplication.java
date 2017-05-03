@@ -20,28 +20,25 @@ import io.undertow.server.session.SessionListener;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.FilterInfo;
+import io.undertow.servlet.api.FilterMappingInfo;
 import io.undertow.servlet.api.ListenerInfo;
 import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.SessionPersistenceManager;
 
-import javax.servlet.DispatcherType;
 import java.util.Collection;
-import java.util.Map;
 
 class ServletApplication {
 
 	static DeploymentInfo getDeploymentInfo(final Collection<ServletInfo> servletInfos,
-			final IdentityManager identityManager, final Map<String, FilterInfo> filterInfos,
-			final Collection<ListenerInfo> listenersInfos, final SessionPersistenceManager sessionPersistenceManager,
-			final SessionListener sessionListener, final ClassLoader classLoader)
-			throws ClassNotFoundException, InstantiationException {
+			final IdentityManager identityManager, final Collection<FilterInfo> filterInfos,
+			final Collection<FilterMappingInfo> filterMappingInfos, final Collection<ListenerInfo> listenersInfos,
+			final SessionPersistenceManager sessionPersistenceManager, final SessionListener sessionListener,
+			final ClassLoader classLoader) throws ClassNotFoundException, InstantiationException {
 
-		final DeploymentInfo deploymentInfo = Servlets.deployment()
-				.setClassLoader(classLoader)
-				.setContextPath("/")
-				.setDefaultEncoding("UTF-8")
-				.setDeploymentName(ServletApplication.class.getName());
+		final DeploymentInfo deploymentInfo =
+				Servlets.deployment().setClassLoader(classLoader).setContextPath("/").setDefaultEncoding("UTF-8")
+						.setDeploymentName(ServletApplication.class.getName());
 
 		if (sessionPersistenceManager != null)
 			deploymentInfo.setSessionPersistenceManager(sessionPersistenceManager);
@@ -53,18 +50,29 @@ class ServletApplication {
 			deploymentInfo.addServlets(servletInfos);
 			for (ServletInfo servletInfo : servletInfos) {
 				if (ServletInfoBuilder.isJaxRsAuthentication(servletInfo)) {
-					deploymentInfo.addSecurityConstraint(Servlets.securityConstraint()
-							.setEmptyRoleSemantic(SecurityInfo.EmptyRoleSemantic.AUTHENTICATE)
-							.addWebResourceCollection(
-									Servlets.webResourceCollection().addUrlPatterns(servletInfo.getMappings())));
+					deploymentInfo.addSecurityConstraint(Servlets.securityConstraint().setEmptyRoleSemantic(
+							SecurityInfo.EmptyRoleSemantic.AUTHENTICATE).addWebResourceCollection(
+							Servlets.webResourceCollection().addUrlPatterns(servletInfo.getMappings())));
 				}
 			}
 		}
 
-		if (filterInfos != null) {
-			filterInfos.forEach((path, filterInfo) -> {
-				deploymentInfo.addFilters(filterInfo);
-				deploymentInfo.addFilterUrlMapping(filterInfo.getName(), path, DispatcherType.REQUEST);
+		if (filterInfos != null)
+			deploymentInfo.addFilters(filterInfos);
+		if (filterMappingInfos != null) {
+			filterMappingInfos.forEach((filterMappingInfo) -> {
+				switch (filterMappingInfo.getMappingType()) {
+				case URL:
+					deploymentInfo
+							.addFilterUrlMapping(filterMappingInfo.getFilterName(), filterMappingInfo.getMapping(),
+												 filterMappingInfo.getDispatcher());
+					break;
+				case SERVLET:
+					deploymentInfo.addFilterServletNameMapping(filterMappingInfo.getFilterName(),
+															   filterMappingInfo.getMapping(),
+															   filterMappingInfo.getDispatcher());
+					break;
+				}
 			});
 		}
 

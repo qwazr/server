@@ -24,15 +24,16 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@WebServlet("/test")
+@WebServlet(value = "/test", name = "ServletTest")
 public class SimpleServlet extends HttpServlet {
 
 	private String testString;
 
 	@Override
 	public void init(ServletConfig servletConfig) {
-		testString = GenericServer.getContextAttribute(servletConfig.getServletContext(),
-				SimpleServer.CONTEXT_ATTRIBUTE_TEST, String.class);
+		testString = GenericServer
+				.getContextAttribute(servletConfig.getServletContext(), SimpleServer.CONTEXT_ATTRIBUTE_TEST,
+									 String.class);
 	}
 
 	@Override
