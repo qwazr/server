@@ -24,6 +24,7 @@ import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSecurityInfo;
 import io.undertow.servlet.api.TransportGuaranteeType;
+import org.apache.commons.lang3.SystemUtils;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.glassfish.jersey.servlet.ServletProperties;
@@ -31,9 +32,11 @@ import org.glassfish.jersey.servlet.ServletProperties;
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.Servlet;
 import javax.servlet.annotation.HttpConstraint;
 import javax.servlet.annotation.HttpMethodConstraint;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.ServletSecurity;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
@@ -100,6 +103,17 @@ class ServletInfoBuilder {
 
 			servletInfo.setServletSecurityInfo(servletSecurityInfo);
 		}
+
+		final MultipartConfig multipartConfig =
+				AnnotationsUtils.getFirstAnnotation(servletClass, MultipartConfig.class);
+		if (multipartConfig != null) {
+			final String location = StringUtils.isEmpty(multipartConfig.location()) ?
+					SystemUtils.getJavaIoTmpDir().getAbsolutePath() :
+					multipartConfig.location();
+			servletInfo.setMultipartConfig(new MultipartConfigElement(location, multipartConfig.maxFileSize(),
+					multipartConfig.maxRequestSize(), multipartConfig.fileSizeThreshold()));
+		}
+
 		return servletInfo;
 	}
 
@@ -201,4 +215,5 @@ class ServletInfoBuilder {
 		}
 		return null;
 	}
+	
 }

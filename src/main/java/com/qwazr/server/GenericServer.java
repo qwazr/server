@@ -18,6 +18,7 @@ package com.qwazr.server;
 import com.qwazr.server.configuration.ServerConfiguration;
 import com.qwazr.utils.AnnotationsUtils;
 import com.qwazr.utils.CollectionsUtils;
+import com.qwazr.utils.StringUtils;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.security.idm.IdentityManager;
@@ -33,6 +34,7 @@ import io.undertow.servlet.api.ServletContainer;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSecurityInfo;
 import io.undertow.servlet.api.SessionPersistenceManager;
+import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +44,7 @@ import javax.management.ObjectName;
 import javax.management.OperationsException;
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -92,6 +95,7 @@ final public class GenericServer {
 	final private SessionListener sessionListener;
 	final private Logger servletAccessLogger;
 	final private Logger restAccessLogger;
+	final private MultipartConfigElement defaultMultipartConfig;
 
 	final private UdpServerThread udpServer;
 
@@ -123,11 +127,12 @@ final public class GenericServer {
 		this.sessionListener = builder.sessionListener;
 		this.servletAccessLogger = builder.servletAccessLogger;
 		this.restAccessLogger = builder.restAccessLogger;
+		this.defaultMultipartConfig =
+				builder.defaultMultipart == null ? DEFAULT_MULTIPART_CONFIG : builder.defaultMultipart;
 		this.udpServer = buildUdpServer(builder, configuration);
 		this.startedListeners = CollectionsUtils.copyIfNotEmpty(builder.startedListeners, ArrayList::new);
 		this.shutdownListeners = CollectionsUtils.copyIfNotEmpty(builder.shutdownListeners, ArrayList::new);
 		this.connectorsStatistics = new ArrayList<>();
-
 	}
 
 	public void forEachWebServices(final Consumer<Class<?>> consumer) {
@@ -183,7 +188,7 @@ final public class GenericServer {
 
 		if (configuration.multicastConnector.address != null && configuration.multicastConnector.port != -1)
 			return new UdpServerThread(configuration.multicastConnector.address, configuration.multicastConnector.port,
-									   builder.packetListeners);
+					builder.packetListeners);
 		else
 			return new UdpServerThread(
 					new InetSocketAddress(configuration.listenAddress, configuration.webServiceConnector.port),
@@ -313,17 +318,16 @@ final public class GenericServer {
 		if (servletInfos != null && !servletInfos.isEmpty()) {
 			final IdentityManager identityManager = getIdentityManager(configuration.webAppConnector);
 			startHttpServer(configuration.webAppConnector, ServletApplication
-									.getDeploymentInfo(servletInfos, identityManager, filterInfos, filterMappingInfos, listenerInfos,
-													   sessionPersistenceManager, sessionListener, classLoader), servletAccessLogger,
-							"WEBAPP");
+							.getDeploymentInfo(servletInfos, identityManager, filterInfos, filterMappingInfos, listenerInfos,
+									sessionPersistenceManager, sessionListener, classLoader, defaultMultipartConfig),
+					servletAccessLogger, "WEBAPP");
 		}
 
 		// Launch the jaxrs application if any
 		if (webServices != null && !webServices.isEmpty()) {
 			final IdentityManager identityManager = getIdentityManager(configuration.webServiceConnector);
 			startHttpServer(configuration.webServiceConnector,
-							RestApplication.getDeploymentInfo(identityManager, classLoader), restAccessLogger,
-							"WEBSERVICE");
+					RestApplication.getDeploymentInfo(identityManager, classLoader), restAccessLogger, "WEBSERVICE");
 		}
 
 		if (shutdownHook)
@@ -355,6 +359,9 @@ final public class GenericServer {
 			}
 		});
 	}
+
+	final static MultipartConfigElement DEFAULT_MULTIPART_CONFIG =
+			new MultipartConfigElement(SystemUtils.getJavaIoTmpDir().getAbsolutePath());
 
 	public interface IdentityManagerProvider {
 
@@ -400,6 +407,8 @@ final public class GenericServer {
 
 		Collection<GenericServer.Listener> startedListeners;
 		Collection<GenericServer.Listener> shutdownListeners;
+
+		MultipartConfigElement defaultMultipart;
 
 		private Builder(final ServerConfiguration configuration, final ExecutorService executorService,
 				final ClassLoader classLoader) {
@@ -588,6 +597,14 @@ final public class GenericServer {
 
 		public Builder restAccessLogger(final Logger logger) {
 			restAccessLogger = logger;
+			return this;
+		}
+
+		public Builder defaultMultipartConfig(String location, long maxFileSize, long maxRequestSize,
+				int fileSizeThreshold) {
+			defaultMultipart = new MultipartConfigElement(
+					StringUtils.isEmpty(location) ? SystemUtils.getJavaIoTmpDir().getAbsolutePath() : location,
+					maxFileSize, maxRequestSize, fileSizeThreshold);
 			return this;
 		}
 

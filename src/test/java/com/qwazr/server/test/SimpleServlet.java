@@ -16,8 +16,10 @@
 package com.qwazr.server.test;
 
 import com.qwazr.server.GenericServer;
+import com.qwazr.utils.FileUtils;
 
 import javax.servlet.ServletConfig;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -25,6 +27,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @WebServlet(value = "/test", name = "ServletTest")
+@MultipartConfig(maxFileSize = FileUtils.ONE_GB,
+		maxRequestSize = FileUtils.ONE_MB,
+		fileSizeThreshold = (int) FileUtils.ONE_MB)
 public class SimpleServlet extends HttpServlet {
 
 	private String testString;
@@ -33,7 +38,7 @@ public class SimpleServlet extends HttpServlet {
 	public void init(ServletConfig servletConfig) {
 		testString = GenericServer
 				.getContextAttribute(servletConfig.getServletContext(), SimpleServer.CONTEXT_ATTRIBUTE_TEST,
-									 String.class);
+						String.class);
 	}
 
 	@Override

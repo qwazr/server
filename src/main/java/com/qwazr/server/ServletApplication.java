@@ -26,6 +26,7 @@ import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.SessionPersistenceManager;
 
+import javax.servlet.MultipartConfigElement;
 import java.util.Collection;
 
 class ServletApplication {
@@ -34,7 +35,8 @@ class ServletApplication {
 			final IdentityManager identityManager, final Collection<FilterInfo> filterInfos,
 			final Collection<FilterMappingInfo> filterMappingInfos, final Collection<ListenerInfo> listenersInfos,
 			final SessionPersistenceManager sessionPersistenceManager, final SessionListener sessionListener,
-			final ClassLoader classLoader) throws ClassNotFoundException, InstantiationException {
+			final ClassLoader classLoader, final MultipartConfigElement defaultMultipartConfig)
+			throws ClassNotFoundException, InstantiationException {
 
 		final DeploymentInfo deploymentInfo =
 				Servlets.deployment().setClassLoader(classLoader).setContextPath("/").setDefaultEncoding("UTF-8")
@@ -47,12 +49,16 @@ class ServletApplication {
 			deploymentInfo.setIdentityManager(identityManager);
 
 		if (servletInfos != null) {
+			servletInfos.forEach(servletInfo -> {
+				if (servletInfo.getMultipartConfig() == null)
+					servletInfo.setMultipartConfig(defaultMultipartConfig);
+			});
 			deploymentInfo.addServlets(servletInfos);
-			for (ServletInfo servletInfo : servletInfos) {
+			for (final ServletInfo servletInfo : servletInfos) {
 				if (ServletInfoBuilder.isJaxRsAuthentication(servletInfo)) {
-					deploymentInfo.addSecurityConstraint(Servlets.securityConstraint().setEmptyRoleSemantic(
-							SecurityInfo.EmptyRoleSemantic.AUTHENTICATE).addWebResourceCollection(
-							Servlets.webResourceCollection().addUrlPatterns(servletInfo.getMappings())));
+					deploymentInfo.addSecurityConstraint(Servlets.securityConstraint()
+							.setEmptyRoleSemantic(SecurityInfo.EmptyRoleSemantic.AUTHENTICATE).addWebResourceCollection(
+									Servlets.webResourceCollection().addUrlPatterns(servletInfo.getMappings())));
 				}
 			}
 		}
@@ -65,12 +71,11 @@ class ServletApplication {
 				case URL:
 					deploymentInfo
 							.addFilterUrlMapping(filterMappingInfo.getFilterName(), filterMappingInfo.getMapping(),
-												 filterMappingInfo.getDispatcher());
+									filterMappingInfo.getDispatcher());
 					break;
 				case SERVLET:
 					deploymentInfo.addFilterServletNameMapping(filterMappingInfo.getFilterName(),
-															   filterMappingInfo.getMapping(),
-															   filterMappingInfo.getDispatcher());
+							filterMappingInfo.getMapping(), filterMappingInfo.getDispatcher());
 					break;
 				}
 			});

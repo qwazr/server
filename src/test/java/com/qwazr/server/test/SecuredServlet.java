@@ -16,11 +16,13 @@
 package com.qwazr.server.test;
 
 import javax.servlet.annotation.HttpConstraint;
+import javax.servlet.annotation.HttpMethodConstraint;
 import javax.servlet.annotation.ServletSecurity;
 import javax.servlet.annotation.WebServlet;
 
 @WebServlet("/secured")
-@ServletSecurity(@HttpConstraint(rolesAllowed = { "secured" }))
+@ServletSecurity(value = @HttpConstraint(rolesAllowed = { "secured" }),
+		httpMethodConstraints = @HttpMethodConstraint("POST"))
 public class SecuredServlet extends SimpleServlet {
 
 }
