@@ -17,8 +17,6 @@ package com.qwazr.server.test;
 
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.utils.http.HttpRequest;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.impl.auth.DigestScheme;
 import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -31,14 +29,14 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class SecuredDigestServerTest {
+public class SecuredHostnameServerTest {
 
-	private static SecuredDigestServer server;
+	private static SecuredHostnameServer server;
 
 	@Test
 	public void test100createServer()
 			throws IOException, ReflectiveOperationException, OperationsException, ServletException, MBeanException {
-		server = new SecuredDigestServer();
+		server = new SecuredHostnameServer();
 		Assert.assertTrue(server.getServer().getWebServiceNames().contains(WelcomeShutdownService.SERVICE_NAME));
 	}
 
@@ -56,30 +54,23 @@ public class SecuredDigestServerTest {
 	}
 
 	@Test
-	public void test400SecuredNonAuthServlet() throws IOException {
+	public void test400SecuredHostnameLoginSuccessfulServlet() throws IOException {
+		server.principalResolver.put("localhost", server.externalUsername);
+		SecuredServlet.check(HttpRequest.Get("http://localhost:9090/secured").execute(), server.externalUsername);
+	}
+
+	@Test
+	public void test500SecuredHostnameLoginUnSuccessfulNoUserServlet() throws IOException {
+		server.principalResolver.remove("localhost");
 		Assert.assertEquals(401,
 				HttpRequest.Get("http://localhost:9090/secured").execute().getStatusLine().getStatusCode());
 	}
 
 	@Test
-	public void test410SecuredLoginSuccessfulServlet() throws IOException {
-		SecuredServlet.check(HttpRequest.Get("http://localhost:9090/secured")
-				.execute(getDigestAuthContext(server.digestUsername, server.digestPassword)), server.digestUsername)
-				.close();
-	}
-
-	@Test
-	public void test415SecuredLoginFailureServlet() throws IOException {
-		Assert.assertEquals(401, HttpRequest.Get("http://localhost:9090/secured")
-				.execute(getDigestAuthContext(server.digestUsername, "--"))
-				.getStatusLine()
-				.getStatusCode());
-	}
-
-	HttpClientContext getDigestAuthContext(String username, String password) {
-		DigestScheme digestAuth = new DigestScheme();
-		digestAuth.overrideParamter("realm", server.realm);
-		return SecuredBasicServerTest.getAuthContext(digestAuth, username, password);
+	public void test510SecuredHostnameLoginUnSuccessfulUknownUserServlet() throws IOException {
+		server.principalResolver.put("localhost", "1234");
+		Assert.assertEquals(401,
+				HttpRequest.Get("http://localhost:9090/secured").execute().getStatusLine().getStatusCode());
 	}
 
 	@Test

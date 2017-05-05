@@ -15,38 +15,47 @@
  */
 package com.qwazr.server.test;
 
+import com.qwazr.server.ApplicationBuilder;
 import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
+import com.qwazr.server.HostnameAuthenticationMechanism;
 import com.qwazr.server.MemoryIdentityManager;
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.server.configuration.ServerConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 
 import java.io.IOException;
 
-public class SecuredDigestServer implements BaseServer {
+public class SecuredHostnameServer implements BaseServer {
 
 	public final static String CONTEXT_ATTRIBUTE_TEST = "test";
 
 	public final String contextAttribute = RandomStringUtils.randomAlphanumeric(5);
 
-	public final String digestUsername = RandomStringUtils.randomAlphanumeric(8);
-
-	public final String digestPassword = RandomStringUtils.randomAlphanumeric(12);
+	public final String externalUsername = RandomStringUtils.randomAlphanumeric(8);
 
 	public final String realm = RandomStringUtils.randomAlphanumeric(6);
 
+	public final HostnameAuthenticationMechanism.MapPrincipalResolver principalResolver;
+
 	private GenericServer server;
 
-	public SecuredDigestServer() throws IOException {
+	public SecuredHostnameServer() throws IOException {
 		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
-		identityManager.addDigest(realm, digestUsername, digestUsername, digestPassword, "secured");
-		server = GenericServer.of(ServerConfiguration.of().webAppRealm(realm).webAppAuthentication("DIGEST").build())
+		identityManager.addExternal(externalUsername, externalUsername, "secured");
+		principalResolver = new HostnameAuthenticationMechanism.MapPrincipalResolver();
+		server = GenericServer.of(
+				ServerConfiguration.of().webAppAuthentication("HOSTNAME,BASIC").webAppRealm(realm).build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.identityManagerProvider(realm -> identityManager)
+				.hostnamePrincipalResolver(principalResolver)
 				.webService(WelcomeShutdownService.class)
 				.servlet(SimpleServlet.class)
 				.servlet(SecuredServlet.class)
+				.jaxrs(TestJaxRsAppAuth.class)
+				.jaxrs(new ApplicationBuilder("/jaxrs-app-auth-singletons/*").classes(RolesAllowedDynamicFeature.class)
+						.singletons(new TestJaxRsAppAuth.ServiceAuth()))
 				.build();
 	}
 

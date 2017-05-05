@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -109,11 +109,9 @@ public class ServerConfiguration implements ConfigurationProperties {
 
 		//Set the connectors
 		webAppConnector = new WebConnector(publicAddress, getIntegerProperty(WEBAPP_PORT, null), 9090,
-				WebConnector.Authentication.find(getStringProperty(WEBAPP_AUTHENTICATION, null)),
-				getStringProperty(WEBAPP_REALM, null));
+				getStringProperty(WEBAPP_AUTHENTICATION, null), getStringProperty(WEBAPP_REALM, null));
 		webServiceConnector = new WebConnector(publicAddress, getIntegerProperty(WEBSERVICE_PORT, null), 9091,
-				WebConnector.Authentication.find(getStringProperty(WEBSERVICE_AUTHENTICATION, null)),
-				getStringProperty(WEBSERVICE_REALM, null));
+				getStringProperty(WEBSERVICE_AUTHENTICATION, null), getStringProperty(WEBSERVICE_REALM, null));
 		multicastConnector =
 				new WebConnector(getStringProperty(MULTICAST_ADDR, null), getIntegerProperty(MULTICAST_PORT, null),
 						9091, null, null);
@@ -207,28 +205,14 @@ public class ServerConfiguration implements ConfigurationProperties {
 
 	public static class WebConnector {
 
-		public enum Authentication {
-
-			BASIC, DIGEST;
-
-			public static Authentication find(String name) {
-				try {
-					return name == null ? null : valueOf(name.toUpperCase());
-				} catch (IllegalArgumentException e) {
-					return null;
-				}
-			}
-
-		}
-
-		public final Authentication authentication;
+		public final String authentication;
 		public final String address;
 		public final String realm;
 		public final int port;
 		public final String addressPort;
 
 		private WebConnector(final String address, final Integer port, final int defaulPort,
-				final Authentication authentication, final String realm) {
+				final String authentication, final String realm) {
 			this.address = address;
 			this.authentication = authentication;
 			this.realm = realm;
@@ -290,8 +274,9 @@ public class ServerConfiguration implements ConfigurationProperties {
 			findMatchingAddress(addressPattern, list);
 			return list.isEmpty() ? DEFAULT_LISTEN_ADDRESS : list.get(0);
 		} catch (SocketException e) {
-			LOGGER.warn("Failed in extracting IP informations. Listen address set to default (" + DEFAULT_LISTEN_ADDRESS
-					+ ")", e);
+			LOGGER.warn(
+					"Failed in extracting IP informations. Listen address set to default (" + DEFAULT_LISTEN_ADDRESS +
+							")", e);
 			return DEFAULT_LISTEN_ADDRESS;
 		}
 	}
@@ -480,9 +465,9 @@ public class ServerConfiguration implements ConfigurationProperties {
 			return this;
 		}
 
-		public Builder webAppAuthentication(WebConnector.Authentication authentication) {
+		public Builder webAppAuthentication(String authentication) {
 			if (authentication != null)
-				map.put(WEBAPP_AUTHENTICATION, authentication.name());
+				map.put(WEBAPP_AUTHENTICATION, authentication);
 			return this;
 		}
 
@@ -492,9 +477,9 @@ public class ServerConfiguration implements ConfigurationProperties {
 			return this;
 		}
 
-		public Builder webServiceAuthentication(WebConnector.Authentication authentication) {
+		public Builder webServiceAuthentication(String authentication) {
 			if (authentication != null)
-				map.put(WEBSERVICE_AUTHENTICATION, authentication.name());
+				map.put(WEBSERVICE_AUTHENTICATION, authentication);
 			return this;
 		}
 

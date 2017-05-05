@@ -19,6 +19,7 @@ import com.qwazr.utils.CharsetUtils;
 import io.undertow.security.idm.Account;
 import io.undertow.security.idm.Credential;
 import io.undertow.security.idm.DigestCredential;
+import io.undertow.security.idm.ExternalCredential;
 import io.undertow.security.idm.IdentityManager;
 import io.undertow.security.idm.PasswordCredential;
 import io.undertow.util.HexConverter;
@@ -30,15 +31,20 @@ import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MemoryIdentityManager implements IdentityManager {
 
-	private final ConcurrentHashMap<String, UserAccount> accounts;
+	private final Map<String, UserAccount> accounts;
+
+	protected MemoryIdentityManager(Map<String, UserAccount> accounts) {
+		this.accounts = accounts;
+	}
 
 	public MemoryIdentityManager() {
-		this.accounts = new ConcurrentHashMap<>();
+		this(new ConcurrentHashMap<>());
 	}
 
 	public void addBasic(String id, String name, String password, String... roles) {
@@ -47,6 +53,10 @@ public class MemoryIdentityManager implements IdentityManager {
 
 	public void addDigest(String realm, String id, String name, String password, String... roles) {
 		accounts.put(id, new DigestAccount(realm, name, password, roles));
+	}
+
+	public void addExternal(String id, String name, String... roles) {
+		accounts.put(id, new ExternalAccount(name, roles));
 	}
 
 	@Override
@@ -145,6 +155,20 @@ public class MemoryIdentityManager implements IdentityManager {
 				return null;
 			final DigestCredential digestCredential = (DigestCredential) credential;
 			return digestCredential.verifyHA1(digestPassword) ? this : null;
+		}
+	}
+
+	private static class ExternalAccount extends UserAccount {
+
+		private ExternalAccount(String name, String... roles) {
+			super(name, roles);
+		}
+
+		@Override
+		protected Account check(Credential credential) {
+			if (!(credential instanceof ExternalCredential))
+				return null;
+			return this;
 		}
 	}
 

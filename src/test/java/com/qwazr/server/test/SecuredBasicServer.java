@@ -43,10 +43,7 @@ public class SecuredBasicServer implements BaseServer {
 	public SecuredBasicServer() throws IOException {
 		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
 		identityManager.addBasic(basicUsername, basicUsername, basicPassword, "secured");
-		server = GenericServer.of(ServerConfiguration.of()
-				.webAppAuthentication(ServerConfiguration.WebConnector.Authentication.BASIC)
-				.webAppRealm(realm)
-				.build())
+		server = GenericServer.of(ServerConfiguration.of().webAppAuthentication("BASIC").webAppRealm(realm).build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.identityManagerProvider(realm -> identityManager)
 				.webService(WelcomeShutdownService.class)

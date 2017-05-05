@@ -71,10 +71,9 @@ public class SecuredBasicServerTest {
 
 	@Test
 	public void test410SecuredBasicLoginSuccessfulServlet() throws IOException {
-		Assert.assertEquals(200, HttpRequest.Get("http://localhost:9090/secured")
-				.execute(getBasicAuthContext(server.basicUsername, server.basicPassword))
-				.getStatusLine()
-				.getStatusCode());
+		SecuredServlet.check(HttpRequest.Get("http://localhost:9090/secured")
+				.execute(getBasicAuthContext(server.basicUsername, server.basicPassword)), server.basicUsername)
+				.close();
 	}
 
 	@Test

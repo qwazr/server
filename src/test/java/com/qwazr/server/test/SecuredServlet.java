@@ -15,14 +15,36 @@
  */
 package com.qwazr.server.test;
 
+import org.apache.http.HttpResponse;
+import org.junit.Assert;
+
 import javax.servlet.annotation.HttpConstraint;
 import javax.servlet.annotation.HttpMethodConstraint;
 import javax.servlet.annotation.ServletSecurity;
 import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.security.Principal;
 
 @WebServlet("/secured")
 @ServletSecurity(value = @HttpConstraint(rolesAllowed = { "secured" }),
 		httpMethodConstraints = @HttpMethodConstraint("POST"))
 public class SecuredServlet extends SimpleServlet {
 
+	public static String HEADER_USER = "X-QWAZR-USER";
+
+	@Override
+	public void doGet(HttpServletRequest req, HttpServletResponse rep) throws IOException {
+		final Principal principal = req.getUserPrincipal();
+		if (principal != null)
+			rep.setHeader(HEADER_USER, principal.getName());
+		super.doGet(req, rep);
+	}
+
+	public static <T extends HttpResponse> T check(T response, String username) {
+		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+		Assert.assertEquals(username, response.getFirstHeader(HEADER_USER).getValue());
+		return response;
+	}
 }

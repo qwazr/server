@@ -30,6 +30,7 @@ import io.undertow.servlet.api.DeploymentManager;
 import io.undertow.servlet.api.FilterInfo;
 import io.undertow.servlet.api.FilterMappingInfo;
 import io.undertow.servlet.api.ListenerInfo;
+import io.undertow.servlet.api.LoginConfig;
 import io.undertow.servlet.api.ServletContainer;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSecurityInfo;
@@ -77,6 +78,7 @@ final public class GenericServer {
 	final private Collection<String> webServiceNames;
 	final private Collection<String> webServicePaths;
 	final private IdentityManagerProvider identityManagerProvider;
+	final private HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver;
 	final private Collection<ConnectorStatisticsMXBean> connectorsStatistics;
 
 	final private Collection<Listener> startedListeners;
@@ -119,6 +121,7 @@ final public class GenericServer {
 		this.undertows = new ArrayList<>();
 		this.deploymentManagers = new ArrayList<>();
 		this.identityManagerProvider = builder.identityManagerProvider;
+		this.hostnamePrincipalResolver = builder.hostnamePrincipalResolver;
 		this.servletInfos = CollectionsUtils.copyIfNotEmpty(builder.servletInfos, ArrayList::new);
 		this.filterInfos = CollectionsUtils.copyIfNotEmpty(builder.filterInfos, ArrayList::new);
 		this.filterMappingInfos = CollectionsUtils.copyIfNotEmpty(builder.filterMappingInfos, ArrayList::new);
@@ -246,8 +249,8 @@ final public class GenericServer {
 	private IdentityManager getIdentityManager(final ServerConfiguration.WebConnector connector) throws IOException {
 		if (identityManagerProvider == null)
 			return null;
-		return identityManagerProvider
-				.getIdentityManager(connector == null || connector.realm == null ? null : connector.realm);
+		return identityManagerProvider.getIdentityManager(
+				connector == null || connector.realm == null ? null : connector.realm);
 	}
 
 	private void startHttpServer(final ServerConfiguration.WebConnector connector, final DeploymentInfo deploymentInfo,
@@ -256,8 +259,14 @@ final public class GenericServer {
 
 		contextAttributes.forEach(deploymentInfo::addServletContextAttribute);
 
-		if (deploymentInfo.getIdentityManager() != null && connector.authentication != null)
-			deploymentInfo.setLoginConfig(Servlets.loginConfig(connector.authentication.name(), connector.realm));
+		if (deploymentInfo.getIdentityManager() != null && !StringUtils.isEmpty(connector.authentication)) {
+			if (hostnamePrincipalResolver != null)
+				HostnameAuthenticationMechanism.register(deploymentInfo, hostnamePrincipalResolver);
+			final LoginConfig loginConfig = Servlets.loginConfig(connector.realm);
+			for (String authmethod : StringUtils.split(connector.authentication, ','))
+				loginConfig.addLastAuthMethod(authmethod);
+			deploymentInfo.setLoginConfig(loginConfig);
+		}
 
 		final DeploymentManager manager = servletContainer.addDeployment(deploymentInfo);
 		manager.deploy();
@@ -271,9 +280,10 @@ final public class GenericServer {
 		deploymentManagers.add(manager);
 		httpHandler = logMetricsHandler;
 
-		final Undertow.Builder servletBuilder =
-				Undertow.builder().addHttpListener(connector.port, configuration.listenAddress)
-						.setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000).setHandler(httpHandler);
+		final Undertow.Builder servletBuilder = Undertow.builder()
+				.addHttpListener(connector.port, configuration.listenAddress)
+				.setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000)
+				.setHandler(httpHandler);
 		start(servletBuilder.build());
 
 		// Register MBeans
@@ -317,10 +327,10 @@ final public class GenericServer {
 		// Launch the servlet application if any
 		if (servletInfos != null && !servletInfos.isEmpty()) {
 			final IdentityManager identityManager = getIdentityManager(configuration.webAppConnector);
-			startHttpServer(configuration.webAppConnector, ServletApplication
-							.getDeploymentInfo(servletInfos, identityManager, filterInfos, filterMappingInfos, listenerInfos,
-									sessionPersistenceManager, sessionListener, classLoader, defaultMultipartConfig),
-					servletAccessLogger, "WEBAPP");
+			startHttpServer(configuration.webAppConnector,
+					ServletApplication.getDeploymentInfo(servletInfos, identityManager, filterInfos, filterMappingInfos,
+							listenerInfos, sessionPersistenceManager, sessionListener, classLoader,
+							defaultMultipartConfig), servletAccessLogger, "WEBAPP");
 		}
 
 		// Launch the jaxrs application if any
@@ -404,6 +414,7 @@ final public class GenericServer {
 		Logger servletAccessLogger;
 		Logger restAccessLogger;
 		GenericServer.IdentityManagerProvider identityManagerProvider;
+		HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver;
 
 		Collection<GenericServer.Listener> startedListeners;
 		Collection<GenericServer.Listener> shutdownListeners;
@@ -583,6 +594,12 @@ final public class GenericServer {
 
 		public Builder identityManagerProvider(final GenericServer.IdentityManagerProvider provider) {
 			identityManagerProvider = provider;
+			return this;
+		}
+
+		public Builder hostnamePrincipalResolver(
+				final HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver) {
+			this.hostnamePrincipalResolver = hostnamePrincipalResolver;
 			return this;
 		}
 
