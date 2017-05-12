@@ -24,8 +24,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
-import javax.management.MBeanException;
-import javax.management.OperationsException;
+import javax.management.JMException;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
@@ -35,15 +34,13 @@ public class SecuredDigestServerTest {
 	private static SecuredDigestServer server;
 
 	@Test
-	public void test100createServer()
-			throws IOException, ReflectiveOperationException, OperationsException, ServletException, MBeanException {
+	public void test100createServer() throws IOException, ServletException {
 		server = new SecuredDigestServer();
-		Assert.assertTrue(server.getServer().getWebServiceNames().contains(WelcomeShutdownService.SERVICE_NAME));
+		Assert.assertTrue(server.getServer().getSingletonsMap().containsKey(WelcomeShutdownService.SERVICE_NAME));
 	}
 
 	@Test
-	public void test200startServer()
-			throws ReflectiveOperationException, OperationsException, MBeanException, ServletException, IOException {
+	public void test200startServer() throws ReflectiveOperationException, JMException, ServletException, IOException {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
 	}

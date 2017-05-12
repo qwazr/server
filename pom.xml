@@ -20,7 +20,7 @@
     </scm>
 
     <properties>
-        <undertow.version>1.4.13.Final</undertow.version>
+        <undertow.version>1.4.14.Final</undertow.version>
     </properties>
 
     <dependencyManagement>

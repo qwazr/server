@@ -44,7 +44,7 @@ public class SecuredHostnameServer implements BaseServer {
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.identityManagerProvider(realm -> identityManager)
 				.hostnamePrincipalResolver(principalResolver)
-				.webService(WelcomeShutdownService.class)
+				.singletons(new WelcomeShutdownService())
 				.servlet(SimpleServlet.class)
 				.servlet(SecuredServlet.class)
 				.jaxrs(TestJaxRsAppAuth.class)

@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,20 +63,20 @@ public interface JsonClientInterface {
 	JsonNode executeJsonNode(HttpRequest request, Object bodyObject, Integer msTimeOut, ResponseValidator validator);
 
 	/**
-	 * @param request
-	 * @param bodyObject
-	 * @param msTimeOut
-	 * @param validator
-	 * @return
+	 * @param request    the HTTP request to execute
+	 * @param bodyObject an optional object for the body
+	 * @param msTimeOut  an optional timeout in milliseconds
+	 * @param validator  The response validator
+	 * @return the HTTP response
 	 */
 	HttpResponse execute(HttpRequest request, Object bodyObject, Integer msTimeOut, ResponseValidator validator);
 
 	/**
-	 * @param request
-	 * @param bodyObject
-	 * @param msTimeOut
-	 * @param validator
-	 * @return
+	 * @param request    the HTTP request to execute
+	 * @param bodyObject an optional object for the body
+	 * @param msTimeOut  an optional timeout in milliseconds
+	 * @param validator  The response validator
+	 * @return the HTTP status code
 	 */
 	Integer executeStatusCode(HttpRequest request, Object bodyObject, Integer msTimeOut, ResponseValidator validator);
 

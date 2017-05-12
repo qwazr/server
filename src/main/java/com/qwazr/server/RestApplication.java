@@ -28,6 +28,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -51,11 +52,15 @@ public class RestApplication extends Application {
 			classes.add(JacksonConfig.class);
 			classes.add(JacksonJsonProvider.class);
 			classes.add(JsonMappingExceptionMapper.class);
+
+			return classes;
+		}
+
+		@Override
+		public Set<Object> getSingletons() {
 			// Get the service from the generic server instance
 			final GenericServer server = getContextAttribute(GenericServer.class);
-			if (server != null)
-				server.forEachWebServices(classes::add);
-			return classes;
+			return server == null ? Collections.emptySet() : server.getSingletonsSet();
 		}
 	}
 
@@ -68,9 +73,11 @@ public class RestApplication extends Application {
 		}
 	}
 
-	static DeploymentInfo getDeploymentInfo(final IdentityManager identityManager, final ClassLoader classLoader) {
-		final DeploymentInfo deploymentInfo =
-				Servlets.deployment().setClassLoader(classLoader).setContextPath("/").setDeploymentName("REST");
+	static DeploymentInfo getDeploymentInfo(final IdentityManager identityManager) {
+		final DeploymentInfo deploymentInfo = Servlets.deployment()
+				.setClassLoader(Thread.currentThread().getContextClassLoader())
+				.setContextPath("/")
+				.setDeploymentName("REST");
 		final Class<? extends Application> applicationClass =
 				identityManager == null ? WithoutAuth.class : WithAuth.class;
 		deploymentInfo.addServlets(

@@ -33,4 +33,5 @@ public interface ServiceInterface {
 	ResponseValidator valid200TextPlain = ResponseValidator.create().status(200).content(ContentType.TEXT_PLAIN);
 	ResponseValidator valid200Stream =
 			ResponseValidator.create().status(200).content(ContentType.APPLICATION_OCTET_STREAM);
+
 }

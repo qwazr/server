@@ -23,6 +23,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+import javax.management.JMException;
 import javax.management.MBeanException;
 import javax.management.OperationsException;
 import javax.servlet.ServletException;
@@ -37,12 +38,11 @@ public class SimpleServerTest {
 	public void test100createServer()
 			throws IOException, ReflectiveOperationException, OperationsException, ServletException, MBeanException {
 		server = new SimpleServer();
-		Assert.assertTrue(server.getServer().getWebServiceNames().contains(WelcomeShutdownService.SERVICE_NAME));
+		Assert.assertTrue(server.getServer().getSingletonsMap().containsKey(WelcomeShutdownService.SERVICE_NAME));
 	}
 
 	@Test
-	public void test200startServer()
-			throws ReflectiveOperationException, OperationsException, MBeanException, ServletException, IOException {
+	public void test200startServer() throws ReflectiveOperationException, JMException, ServletException, IOException {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
 	}
@@ -59,6 +59,13 @@ public class SimpleServerTest {
 	public void test301SimpleServletUrlMappingBis() throws IOException {
 		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9090/test_bis").execute()) {
 			Assert.assertEquals(server.contextAttribute, EntityUtils.toString(response.getEntity()));
+		}
+	}
+
+	@Test
+	public void test400LoadedService() throws IOException {
+		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/loaded").execute()) {
+			Assert.assertEquals(LoadedService.TEXT, EntityUtils.toString(response.getEntity()));
 		}
 	}
 

@@ -28,10 +28,14 @@ public class SimpleServer implements BaseServer {
 
 	private GenericServer server;
 
-	public SimpleServer() throws IOException {
+	public SimpleServer() throws IOException, ClassNotFoundException {
 		server = GenericServer.of(ServerConfiguration.of().build())
-				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute).webService(WelcomeShutdownService.class)
-				.servlet(SimpleServlet.class, "test_bis").filter(SimpleFilter.class).build();
+				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
+				.singletons(new WelcomeShutdownService())
+				.registerSingletons(ServiceInterface.class)
+				.servlet(SimpleServlet.class, "test_bis")
+				.filter(SimpleFilter.class)
+				.build();
 	}
 
 	@Override

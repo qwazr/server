@@ -276,7 +276,7 @@ public class RemoteService {
 		 * Set the parameters by extracting the query parameters
 		 *
 		 * @param query the query string
-		 * @return
+		 * @return a new Builder
 		 */
 		public Builder setQuery(final String query) {
 			queryParams = LinkUtils.getQueryParameters(query);
@@ -322,9 +322,9 @@ public class RemoteService {
 	 * The form of the URL should be:
 	 * {protocol}://{username:password@}{host}:{port}/{service_path}?timeout={timeout}
 	 *
-	 * @param remoteServiceURLs
-	 * @return an list of RemoteService
-	 * @throws URISyntaxException
+	 * @param remoteServiceURLs an array of URL
+	 * @return a list of RemoteService
+	 * @throws URISyntaxException if the URI is malformatted
 	 */
 	public static List<Builder> builders(final String... remoteServiceURLs) throws URISyntaxException {
 
@@ -368,9 +368,9 @@ public class RemoteService {
 	 * The form of the URL should be:
 	 * {protocol}://{username:password@}{host}:{port}/{service_path}?timeout={timeout}
 	 *
-	 * @param remoteServiceURLs
-	 * @return
-	 * @throws URISyntaxException
+	 * @param remoteServiceURLs an array of URL
+	 * @return an array of RemoteService
+	 * @throws URISyntaxException if the URI is malformatted
 	 */
 	public static RemoteService[] build(final String... remoteServiceURLs) throws URISyntaxException {
 		return fromBuilders(builders(remoteServiceURLs));
@@ -381,9 +381,9 @@ public class RemoteService {
 	 * The form of the URL should be:
 	 * {protocol}://{username:password@}{host}:{port}/{service_path}?timeout={timeout}
 	 *
-	 * @param remoteServiceURLs
-	 * @return
-	 * @throws URISyntaxException
+	 * @param remoteServiceURLs an collection of URL
+	 * @return an array of RemoteService
+	 * @throws URISyntaxException if the URI is malformatted
 	 */
 	public static RemoteService[] build(final Collection<String> remoteServiceURLs) throws URISyntaxException {
 		return fromBuilders(builders(remoteServiceURLs));
@@ -395,6 +395,7 @@ public class RemoteService {
 	 *
 	 * @param remote the remoteservice
 	 * @param paths  An array of path
+	 * @return a new UBuilder
 	 */
 	public static UBuilder getNewUBuilder(final RemoteService remote, final String... paths) {
 		final UBuilder builder = new UBuilder();

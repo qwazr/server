@@ -40,7 +40,7 @@ public class SecuredDigestServer implements BaseServer {
 		server = GenericServer.of(ServerConfiguration.of().webAppRealm(realm).webAppAuthentication("DIGEST").build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.identityManagerProvider(realm -> identityManager)
-				.webService(WelcomeShutdownService.class)
+				.singletons(new WelcomeShutdownService())
 				.servlet(SimpleServlet.class)
 				.servlet(SecuredServlet.class)
 				.build();

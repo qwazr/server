@@ -33,12 +33,12 @@ import io.undertow.servlet.api.ListenerInfo;
 import io.undertow.servlet.api.LoginConfig;
 import io.undertow.servlet.api.ServletContainer;
 import io.undertow.servlet.api.ServletInfo;
-import io.undertow.servlet.api.ServletSecurityInfo;
 import io.undertow.servlet.api.SessionPersistenceManager;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.management.JMException;
 import javax.management.MBeanException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -49,6 +49,7 @@ import javax.servlet.MultipartConfigElement;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
 import java.io.IOException;
@@ -56,27 +57,28 @@ import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 
 final public class GenericServer {
 
 	final private ExecutorService executorService;
-	final private ClassLoader classLoader;
 	final private ServletContainer servletContainer;
+	final private DeploymentInfo rootContext;
 
 	final private Map<String, Object> contextAttributes;
-	final private Collection<Class<?>> webServices;
-	final private Collection<String> webServiceNames;
-	final private Collection<String> webServicePaths;
+	final private Set<Object> singletonsSet;
+	final private Map<String, String> singletonsMap;
 	final private IdentityManagerProvider identityManagerProvider;
 	final private HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver;
 	final private Collection<ConnectorStatisticsMXBean> connectorsStatistics;
@@ -89,73 +91,53 @@ final public class GenericServer {
 
 	final private ServerConfiguration configuration;
 
-	final private Collection<ServletInfo> servletInfos;
-	final private Collection<FilterInfo> filterInfos;
-	final private Collection<FilterMappingInfo> filterMappingInfos;
-	final private Collection<ListenerInfo> listenerInfos;
 	final private SessionPersistenceManager sessionPersistenceManager;
 	final private SessionListener sessionListener;
 	final private Logger servletAccessLogger;
 	final private Logger restAccessLogger;
-	final private MultipartConfigElement defaultMultipartConfig;
 
 	final private UdpServerThread udpServer;
 
 	static final private Logger LOGGER = LoggerFactory.getLogger(GenericServer.class);
 
-	private GenericServer(final Builder builder) throws IOException {
+	private GenericServer(final Builder builder) throws IOException, ClassNotFoundException, InstantiationException {
 
 		this.configuration = builder.configuration;
-		this.classLoader =
-				builder.classLoader == null ? Thread.currentThread().getContextClassLoader() : builder.classLoader;
 		this.executorService =
 				builder.executorService == null ? Executors.newCachedThreadPool() : builder.executorService;
 		this.servletContainer = Servlets.newContainer();
-
+		this.rootContext = builder.rootContext.build();
 		builder.contextAttribute(this);
 
 		this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
-		this.webServices = CollectionsUtils.copyIfNotEmpty(builder.webServices, ArrayList::new);
-		this.webServiceNames = CollectionsUtils.copyIfNotEmpty(builder.webServiceNames, ArrayList::new);
-		this.webServicePaths = CollectionsUtils.copyIfNotEmpty(builder.webServicePaths, ArrayList::new);
+		this.singletonsSet = builder.singletonsSet == null || builder.singletonsSet.isEmpty() ?
+				Collections.emptySet() :
+				Collections.unmodifiableSet(builder.singletonsSet);
+		this.singletonsMap = builder.singletonsMap == null || builder.singletonsMap.isEmpty() ?
+				Collections.emptyMap() :
+				Collections.unmodifiableMap(builder.singletonsMap);
 		this.undertows = new ArrayList<>();
 		this.deploymentManagers = new ArrayList<>();
 		this.identityManagerProvider = builder.identityManagerProvider;
 		this.hostnamePrincipalResolver = builder.hostnamePrincipalResolver;
-		this.servletInfos = CollectionsUtils.copyIfNotEmpty(builder.servletInfos, ArrayList::new);
-		this.filterInfos = CollectionsUtils.copyIfNotEmpty(builder.filterInfos, ArrayList::new);
-		this.filterMappingInfos = CollectionsUtils.copyIfNotEmpty(builder.filterMappingInfos, ArrayList::new);
-		this.listenerInfos = CollectionsUtils.copyIfNotEmpty(builder.listenerInfos, ArrayList::new);
 		this.sessionPersistenceManager = builder.sessionPersistenceManager;
 		this.sessionListener = builder.sessionListener;
 		this.servletAccessLogger = builder.servletAccessLogger;
 		this.restAccessLogger = builder.restAccessLogger;
-		this.defaultMultipartConfig =
-				builder.defaultMultipart == null ? DEFAULT_MULTIPART_CONFIG : builder.defaultMultipart;
 		this.udpServer = buildUdpServer(builder, configuration);
 		this.startedListeners = CollectionsUtils.copyIfNotEmpty(builder.startedListeners, ArrayList::new);
 		this.shutdownListeners = CollectionsUtils.copyIfNotEmpty(builder.shutdownListeners, ArrayList::new);
 		this.connectorsStatistics = new ArrayList<>();
 	}
 
-	public void forEachWebServices(final Consumer<Class<?>> consumer) {
-		if (webServices != null)
-			webServices.forEach(consumer::accept);
-	}
-
-	public void forEachServicePath(final Consumer<String> consumer) {
-		if (webServicePaths != null)
-			webServicePaths.forEach(consumer::accept);
-	}
-
 	/**
 	 * Returns the named attribute. The method checks the type of the object.
 	 *
-	 * @param context
-	 * @param name
-	 * @param type
-	 * @param <T>
-	 * @return
+	 * @param context the context to request
+	 * @param name    the name of the attribute
+	 * @param type    the expected type
+	 * @param <T>     the expected object
+	 * @return the expected object
 	 */
 	public static <T> T getContextAttribute(final ServletContext context, final String name, final Class<T> type) {
 		final Object object = context.getAttribute(name);
@@ -170,17 +152,23 @@ final public class GenericServer {
 	/**
 	 * Returns an attribute where the name of the attribute in the name of the class
 	 *
-	 * @param context
-	 * @param cls
-	 * @param <T>
-	 * @return
+	 * @param context the context to request
+	 * @param cls     the type of the object
+	 * @param <T>     the expected object
+	 * @return the expected object
 	 */
 	public static <T> T getContextAttribute(final ServletContext context, final Class<T> cls) {
 		return getContextAttribute(context, cls.getName(), cls);
 	}
 
-	public Collection<String> getWebServiceNames() {
-		return webServiceNames;
+	@NotNull
+	Set<Object> getSingletonsSet() {
+		return singletonsSet;
+	}
+
+	@NotNull
+	public Map<String, String> getSingletonsMap() {
+		return singletonsMap;
 	}
 
 	private static UdpServerThread buildUdpServer(final Builder builder, final ServerConfiguration configuration)
@@ -299,11 +287,14 @@ final public class GenericServer {
 	/**
 	 * Call this method to start the server
 	 *
-	 * @throws IOException      if any IO error occur
-	 * @throws ServletException if the servlet configuration failed
+	 * @param shutdownHook pass true to install the StopAll method as Runtime shutdown hook
+	 * @throws IOException                  if any IO error occurs
+	 * @throws ServletException             if the servlet configuration failed
+	 * @throws ReflectiveOperationException if a class instanciation failed
+	 * @throws JMException                  if any JMX error occurs
 	 */
 	final public void start(boolean shutdownHook)
-			throws IOException, ServletException, ReflectiveOperationException, OperationsException, MBeanException {
+			throws IOException, ServletException, ReflectiveOperationException, JMException {
 
 		if (LOGGER.isInfoEnabled())
 			LOGGER.info("The server is starting...");
@@ -325,19 +316,19 @@ final public class GenericServer {
 			udpServer.checkStarted();
 
 		// Launch the servlet application if any
-		if (servletInfos != null && !servletInfos.isEmpty()) {
+		if (rootContext != null) {
 			final IdentityManager identityManager = getIdentityManager(configuration.webAppConnector);
 			startHttpServer(configuration.webAppConnector,
-					ServletApplication.getDeploymentInfo(servletInfos, identityManager, filterInfos, filterMappingInfos,
-							listenerInfos, sessionPersistenceManager, sessionListener, classLoader,
-							defaultMultipartConfig), servletAccessLogger, "WEBAPP");
+					rootContext.setSessionPersistenceManager(sessionPersistenceManager)
+							.addSessionListener(sessionListener)
+							.setIdentityManager(identityManager), servletAccessLogger, "WEBAPP");
 		}
 
 		// Launch the jaxrs application if any
-		if (webServices != null && !webServices.isEmpty()) {
+		if (singletonsSet != null && !singletonsSet.isEmpty()) {
 			final IdentityManager identityManager = getIdentityManager(configuration.webServiceConnector);
-			startHttpServer(configuration.webServiceConnector,
-					RestApplication.getDeploymentInfo(identityManager, classLoader), restAccessLogger, "WEBSERVICE");
+			startHttpServer(configuration.webServiceConnector, RestApplication.getDeploymentInfo(identityManager),
+					restAccessLogger, "WEBSERVICE");
 		}
 
 		if (shutdownHook)
@@ -397,35 +388,30 @@ final public class GenericServer {
 		final ExecutorService executorService;
 		final ClassLoader classLoader;
 
-		Map<String, Object> contextAttributes;
-		Collection<Class<?>> webServices;
-		Collection<String> webServicePaths;
-		Collection<String> webServiceNames;
-		Collection<UdpServerThread.PacketListener> packetListeners;
-		Collection<ServletInfo> servletInfos;
-		Collection<FilterInfo> filterInfos;
-		Collection<FilterMappingInfo> filterMappingInfos;
+		final ServletContextBuilder rootContext;
 
-		Collection<ListenerInfo> listenerInfos;
-		Collection<ServletSecurityInfo> servletSecurityInfos;
+		Map<String, Object> contextAttributes;
+		Set<Object> singletonsSet;
+		Map<String, String> singletonsMap;
+		Collection<UdpServerThread.PacketListener> packetListeners;
 
 		SessionPersistenceManager sessionPersistenceManager;
 		SessionListener sessionListener;
 		Logger servletAccessLogger;
 		Logger restAccessLogger;
+
 		GenericServer.IdentityManagerProvider identityManagerProvider;
 		HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver;
 
 		Collection<GenericServer.Listener> startedListeners;
 		Collection<GenericServer.Listener> shutdownListeners;
 
-		MultipartConfigElement defaultMultipart;
-
 		private Builder(final ServerConfiguration configuration, final ExecutorService executorService,
 				final ClassLoader classLoader) {
 			this.configuration = configuration;
 			this.executorService = executorService;
-			this.classLoader = classLoader;
+			this.classLoader = classLoader == null ? Thread.currentThread().getContextClassLoader() : classLoader;
+			this.rootContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT");
 		}
 
 		public ServerConfiguration getConfiguration() {
@@ -433,24 +419,30 @@ final public class GenericServer {
 		}
 
 		public GenericServer build() throws IOException {
-			return new GenericServer(this);
+			try {
+				return new GenericServer(this);
+			} catch (ClassNotFoundException | InstantiationException e) {
+				throw new ServerException(e);
+			}
 		}
 
-		public Builder webService(final Class<?> webService) {
-			final ServiceName serviceName = AnnotationsUtils.getFirstAnnotation(webService, ServiceName.class);
+		public Builder registerSingletons(final Class<?> singletonsClass) throws IOException, ClassNotFoundException {
+			ServiceLoader.load(singletonsClass, Thread.currentThread().getContextClassLoader())
+					.forEach(this::singletons);
+			return this;
+		}
+
+		public Builder singletons(final Object webService) {
+			final Class<?> webServiceClass = webService.getClass();
+			final ServiceName serviceName = AnnotationsUtils.getFirstAnnotation(webServiceClass, ServiceName.class);
 			Objects.requireNonNull(serviceName, "The ServiceName annotation is missing for " + webService);
-			if (webServices == null)
-				webServices = new LinkedHashSet<>();
-			webServices.add(webService);
-			if (webServiceNames == null)
-				webServiceNames = new LinkedHashSet<>();
-			webServiceNames.add(serviceName.value());
-			final Path path = AnnotationsUtils.getFirstAnnotation(webService, Path.class);
-			if (path != null) {
-				if (webServicePaths == null)
-					webServicePaths = new LinkedHashSet<>();
-				webServicePaths.add(path.value());
-			}
+			if (singletonsSet == null)
+				singletonsSet = new LinkedHashSet<>();
+			singletonsSet.add(webService);
+			final Path path = AnnotationsUtils.getFirstAnnotation(webServiceClass, Path.class);
+			if (singletonsMap == null)
+				singletonsMap = new LinkedHashMap<>();
+			singletonsMap.put(serviceName.value(), path == null ? StringUtils.EMPTY : path.value());
 			return this;
 		}
 
@@ -476,10 +468,7 @@ final public class GenericServer {
 		}
 
 		public Builder servlet(final ServletInfo servlet) {
-			Objects.requireNonNull(servlet, "The ServletInfo object is null");
-			if (servletInfos == null)
-				servletInfos = new LinkedHashSet<>();
-			servletInfos.add(servlet);
+			rootContext.servlet(Objects.requireNonNull(servlet, "The ServletInfo object is null"));
 			return this;
 		}
 
@@ -514,10 +503,7 @@ final public class GenericServer {
 		}
 
 		public Builder filter(final FilterInfo filter) {
-			Objects.requireNonNull(filter, "The FilterInfo object is null");
-			if (filterInfos == null)
-				filterInfos = new LinkedHashSet<>();
-			filterInfos.add(filter);
+			rootContext.filter(Objects.requireNonNull(filter, "The FilterInfo object is null"));
 			return this;
 		}
 
@@ -536,10 +522,8 @@ final public class GenericServer {
 		}
 
 		public Builder filterMapping(final FilterMappingInfo filterMappingInfo) {
-			Objects.requireNonNull(filterMappingInfo, "The FilterMappingInfo object is null");
-			if (filterMappingInfos == null)
-				filterMappingInfos = new LinkedHashSet<>();
-			filterMappingInfos.add(filterMappingInfo);
+			rootContext.filterMapping(
+					Objects.requireNonNull(filterMappingInfo, "The FilterMappingInfo object is null"));
 			return this;
 		}
 
@@ -555,19 +539,8 @@ final public class GenericServer {
 					new FilterMappingInfo(filterName, FilterMappingInfo.MappingType.SERVLET, servletName, dispatcher));
 		}
 
-		public Builder servletSecurity(final ServletSecurityInfo servletSecurity) {
-			Objects.requireNonNull(servletSecurity, "The servletSecurity object is null");
-			if (servletSecurityInfos == null)
-				servletSecurityInfos = new LinkedHashSet<>();
-			servletSecurityInfos.add(servletSecurity);
-			return this;
-		}
-
 		public Builder listener(final ListenerInfo listener) {
-			Objects.requireNonNull(listener, "The ListenerInfo object is null");
-			if (listenerInfos == null)
-				listenerInfos = new LinkedHashSet<>();
-			listenerInfos.add(listener);
+			rootContext.listener(Objects.requireNonNull(listener, "The ListenerInfo object is null"));
 			return this;
 		}
 
@@ -620,9 +593,7 @@ final public class GenericServer {
 
 		public Builder defaultMultipartConfig(String location, long maxFileSize, long maxRequestSize,
 				int fileSizeThreshold) {
-			defaultMultipart = new MultipartConfigElement(
-					StringUtils.isEmpty(location) ? SystemUtils.getJavaIoTmpDir().getAbsolutePath() : location,
-					maxFileSize, maxRequestSize, fileSizeThreshold);
+			rootContext.defaultMultipartConfig(location, maxFileSize, maxRequestSize, fileSizeThreshold);
 			return this;
 		}
 

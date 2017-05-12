@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ public class WelcomeStatus {
 	public WelcomeStatus(final GenericServer server, final Boolean showProperties, final Boolean showEnvVars) {
 		if (server != null) {
 			endpoints = new TreeSet<>();
-			server.forEachServicePath(endpoints::add);
+			server.getSingletonsMap().forEach((name, path) -> endpoints.add(name));
 		} else
 			endpoints = null;
 		final Package pkg = getClass().getPackage();

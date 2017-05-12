@@ -35,7 +35,7 @@ public abstract class JsonMultiClientAbstract<T> implements Iterable<T> {
 	 * Create a new multi client
 	 *
 	 * @param clientArray an array of client connection
-	 * @param remotes
+	 * @param remotes     an array of RemoteService
 	 */
 	protected JsonMultiClientAbstract(T[] clientArray, RemoteService... remotes) {
 		clientsArray = clientArray;

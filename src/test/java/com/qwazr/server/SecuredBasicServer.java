@@ -41,7 +41,7 @@ public class SecuredBasicServer implements BaseServer {
 		server = GenericServer.of(ServerConfiguration.of().webAppAuthentication("BASIC").webAppRealm(realm).build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.identityManagerProvider(realm -> identityManager)
-				.webService(WelcomeShutdownService.class)
+				.singletons(new WelcomeShutdownService())
 				.servlet(SimpleServlet.class)
 				.servlet(SecuredServlet.class)
 				.jaxrs(TestJaxRsAppAuth.class)
