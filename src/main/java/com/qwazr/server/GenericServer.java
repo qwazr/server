@@ -91,8 +91,6 @@ final public class GenericServer {
 
 	final private ServerConfiguration configuration;
 
-	final private SessionPersistenceManager sessionPersistenceManager;
-	final private SessionListener sessionListener;
 	final private Logger servletAccessLogger;
 	final private Logger restAccessLogger;
 
@@ -120,8 +118,6 @@ final public class GenericServer {
 		this.deploymentManagers = new ArrayList<>();
 		this.identityManagerProvider = builder.identityManagerProvider;
 		this.hostnamePrincipalResolver = builder.hostnamePrincipalResolver;
-		this.sessionPersistenceManager = builder.sessionPersistenceManager;
-		this.sessionListener = builder.sessionListener;
 		this.servletAccessLogger = builder.servletAccessLogger;
 		this.restAccessLogger = builder.restAccessLogger;
 		this.udpServer = buildUdpServer(builder, configuration);
@@ -318,10 +314,9 @@ final public class GenericServer {
 		// Launch the servlet application if any
 		if (rootContext != null) {
 			final IdentityManager identityManager = getIdentityManager(configuration.webAppConnector);
-			startHttpServer(configuration.webAppConnector,
-					rootContext.setSessionPersistenceManager(sessionPersistenceManager)
-							.addSessionListener(sessionListener)
-							.setIdentityManager(identityManager), servletAccessLogger, "WEBAPP");
+			if (identityManager != null)
+				rootContext.setIdentityManager(identityManager);
+			startHttpServer(configuration.webAppConnector, rootContext, servletAccessLogger, "WEBAPP");
 		}
 
 		// Launch the jaxrs application if any
@@ -395,8 +390,6 @@ final public class GenericServer {
 		Map<String, String> singletonsMap;
 		Collection<UdpServerThread.PacketListener> packetListeners;
 
-		SessionPersistenceManager sessionPersistenceManager;
-		SessionListener sessionListener;
 		Logger servletAccessLogger;
 		Logger restAccessLogger;
 
@@ -561,7 +554,7 @@ final public class GenericServer {
 		}
 
 		public Builder sessionPersistenceManager(final SessionPersistenceManager manager) {
-			sessionPersistenceManager = manager;
+			rootContext.sessionPersistenceManager(manager);
 			return this;
 		}
 
@@ -577,7 +570,7 @@ final public class GenericServer {
 		}
 
 		public Builder sessionListener(final SessionListener listener) {
-			sessionListener = listener;
+			rootContext.sessionListener(listener);
 			return this;
 		}
 

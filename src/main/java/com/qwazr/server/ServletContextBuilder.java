@@ -16,6 +16,7 @@
 package com.qwazr.server;
 
 import com.qwazr.utils.StringUtils;
+import io.undertow.server.session.SessionListener;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.FilterInfo;
@@ -23,6 +24,7 @@ import io.undertow.servlet.api.FilterMappingInfo;
 import io.undertow.servlet.api.ListenerInfo;
 import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
+import io.undertow.servlet.api.SessionPersistenceManager;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.SystemUtils;
 
@@ -41,6 +43,8 @@ public class ServletContextBuilder {
 	Collection<FilterMappingInfo> filterMappingInfos;
 	Collection<FilterInfo> filterInfos;
 	Collection<ListenerInfo> listenerInfos;
+	SessionPersistenceManager sessionPersistenceManager;
+	Collection<SessionListener> sessionListeners;
 
 	ServletContextBuilder(ClassLoader classLoader, String contextPath, String defaultEncoding, String contextName) {
 		this.classLoader = classLoader;
@@ -59,6 +63,18 @@ public class ServletContextBuilder {
 		return defaultMultipartConfig(new MultipartConfigElement(
 				StringUtils.isEmpty(location) ? SystemUtils.getJavaIoTmpDir().getAbsolutePath() : location, maxFileSize,
 				maxRequestSize, fileSizeThreshold));
+	}
+
+	public ServletContextBuilder sessionPersistenceManager(SessionPersistenceManager sessionPersistenceManager) {
+		this.sessionPersistenceManager = sessionPersistenceManager;
+		return this;
+	}
+
+	public ServletContextBuilder sessionListener(SessionListener sessionListener) {
+		if (sessionListeners == null)
+			sessionListeners = new LinkedHashSet<>();
+		sessionListeners.add(sessionListener);
+		return this;
 	}
 
 	public ServletContextBuilder servlet(final ServletInfo servlet) {
@@ -140,6 +156,11 @@ public class ServletContextBuilder {
 				}
 			});
 		}
+
+		if (sessionPersistenceManager != null)
+			deploymentInfo.setSessionPersistenceManager(sessionPersistenceManager);
+		if (sessionListeners != null)
+			sessionListeners.forEach(deploymentInfo::addSessionListener);
 
 		return deploymentInfo;
 	}
