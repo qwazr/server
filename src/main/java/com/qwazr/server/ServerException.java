@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import java.util.function.Supplier;
 
 public class ServerException extends RuntimeException {
 
@@ -37,24 +38,38 @@ public class ServerException extends RuntimeException {
 
 	private final static int INTERNAL_SERVER_ERROR = Status.INTERNAL_SERVER_ERROR.getStatusCode();
 
-	public ServerException(final Status status, String message, final Exception exception) {
-		super(message, exception);
-		if (status == null && exception != null) {
-			if (exception instanceof WebApplicationException) {
-				this.statusCode = ((WebApplicationException) exception).getResponse().getStatus();
-			} else if (exception instanceof HttpResponseException) {
-				this.statusCode = ((HttpResponseException) exception).getStatusCode();
+	public ServerException(final Status status, String message, final Exception cause) {
+		super(message, cause);
+		if (status == null && cause != null) {
+			if (cause instanceof WebApplicationException) {
+				this.statusCode = ((WebApplicationException) cause).getResponse().getStatus();
+			} else if (cause instanceof HttpResponseException) {
+				this.statusCode = ((HttpResponseException) cause).getStatusCode();
 			} else
 				this.statusCode = INTERNAL_SERVER_ERROR;
 		} else
 			this.statusCode = status != null ? status.getStatusCode() : INTERNAL_SERVER_ERROR;
 		if (StringUtils.isEmpty(message)) {
-			if (exception != null)
-				message = exception.getMessage();
+			if (cause != null)
+				message = cause.getMessage();
 			if (StringUtils.isEmpty(message) && status != null)
 				message = status.getReasonPhrase();
 		}
 		this.message = message;
+	}
+
+	final static String SAFE_MESSAGE_ERROR = "Cannot build error message: ";
+
+	private static String getSafeMessage(Supplier<String> message) {
+		try {
+			return message == null ? null : message.get();
+		} catch (RuntimeException e) {
+			return SAFE_MESSAGE_ERROR + " " + e;
+		}
+	}
+
+	public ServerException(final Status status, final Supplier<String> message, final Exception cause) {
+		this(status, message == null ? null : getSafeMessage(message), cause);
 	}
 
 	public ServerException(final Status status) {
@@ -65,16 +80,28 @@ public class ServerException extends RuntimeException {
 		this(status, message, null);
 	}
 
-	public ServerException(final String message, final Exception exception) {
-		this(null, message, exception);
+	public ServerException(final Status status, final Supplier<String> message) {
+		this(status, message, null);
+	}
+
+	public ServerException(final String message, final Exception cause) {
+		this(null, message, cause);
+	}
+
+	public ServerException(final Supplier<String> message, final Exception cause) {
+		this(null, message, cause);
 	}
 
 	public ServerException(final String message) {
 		this(null, message, null);
 	}
 
-	public ServerException(final Exception exception) {
-		this(null, null, exception);
+	public ServerException(final Supplier<String> message) {
+		this(null, message, null);
+	}
+
+	public ServerException(final Exception cause) {
+		this(null, (String) null, cause);
 	}
 
 	public int getStatusCode() {
