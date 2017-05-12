@@ -23,6 +23,7 @@ import io.undertow.servlet.api.FilterMappingInfo;
 import io.undertow.servlet.api.ListenerInfo;
 import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.SystemUtils;
 
 import javax.servlet.MultipartConfigElement;
@@ -89,6 +90,10 @@ public class ServletContextBuilder {
 	}
 
 	DeploymentInfo build() throws InstantiationException, ClassNotFoundException {
+
+		if (CollectionUtils.isEmpty(servletInfos))
+			return null;
+
 		final DeploymentInfo deploymentInfo = Servlets.deployment().
 				setClassLoader(classLoader).
 				setContextPath(contextPath == null ? "/" : contextPath).
