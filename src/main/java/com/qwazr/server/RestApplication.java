@@ -17,13 +17,7 @@ package com.qwazr.server;
 
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 import com.qwazr.utils.json.JacksonConfig;
-import io.undertow.security.idm.IdentityManager;
-import io.undertow.servlet.Servlets;
-import io.undertow.servlet.api.DeploymentInfo;
-import io.undertow.servlet.api.SecurityInfo;
-import io.undertow.servlet.api.ServletInfo;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
-import org.glassfish.jersey.servlet.ServletContainer;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Application;
@@ -35,33 +29,23 @@ import java.util.Set;
 /**
  * Generic RestApplication
  */
-public class RestApplication extends Application {
+public abstract class RestApplication extends Application {
+
+	public static final Class<?>[] JSON_CLASSES =
+			{ JacksonConfig.class, JacksonJsonProvider.class, JsonMappingExceptionMapper.class };
 
 	@Context
 	private ServletContext context;
-
-	protected <T> T getContextAttribute(final Class<T> clazz) {
-		return context == null || clazz == null ? null : (T) context.getAttribute(clazz.getName());
-	}
 
 	public static class WithoutAuth extends RestApplication {
 
 		@Override
 		public Set<Class<?>> getClasses() {
 			final Set<Class<?>> classes = new LinkedHashSet<>();
-			classes.add(JacksonConfig.class);
-			classes.add(JacksonJsonProvider.class);
-			classes.add(JsonMappingExceptionMapper.class);
-
+			Collections.addAll(classes, JSON_CLASSES);
 			return classes;
 		}
 
-		@Override
-		public Set<Object> getSingletons() {
-			// Get the service from the generic server instance
-			final GenericServer server = getContextAttribute(GenericServer.class);
-			return server == null ? Collections.emptySet() : server.getSingletonsSet();
-		}
 	}
 
 	public static class WithAuth extends WithoutAuth {
@@ -71,25 +55,6 @@ public class RestApplication extends Application {
 			classes.add(RolesAllowedDynamicFeature.class);
 			return classes;
 		}
-	}
-
-	static DeploymentInfo getDeploymentInfo(final IdentityManager identityManager) {
-		final DeploymentInfo deploymentInfo = Servlets.deployment()
-				.setClassLoader(Thread.currentThread().getContextClassLoader())
-				.setContextPath("/")
-				.setDeploymentName("REST");
-		final Class<? extends Application> applicationClass =
-				identityManager == null ? WithoutAuth.class : WithAuth.class;
-		deploymentInfo.addServlets(
-				new ServletInfo("REST", ServletContainer.class).addInitParam("javax.ws.rs.Application",
-						applicationClass.getName()).setAsyncSupported(true).addMapping("/*"));
-		if (identityManager != null) {
-			deploymentInfo.setIdentityManager(identityManager);
-			deploymentInfo.addSecurityConstraint(Servlets.securityConstraint()
-					.setEmptyRoleSemantic(SecurityInfo.EmptyRoleSemantic.AUTHENTICATE)
-					.addWebResourceCollection(Servlets.webResourceCollection().addUrlPattern("/*")));
-		}
-		return deploymentInfo;
 	}
 
 }

@@ -21,11 +21,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 class JaxRsServlet extends ServletContainer {
 
 	final ResourceConfig resourceConfig;
-
-	public JaxRsServlet() {
-		this(null);
-	}
-
+	
 	JaxRsServlet(ResourceConfig resourceConfig) {
 		super(resourceConfig);
 		this.resourceConfig = resourceConfig;

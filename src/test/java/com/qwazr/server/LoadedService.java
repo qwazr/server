@@ -22,7 +22,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 
 @Path("/loaded")
-@ServiceName(LoadedService.SERVICE_NAME)
 public class LoadedService extends AbstractServiceImpl {
 
 	public final static String SERVICE_NAME = "loaded";

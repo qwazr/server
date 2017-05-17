@@ -38,13 +38,16 @@ public class SimpleServerTest {
 	public void test100createServer()
 			throws IOException, ReflectiveOperationException, OperationsException, ServletException, MBeanException {
 		server = new SimpleServer();
-		Assert.assertTrue(server.getServer().getSingletonsMap().containsKey(WelcomeShutdownService.SERVICE_NAME));
+		Assert.assertNotNull(server.getServer());
 	}
 
 	@Test
 	public void test200startServer() throws ReflectiveOperationException, JMException, ServletException, IOException {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
+		Assert.assertEquals(200, HttpRequest.Get("http://localhost:9091/").execute().getStatusLine().getStatusCode());
+		Assert.assertEquals(404,
+				HttpRequest.Get("http://localhost:9091/sdflksjflskdfj").execute().getStatusLine().getStatusCode());
 	}
 
 	@Test
@@ -66,6 +69,14 @@ public class SimpleServerTest {
 	public void test400LoadedService() throws IOException {
 		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/loaded").execute()) {
 			Assert.assertEquals(LoadedService.TEXT, EntityUtils.toString(response.getEntity()));
+		}
+	}
+
+	@Test
+	public void test404() throws IOException {
+		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/sd404flsfjskdfj")
+				.execute()) {
+			Assert.assertEquals(404, response.getStatusLine().getStatusCode());
 		}
 	}
 

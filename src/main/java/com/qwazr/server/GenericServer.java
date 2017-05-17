@@ -16,7 +16,6 @@
 package com.qwazr.server;
 
 import com.qwazr.server.configuration.ServerConfiguration;
-import com.qwazr.utils.AnnotationsUtils;
 import com.qwazr.utils.CollectionsUtils;
 import com.qwazr.utils.StringUtils;
 import io.undertow.Undertow;
@@ -25,14 +24,9 @@ import io.undertow.security.idm.IdentityManager;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.session.SessionListener;
 import io.undertow.servlet.Servlets;
-import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
-import io.undertow.servlet.api.FilterInfo;
-import io.undertow.servlet.api.FilterMappingInfo;
-import io.undertow.servlet.api.ListenerInfo;
 import io.undertow.servlet.api.LoginConfig;
 import io.undertow.servlet.api.ServletContainer;
-import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.SessionPersistenceManager;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
@@ -43,28 +37,19 @@ import javax.management.MBeanException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.OperationsException;
-import javax.servlet.DispatcherType;
-import javax.servlet.Filter;
 import javax.servlet.MultipartConfigElement;
-import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Application;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.ServiceLoader;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -74,11 +59,10 @@ final public class GenericServer {
 
 	final private ExecutorService executorService;
 	final private ServletContainer servletContainer;
-	final private DeploymentInfo rootContext;
+	final private ServletContextBuilder webAppContext;
+	final private ServletContextBuilder webServiceContext;
 
 	final private Map<String, Object> contextAttributes;
-	final private Set<Object> singletonsSet;
-	final private Map<String, String> singletonsMap;
 	final private IdentityManagerProvider identityManagerProvider;
 	final private HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver;
 	final private Collection<ConnectorStatisticsMXBean> connectorsStatistics;
@@ -91,8 +75,8 @@ final public class GenericServer {
 
 	final private ServerConfiguration configuration;
 
-	final private Logger servletAccessLogger;
-	final private Logger restAccessLogger;
+	final private Logger webAppAccessLogger;
+	final private Logger webServiceAccessLogger;
 
 	final private UdpServerThread udpServer;
 
@@ -104,22 +88,17 @@ final public class GenericServer {
 		this.executorService =
 				builder.executorService == null ? Executors.newCachedThreadPool() : builder.executorService;
 		this.servletContainer = Servlets.newContainer();
-		this.rootContext = builder.rootContext.build();
+		this.webAppContext = builder.webAppContext;
+		this.webServiceContext = builder.webServiceContext;
 		builder.contextAttribute(this);
 
 		this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
-		this.singletonsSet = builder.singletonsSet == null || builder.singletonsSet.isEmpty() ?
-				Collections.emptySet() :
-				Collections.unmodifiableSet(builder.singletonsSet);
-		this.singletonsMap = builder.singletonsMap == null || builder.singletonsMap.isEmpty() ?
-				Collections.emptyMap() :
-				Collections.unmodifiableMap(builder.singletonsMap);
 		this.undertows = new ArrayList<>();
 		this.deploymentManagers = new ArrayList<>();
 		this.identityManagerProvider = builder.identityManagerProvider;
 		this.hostnamePrincipalResolver = builder.hostnamePrincipalResolver;
-		this.servletAccessLogger = builder.servletAccessLogger;
-		this.restAccessLogger = builder.restAccessLogger;
+		this.webAppAccessLogger = builder.webAppAccessLogger;
+		this.webServiceAccessLogger = builder.webServiceAccessLogger;
 		this.udpServer = buildUdpServer(builder, configuration);
 		this.startedListeners = CollectionsUtils.copyIfNotEmpty(builder.startedListeners, ArrayList::new);
 		this.shutdownListeners = CollectionsUtils.copyIfNotEmpty(builder.shutdownListeners, ArrayList::new);
@@ -155,16 +134,6 @@ final public class GenericServer {
 	 */
 	public static <T> T getContextAttribute(final ServletContext context, final Class<T> cls) {
 		return getContextAttribute(context, cls.getName(), cls);
-	}
-
-	@NotNull
-	Set<Object> getSingletonsSet() {
-		return singletonsSet;
-	}
-
-	@NotNull
-	public Map<String, String> getSingletonsMap() {
-		return singletonsMap;
 	}
 
 	private static UdpServerThread buildUdpServer(final Builder builder, final ServerConfiguration configuration)
@@ -237,30 +206,34 @@ final public class GenericServer {
 				connector == null || connector.realm == null ? null : connector.realm);
 	}
 
-	private void startHttpServer(final ServerConfiguration.WebConnector connector, final DeploymentInfo deploymentInfo,
-			final Logger accessLogger, final String jmxName)
-			throws IOException, ServletException, OperationsException, MBeanException {
+	private void startHttpServer(final ServerConfiguration.WebConnector connector, final ServletContextBuilder context,
+			final Logger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
 
-		contextAttributes.forEach(deploymentInfo::addServletContextAttribute);
+		if (context == null || context.getServlets().isEmpty())
+			return;
 
-		if (deploymentInfo.getIdentityManager() != null && !StringUtils.isEmpty(connector.authentication)) {
+		context.setIdentityManager(getIdentityManager(connector));
+
+		contextAttributes.forEach(context::addServletContextAttribute);
+
+		if (context.getIdentityManager() != null && !StringUtils.isEmpty(connector.authentication)) {
 			if (hostnamePrincipalResolver != null)
-				HostnameAuthenticationMechanism.register(deploymentInfo, hostnamePrincipalResolver);
+				HostnameAuthenticationMechanism.register(context, hostnamePrincipalResolver);
 			final LoginConfig loginConfig = Servlets.loginConfig(connector.realm);
 			for (String authmethod : StringUtils.split(connector.authentication, ','))
 				loginConfig.addLastAuthMethod(authmethod);
-			deploymentInfo.setLoginConfig(loginConfig);
+			context.setLoginConfig(loginConfig);
 		}
 
-		final DeploymentManager manager = servletContainer.addDeployment(deploymentInfo);
+		final DeploymentManager manager = servletContainer.addDeployment(context);
 		manager.deploy();
 
-		if (LOGGER.isInfoEnabled())
-			LOGGER.info("Start the connector " + configuration.listenAddress + ":" + connector.port);
+		LOGGER.info("Start the connector {}:{}", configuration.listenAddress, connector.port);
 
 		HttpHandler httpHandler = manager.start();
 		final LogMetricsHandler logMetricsHandler =
-				new LogMetricsHandler(httpHandler, accessLogger, configuration.listenAddress, connector.port, jmxName);
+				new LogMetricsHandler(httpHandler, accessLogger, configuration.listenAddress, connector.port,
+						context.jmxName);
 		deploymentManagers.add(manager);
 		httpHandler = logMetricsHandler;
 
@@ -274,7 +247,7 @@ final public class GenericServer {
 		final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
 		final Hashtable<String, String> props = new Hashtable<>();
 		props.put("type", "connector");
-		props.put("name", jmxName);
+		props.put("name", context.jmxName);
 		final ObjectName name = new ObjectName("com.qwazr.server." + this.hashCode(), props);
 		mbs.registerMBean(logMetricsHandler, name);
 		connectorsStatistics.add(logMetricsHandler);
@@ -292,11 +265,8 @@ final public class GenericServer {
 	final public void start(boolean shutdownHook)
 			throws IOException, ServletException, ReflectiveOperationException, JMException {
 
-		if (LOGGER.isInfoEnabled())
-			LOGGER.info("The server is starting...");
-
-		if (LOGGER.isInfoEnabled())
-			LOGGER.info("Data directory sets to: " + configuration.dataDirectory);
+		LOGGER.info("The server is starting...");
+		LOGGER.info("Data directory sets to: {}", configuration.dataDirectory);
 
 		java.util.logging.Logger.getLogger("").setLevel(Level.WARNING);
 
@@ -305,34 +275,19 @@ final public class GenericServer {
 		if (!configuration.dataDirectory.isDirectory())
 			throw new IOException("The data directory path is not a directory: " + configuration.dataDirectory);
 
-		if (LOGGER.isInfoEnabled())
-			LOGGER.info("Data directory sets to: " + configuration.dataDirectory);
-
 		if (udpServer != null)
 			udpServer.checkStarted();
 
-		// Launch the servlet application if any
-		if (rootContext != null) {
-			final IdentityManager identityManager = getIdentityManager(configuration.webAppConnector);
-			if (identityManager != null)
-				rootContext.setIdentityManager(identityManager);
-			startHttpServer(configuration.webAppConnector, rootContext, servletAccessLogger, "WEBAPP");
-		}
-
-		// Launch the jaxrs application if any
-		if (singletonsSet != null && !singletonsSet.isEmpty()) {
-			final IdentityManager identityManager = getIdentityManager(configuration.webServiceConnector);
-			startHttpServer(configuration.webServiceConnector, RestApplication.getDeploymentInfo(identityManager),
-					restAccessLogger, "WEBSERVICE");
-		}
+		// Launch the applications/connector
+		startHttpServer(configuration.webAppConnector, webAppContext, webAppAccessLogger);
+		startHttpServer(configuration.webServiceConnector, webServiceContext, webServiceAccessLogger);
 
 		if (shutdownHook)
 			Runtime.getRuntime().addShutdownHook(new Thread(this::stopAll));
 
 		executeListener(startedListeners);
 
-		if (LOGGER.isInfoEnabled())
-			LOGGER.info("The server started successfully.");
+		LOGGER.info("The server started successfully.");
 	}
 
 	public Collection<ConnectorStatisticsMXBean> getConnectorsStatistics() {
@@ -383,15 +338,14 @@ final public class GenericServer {
 		final ExecutorService executorService;
 		final ClassLoader classLoader;
 
-		final ServletContextBuilder rootContext;
+		final ServletContextBuilder webAppContext;
+		final ServletContextBuilder webServiceContext;
 
 		Map<String, Object> contextAttributes;
-		Set<Object> singletonsSet;
-		Map<String, String> singletonsMap;
 		Collection<UdpServerThread.PacketListener> packetListeners;
 
-		Logger servletAccessLogger;
-		Logger restAccessLogger;
+		Logger webAppAccessLogger;
+		Logger webServiceAccessLogger;
 
 		GenericServer.IdentityManagerProvider identityManagerProvider;
 		HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver;
@@ -404,7 +358,8 @@ final public class GenericServer {
 			this.configuration = configuration;
 			this.executorService = executorService;
 			this.classLoader = classLoader == null ? Thread.currentThread().getContextClassLoader() : classLoader;
-			this.rootContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT");
+			this.webAppContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT", "WEBAPP");
+			this.webServiceContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT", "WEBSERVICE");
 		}
 
 		public ServerConfiguration getConfiguration() {
@@ -419,24 +374,12 @@ final public class GenericServer {
 			}
 		}
 
-		public Builder registerSingletons(final Class<?> singletonsClass) throws IOException, ClassNotFoundException {
-			ServiceLoader.load(singletonsClass, Thread.currentThread().getContextClassLoader())
-					.forEach(this::singletons);
-			return this;
+		public ServletContextBuilder getWebAppContext() {
+			return webAppContext;
 		}
 
-		public Builder singletons(final Object webService) {
-			final Class<?> webServiceClass = webService.getClass();
-			final ServiceName serviceName = AnnotationsUtils.getFirstAnnotation(webServiceClass, ServiceName.class);
-			Objects.requireNonNull(serviceName, "The ServiceName annotation is missing for " + webService);
-			if (singletonsSet == null)
-				singletonsSet = new LinkedHashSet<>();
-			singletonsSet.add(webService);
-			final Path path = AnnotationsUtils.getFirstAnnotation(webServiceClass, Path.class);
-			if (singletonsMap == null)
-				singletonsMap = new LinkedHashMap<>();
-			singletonsMap.put(serviceName.value(), path == null ? StringUtils.EMPTY : path.value());
-			return this;
+		public ServletContextBuilder getWebServiceContext() {
+			return webServiceContext;
 		}
 
 		public Builder packetListener(final UdpServerThread.PacketListener packetListener) {
@@ -460,83 +403,6 @@ final public class GenericServer {
 			return contextAttribute(object.getClass().getName(), object);
 		}
 
-		public Builder servlet(final ServletInfo servlet) {
-			rootContext.servlet(Objects.requireNonNull(servlet, "The ServletInfo object is null"));
-			return this;
-		}
-
-		public <T extends Servlet> Builder servlet(final String name, final Class<T> servletClass,
-				final String... urlPatterns) {
-			return servlet(name, servletClass, null, urlPatterns);
-		}
-
-		public <T extends Servlet> Builder servlet(final String name, final Class<T> servletClass,
-				final GenericFactory<T> instanceFactory, final String... urlPatterns) {
-			return servlet(ServletInfoBuilder.servlet(name, servletClass, instanceFactory, urlPatterns));
-		}
-
-		public Builder servlet(final Class<? extends Servlet> servletClass, final String... urlPatterns) {
-			return servlet(null, servletClass, urlPatterns);
-		}
-
-		public Builder jaxrs(final String name, final Class<? extends Application> applicationClass) {
-			return servlet(ServletInfoBuilder.jaxrs(name, applicationClass));
-		}
-
-		public Builder jaxrs(final Class<? extends Application> applicationClass) {
-			return jaxrs(null, applicationClass);
-		}
-
-		public Builder jaxrs(final String name, final ApplicationBuilder applicationBuilder) {
-			return servlet(ServletInfoBuilder.jaxrs(name, applicationBuilder));
-		}
-
-		public Builder jaxrs(final ApplicationBuilder applicationBuilder) {
-			return jaxrs(null, applicationBuilder);
-		}
-
-		public Builder filter(final FilterInfo filter) {
-			rootContext.filter(Objects.requireNonNull(filter, "The FilterInfo object is null"));
-			return this;
-		}
-
-		public <T extends Filter> Builder filter(final String name, final Class<T> filterClass,
-				final GenericFactory<T> instanceFactory) {
-			FilterInfoBuilder.filter(name, filterClass, instanceFactory, this);
-			return this;
-		}
-
-		public Builder filter(final String name, final Class<? extends Filter> filterClass) {
-			return filter(name, filterClass, null);
-		}
-
-		public Builder filter(final Class<? extends Filter> filterClass) {
-			return filter(null, filterClass);
-		}
-
-		public Builder filterMapping(final FilterMappingInfo filterMappingInfo) {
-			rootContext.filterMapping(
-					Objects.requireNonNull(filterMappingInfo, "The FilterMappingInfo object is null"));
-			return this;
-		}
-
-		public Builder urlFilterMapping(final String filterName, final String urlMapping,
-				final DispatcherType dispatcher) {
-			return filterMapping(
-					new FilterMappingInfo(filterName, FilterMappingInfo.MappingType.URL, urlMapping, dispatcher));
-		}
-
-		public Builder servletFilterMapping(final String filterName, final String servletName,
-				final DispatcherType dispatcher) {
-			return filterMapping(
-					new FilterMappingInfo(filterName, FilterMappingInfo.MappingType.SERVLET, servletName, dispatcher));
-		}
-
-		public Builder listener(final ListenerInfo listener) {
-			rootContext.listener(Objects.requireNonNull(listener, "The ListenerInfo object is null"));
-			return this;
-		}
-
 		public Builder startedListener(final GenericServer.Listener listener) {
 			Objects.requireNonNull(listener, "The GenericServer.Listener object is null");
 			if (startedListeners == null)
@@ -554,7 +420,7 @@ final public class GenericServer {
 		}
 
 		public Builder sessionPersistenceManager(final SessionPersistenceManager manager) {
-			rootContext.sessionPersistenceManager(manager);
+			webAppContext.setSessionPersistenceManager(manager);
 			return this;
 		}
 
@@ -570,23 +436,33 @@ final public class GenericServer {
 		}
 
 		public Builder sessionListener(final SessionListener listener) {
-			rootContext.sessionListener(listener);
+			webAppContext.addSessionListener(listener);
 			return this;
 		}
 
+		@Deprecated
 		public Builder servletAccessLogger(final Logger logger) {
-			servletAccessLogger = logger;
+			return webAppAccessLogger(logger);
+		}
+
+		public Builder webAppAccessLogger(final Logger logger) {
+			webAppAccessLogger = logger;
 			return this;
 		}
 
+		@Deprecated
 		public Builder restAccessLogger(final Logger logger) {
-			restAccessLogger = logger;
+			return webServiceAccessLogger(logger);
+		}
+
+		public Builder webServiceAccessLogger(final Logger logger) {
+			webServiceAccessLogger = logger;
 			return this;
 		}
 
 		public Builder defaultMultipartConfig(String location, long maxFileSize, long maxRequestSize,
 				int fileSizeThreshold) {
-			rootContext.defaultMultipartConfig(location, maxFileSize, maxRequestSize, fileSizeThreshold);
+			webAppContext.setDefaultMultipartConfig(location, maxFileSize, maxRequestSize, fileSizeThreshold);
 			return this;
 		}
 

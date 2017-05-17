@@ -16,6 +16,8 @@
 package com.qwazr.server;
 
 import com.qwazr.server.configuration.ServerConfiguration;
+import io.undertow.servlet.Servlets;
+import io.undertow.servlet.api.SecurityInfo;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 
@@ -38,16 +40,28 @@ public class SecuredBasicServer implements BaseServer {
 	public SecuredBasicServer() throws IOException {
 		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
 		identityManager.addBasic(basicUsername, basicUsername, basicPassword, "secured");
-		server = GenericServer.of(ServerConfiguration.of().webAppAuthentication("BASIC").webAppRealm(realm).build())
-				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
-				.identityManagerProvider(realm -> identityManager)
-				.singletons(new WelcomeShutdownService())
+		final GenericServer.Builder builder =
+				GenericServer.of(ServerConfiguration.of().webAppAuthentication("BASIC").webAppRealm(realm).build())
+						.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
+						.identityManagerProvider(realm -> identityManager);
+
+		builder.getWebServiceContext()
+				.jaxrs(ApplicationBuilder.of("/*")
+						.classes(RestApplication.JSON_CLASSES)
+						.singletons(new WelcomeShutdownService()));
+
+		builder.getWebAppContext()
 				.servlet(SimpleServlet.class)
 				.servlet(SecuredServlet.class)
 				.jaxrs(TestJaxRsAppAuth.class)
 				.jaxrs(new ApplicationBuilder("/jaxrs-app-auth-singletons/*").classes(RolesAllowedDynamicFeature.class)
 						.singletons(new TestJaxRsAppAuth.ServiceAuth()))
-				.build();
+				.addSecurityConstraint(Servlets.securityConstraint()
+						.setEmptyRoleSemantic(SecurityInfo.EmptyRoleSemantic.AUTHENTICATE)
+						.addWebResourceCollection(Servlets.webResourceCollection()
+								.addUrlPatterns("/jaxrs-app-auth/*", "/jaxrs-app-auth-singletons/*")));
+
+		server = builder.build();
 	}
 
 	@Override

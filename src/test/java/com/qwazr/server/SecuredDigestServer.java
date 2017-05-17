@@ -37,13 +37,19 @@ public class SecuredDigestServer implements BaseServer {
 	public SecuredDigestServer() throws IOException {
 		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
 		identityManager.addDigest(realm, digestUsername, digestUsername, digestPassword, "secured");
-		server = GenericServer.of(ServerConfiguration.of().webAppRealm(realm).webAppAuthentication("DIGEST").build())
-				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
-				.identityManagerProvider(realm -> identityManager)
-				.singletons(new WelcomeShutdownService())
-				.servlet(SimpleServlet.class)
-				.servlet(SecuredServlet.class)
-				.build();
+		GenericServer.Builder builder =
+				GenericServer.of(ServerConfiguration.of().webAppRealm(realm).webAppAuthentication("DIGEST").build())
+						.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
+						.identityManagerProvider(realm -> identityManager);
+
+		builder.getWebServiceContext()
+				.jaxrs(ApplicationBuilder.of("/*")
+						.classes(RestApplication.JSON_CLASSES)
+						.singletons(new WelcomeShutdownService()));
+
+		builder.getWebAppContext().servlets(SimpleServlet.class, SecuredServlet.class);
+
+		server = builder.build();
 	}
 
 	@Override

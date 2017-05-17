@@ -21,25 +21,19 @@ import com.qwazr.utils.RuntimeUtils;
 
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WelcomeStatus {
 
 	public final TitleVendorVersion implementation;
 	public final TitleVendorVersion specification;
-	public final TreeSet<String> endpoints;
 	public final MemoryStatus memory;
 	public final RuntimeStatus runtime;
 	public final SortedMap<String, Object> properties;
 	public final SortedMap<String, String> env;
 
-	public WelcomeStatus(final GenericServer server, final Boolean showProperties, final Boolean showEnvVars) {
-		if (server != null) {
-			endpoints = new TreeSet<>();
-			server.getSingletonsMap().forEach((name, path) -> endpoints.add(name));
-		} else
-			endpoints = null;
+	public WelcomeStatus(final Boolean showProperties, final Boolean showEnvVars) {
+		
 		final Package pkg = getClass().getPackage();
 		implementation = new TitleVendorVersion(pkg.getImplementationTitle(), pkg.getImplementationVendor(),
 				pkg.getImplementationVersion());

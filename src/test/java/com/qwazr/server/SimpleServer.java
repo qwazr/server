@@ -29,13 +29,19 @@ public class SimpleServer implements BaseServer {
 	private GenericServer server;
 
 	public SimpleServer() throws IOException, ClassNotFoundException {
-		server = GenericServer.of(ServerConfiguration.of().build())
-				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
-				.singletons(new WelcomeShutdownService())
-				.registerSingletons(ServiceInterface.class)
-				.servlet(SimpleServlet.class, "test_bis")
-				.filter(SimpleFilter.class)
-				.build();
+
+		GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().build())
+				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute);
+
+		builder.getWebAppContext().servlet(SimpleServlet.class, "test_bis").filter(SimpleFilter.class);
+
+		builder.getWebServiceContext()
+				.jaxrs(ApplicationBuilder.of("/*")
+						.classes(RestApplication.JSON_CLASSES)
+						.loadServices()
+						.singletons(new WelcomeShutdownService()));
+
+		server = builder.build();
 	}
 
 	@Override

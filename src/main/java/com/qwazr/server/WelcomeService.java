@@ -23,7 +23,6 @@ import javax.ws.rs.QueryParam;
 
 @RolesAllowed(WelcomeService.SERVICE_NAME)
 @Path("/")
-@ServiceName(WelcomeService.SERVICE_NAME)
 public class WelcomeService extends AbstractServiceImpl {
 
 	public final static String SERVICE_NAME = "welcome";
@@ -31,7 +30,7 @@ public class WelcomeService extends AbstractServiceImpl {
 	@GET
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	public WelcomeStatus welcome(@QueryParam("properties") Boolean properties, @QueryParam("env") Boolean env) {
-		return new WelcomeStatus(getContextAttribute(GenericServer.class), properties, env);
+		return new WelcomeStatus(properties, env);
 	}
 
 }

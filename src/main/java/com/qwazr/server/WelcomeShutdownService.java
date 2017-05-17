@@ -24,7 +24,6 @@ import javax.ws.rs.Path;
 
 @RolesAllowed("welcome")
 @Path("/")
-@ServiceName("welcome")
 public class WelcomeShutdownService extends WelcomeService {
 
 	static final private Logger LOGGER = LoggerFactory.getLogger(WelcomeShutdownService.class);

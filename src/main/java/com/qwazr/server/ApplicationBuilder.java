@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 
 public class ApplicationBuilder {
@@ -35,6 +36,10 @@ public class ApplicationBuilder {
 	final Map<String, Object> properties = new LinkedHashMap<>();
 
 	volatile ResourceConfig cache;
+
+	public static ApplicationBuilder of(String... applicationPaths) {
+		return new ApplicationBuilder(applicationPaths);
+	}
 
 	public ApplicationBuilder(String... applicationPaths) {
 		if (applicationPaths != null)
@@ -83,6 +88,15 @@ public class ApplicationBuilder {
 			this.properties.putAll(properties);
 		cache = null;
 		return this;
+	}
+
+	public ApplicationBuilder load(Class<?> resourcesType) {
+		ServiceLoader.load(resourcesType).forEach(this::singletons);
+		return this;
+	}
+
+	public ApplicationBuilder loadServices() {
+		return load(ServiceInterface.class);
 	}
 
 	void apply(ResourceConfig resourceConfig) {
