@@ -91,7 +91,8 @@ public class ServerConfiguration implements ConfigurationProperties {
 		//Set the temp directory
 		tempDirectory = getTempDirectory(dataDirectory, getStringProperty(QWAZR_TEMP, null));
 		if (!tempDirectory.exists())
-			tempDirectory.mkdirs();
+			if (!tempDirectory.mkdirs())
+				throw new IOException("Cannot create the temp directory: " + tempDirectory);
 		if (!dataDirectory.exists())
 			throw new IOException("The temp directory does not exists: " + tempDirectory.getAbsolutePath());
 		if (!dataDirectory.isDirectory())
@@ -228,8 +229,8 @@ public class ServerConfiguration implements ConfigurationProperties {
 	 * 192.168.0.0/16
 	 * 10.3.12.12
 	 *
-	 * @param addressPattern
-	 * @return
+	 * @param addressPattern a mask or an ip address
+	 * @param collect        a collection filled with the matching addresses
 	 * @throws SocketException
 	 */
 	private static void findMatchingAddress(final String addressPattern, final Collection<String> collect)
@@ -292,22 +293,19 @@ public class ServerConfiguration implements ConfigurationProperties {
 		}
 	}
 
-	private static String findPublicAddress(final String addressPattern, final String listenAddress) {
+	private static String findPublicAddress(final String addressPattern, final String listenAddress)
+			throws SocketException {
 		if (StringUtils.isEmpty(addressPattern))
 			return StringUtils.isEmpty(listenAddress) || DEFAULT_LISTEN_ADDRESS.equals(listenAddress) ?
 					getLocalHostAddress() :
 					listenAddress;
-		try {
-			final ArrayList<String> list = new ArrayList<>();
-			findMatchingAddress(addressPattern, list);
-			return list.isEmpty() ? DEFAULT_PUBLIC_ADDRESS : list.get(0);
-		} catch (SocketException e) {
-			final String addr = StringUtils.isEmpty(listenAddress) || DEFAULT_LISTEN_ADDRESS.equals(listenAddress) ?
-					DEFAULT_PUBLIC_ADDRESS :
-					listenAddress;
-			LOGGER.warn("Failed in extracting IP informations. Public address set to default (" + addr + ")", e);
-			return addr;
-		}
+		final ArrayList<String> list = new ArrayList<>();
+		findMatchingAddress(addressPattern, list);
+		if (list.isEmpty())
+			throw new SocketException("Failed in finding a matching public IP address. Pattern: " + addressPattern);
+		if (list.size() > 1)
+			LOGGER.warn("Several matching IP adresses where found ({})", list.size());
+		return list.get(0);
 	}
 
 	private static Map<String, String> argsToMapPrefix(final String prefix, final String... args) {

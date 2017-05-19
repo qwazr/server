@@ -23,6 +23,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.SocketException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Properties;
@@ -252,5 +253,16 @@ public class ServerConfigurationTest {
 		Assert.assertTrue(config.masters.contains("localhost:9090"));
 		Assert.assertTrue(config.masters.contains("localhost:9091"));
 		Assert.assertEquals(2, config.groups.size());
+	}
+
+	@Test(expected = SocketException.class)
+	public void checkNoPublicAddressMaskMatching() throws IOException {
+		ServerConfiguration.of().publicAddress("123.123.123.123/24").build();
+	}
+
+	@Test
+	public void checkValidPublicAddressMaskMatching() throws IOException {
+		final ServerConfiguration config = ServerConfiguration.of().publicAddress("127.0.0.1/24").build();
+		Assert.assertEquals("127.0.0.1", config.publicAddress);
 	}
 }
