@@ -56,8 +56,8 @@ public class WelcomeStatus {
 	}
 
 	WelcomeStatus(final GenericServer server, final Boolean showProperties, final Boolean showEnvVars) {
-		this.webapp_endpoints = server == null ? null : server.getWebServiceEndPoints();
-		this.webservice_endpoints = server == null ? null : server.getWebAppEndPoints();
+		this.webapp_endpoints = server == null ? null : server.getWebAppEndPoints();
+		this.webservice_endpoints = server == null ? null : server.getWebServiceEndPoints();
 		final Package pkg = getClass().getPackage();
 		implementation = new TitleVendorVersion(pkg.getImplementationTitle(), pkg.getImplementationVendor(),
 				pkg.getImplementationVersion());
