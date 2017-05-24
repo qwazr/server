@@ -30,7 +30,7 @@ public class WelcomeService extends AbstractServiceImpl {
 	@GET
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	public WelcomeStatus welcome(@QueryParam("properties") Boolean properties, @QueryParam("env") Boolean env) {
-		return new WelcomeStatus(properties, env);
+		return new WelcomeStatus(getContextAttribute(GenericServer.class), properties, env);
 	}
 
 }

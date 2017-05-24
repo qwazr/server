@@ -45,11 +45,13 @@ import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -78,6 +80,9 @@ final public class GenericServer {
 	final private Logger webAppAccessLogger;
 	final private Logger webServiceAccessLogger;
 
+	final private Set<String> webAppEndPoints;
+	final private Set<String> webServiceEndPoints;
+
 	final private UdpServerThread udpServer;
 
 	static final private Logger LOGGER = LoggerFactory.getLogger(GenericServer.class);
@@ -90,8 +95,10 @@ final public class GenericServer {
 		this.servletContainer = Servlets.newContainer();
 		this.webAppContext = builder.webAppContext;
 		this.webServiceContext = builder.webServiceContext;
+		this.webAppEndPoints = webAppContext == null ? null : Collections.unmodifiableSet(webAppContext.endPoints);
+		this.webServiceEndPoints = webServiceContext == null ? null : Collections.unmodifiableSet(
+				webServiceContext.endPoints);
 		builder.contextAttribute(this);
-
 		this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
 		this.undertows = new ArrayList<>();
 		this.deploymentManagers = new ArrayList<>();
@@ -134,6 +141,14 @@ final public class GenericServer {
 	 */
 	public static <T> T getContextAttribute(final ServletContext context, final Class<T> cls) {
 		return getContextAttribute(context, cls.getName(), cls);
+	}
+
+	Set<String> getWebServiceEndPoints() {
+		return webServiceEndPoints;
+	}
+
+	Set<String> getWebAppEndPoints() {
+		return webAppEndPoints;
 	}
 
 	private static UdpServerThread buildUdpServer(final Builder builder, final ServerConfiguration configuration)
@@ -231,16 +246,14 @@ final public class GenericServer {
 		LOGGER.info("Start the connector {}:{}", configuration.listenAddress, connector.port);
 
 		HttpHandler httpHandler = manager.start();
-		final LogMetricsHandler logMetricsHandler =
-				new LogMetricsHandler(httpHandler, accessLogger, configuration.listenAddress, connector.port,
-						context.jmxName);
+		final LogMetricsHandler logMetricsHandler = new LogMetricsHandler(httpHandler, accessLogger,
+				configuration.listenAddress, connector.port, context.jmxName);
 		deploymentManagers.add(manager);
 		httpHandler = logMetricsHandler;
 
-		final Undertow.Builder servletBuilder = Undertow.builder()
-				.addHttpListener(connector.port, configuration.listenAddress)
-				.setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000)
-				.setHandler(httpHandler);
+		final Undertow.Builder servletBuilder = Undertow.builder().addHttpListener(connector.port,
+				configuration.listenAddress).setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000).setHandler(
+				httpHandler);
 		start(servletBuilder.build());
 
 		// Register MBeans
@@ -311,8 +324,8 @@ final public class GenericServer {
 		});
 	}
 
-	final static MultipartConfigElement DEFAULT_MULTIPART_CONFIG =
-			new MultipartConfigElement(SystemUtils.getJavaIoTmpDir().getAbsolutePath());
+	final static MultipartConfigElement DEFAULT_MULTIPART_CONFIG = new MultipartConfigElement(
+			SystemUtils.getJavaIoTmpDir().getAbsolutePath());
 
 	public interface IdentityManagerProvider {
 

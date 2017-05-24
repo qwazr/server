@@ -52,20 +52,25 @@ public class SecuredBasicServerTest {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
 		Assert.assertEquals(200, HttpRequest.Get("http://localhost:9091/").execute().getStatusLine().getStatusCode());
-		Assert.assertEquals(404,
-				HttpRequest.Get("http://localhost:9091/sdflksjflskdfj").execute().getStatusLine().getStatusCode());
+		Assert.assertEquals(404, HttpRequest.Get("http://localhost:9091/sdflksjflskdfj")
+				.execute()
+				.getStatusLine()
+				.getStatusCode());
 	}
 
 	@Test
 	public void test300SimpleServlet() throws IOException {
-		Assert.assertEquals(server.contextAttribute,
-				EntityUtils.toString(HttpRequest.Get("http://localhost:9090/test").execute().getEntity()));
+		Assert.assertEquals(server.contextAttribute, EntityUtils.toString(HttpRequest.Get("http://localhost:9090/test")
+				.execute()
+				.getEntity()));
 	}
 
 	@Test
 	public void test400SecuredNonAuthServlet() throws IOException {
-		Assert.assertEquals(401,
-				HttpRequest.Get("http://localhost:9090/secured").execute().getStatusLine().getStatusCode());
+		Assert.assertEquals(401, HttpRequest.Get("http://localhost:9090/secured")
+				.execute()
+				.getStatusLine()
+				.getStatusCode());
 	}
 
 	@Test
@@ -77,26 +82,18 @@ public class SecuredBasicServerTest {
 
 	@Test
 	public void test415SecuredBasicLoginFailureServlet() throws IOException {
-		Assert.assertEquals(401, HttpRequest.Get("http://localhost:9090/secured")
-				.execute(getBasicAuthContext(server.basicUsername, "--"))
-				.getStatusLine()
-				.getStatusCode());
+		Assert.assertEquals(401, HttpRequest.Get("http://localhost:9090/secured").execute(
+				getBasicAuthContext(server.basicUsername, "--")).getStatusLine().getStatusCode());
 	}
 
 	private void checkAppAuth(String path) throws IOException {
 		Assert.assertEquals(401, HttpRequest.Get(path + "auth/test").execute().getStatusLine().getStatusCode());
-		Assert.assertEquals(401, HttpRequest.Get(path + "auth/test")
-				.execute(getBasicAuthContext(server.basicUsername, "--"))
-				.getStatusLine()
-				.getStatusCode());
-		Assert.assertEquals(403, HttpRequest.Get(path + "auth/wrong-role")
-				.execute(getBasicAuthContext(server.basicUsername, server.basicPassword))
-				.getStatusLine()
-				.getStatusCode());
-		Assert.assertEquals(200, HttpRequest.Get(path + "auth/test")
-				.execute(getBasicAuthContext(server.basicUsername, server.basicPassword))
-				.getStatusLine()
-				.getStatusCode());
+		Assert.assertEquals(401, HttpRequest.Get(path + "auth/test").execute(
+				getBasicAuthContext(server.basicUsername, "--")).getStatusLine().getStatusCode());
+		Assert.assertEquals(403, HttpRequest.Get(path + "auth/wrong-role").execute(
+				getBasicAuthContext(server.basicUsername, server.basicPassword)).getStatusLine().getStatusCode());
+		Assert.assertEquals(200, HttpRequest.Get(path + "auth/test").execute(
+				getBasicAuthContext(server.basicUsername, server.basicPassword)).getStatusLine().getStatusCode());
 	}
 
 	@Test

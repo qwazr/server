@@ -16,6 +16,7 @@
 package com.qwazr.server;
 
 import com.qwazr.utils.http.HttpRequest;
+import com.qwazr.utils.json.JsonMapper;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
@@ -46,8 +47,23 @@ public class SimpleServerTest {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
 		Assert.assertEquals(200, HttpRequest.Get("http://localhost:9091/").execute().getStatusLine().getStatusCode());
-		Assert.assertEquals(404,
-				HttpRequest.Get("http://localhost:9091/sdflksjflskdfj").execute().getStatusLine().getStatusCode());
+		Assert.assertEquals(404, HttpRequest.Get("http://localhost:9091/sdflksjflskdfj")
+				.execute()
+				.getStatusLine()
+				.getStatusCode());
+	}
+
+	@Test
+	public void test250welcomeStatus() throws IOException {
+		final WelcomeStatus welcomeStatus = JsonMapper.MAPPER.readValue(HttpRequest.Get("http://localhost:9091/")
+				.execute()
+				.getEntity()
+				.getContent(), WelcomeStatus.class);
+		Assert.assertNotNull(welcomeStatus);
+		Assert.assertNotNull(welcomeStatus.webapp_endpoints);
+		Assert.assertNotNull(welcomeStatus.webservice_endpoints);
+		Assert.assertEquals(1, welcomeStatus.webapp_endpoints.size());
+		Assert.assertEquals(2, welcomeStatus.webservice_endpoints.size());
 	}
 
 	@Test

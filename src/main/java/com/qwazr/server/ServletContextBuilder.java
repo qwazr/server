@@ -42,6 +42,7 @@ import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -52,6 +53,7 @@ public class ServletContextBuilder extends DeploymentInfo {
 
 	final String jmxName;
 	MultipartConfigElement defaultMultipartConfig;
+	final LinkedHashSet<String> endPoints;
 
 	ServletContextBuilder(ClassLoader classLoader, String contextPath, String defaultEncoding, String contextName,
 			String jmxName) {
@@ -60,6 +62,7 @@ public class ServletContextBuilder extends DeploymentInfo {
 		setDefaultEncoding(defaultEncoding == null ? "UTF-8" : defaultEncoding);
 		setDeploymentName(contextName);
 		this.jmxName = jmxName;
+		this.endPoints = new LinkedHashSet<>();
 	}
 
 	public ServletContextBuilder setDefaultMultipartConfig(final MultipartConfigElement defaultMultipartConfig) {
@@ -79,6 +82,8 @@ public class ServletContextBuilder extends DeploymentInfo {
 		if (servletInfo.getMultipartConfig() == null)
 			servletInfo.setMultipartConfig(defaultMultipartConfig);
 		super.addServlet(servletInfo);
+		if (servletInfo.getMappings() != null)
+			endPoints.addAll(servletInfo.getMappings());
 		return this;
 	}
 
@@ -100,9 +105,8 @@ public class ServletContextBuilder extends DeploymentInfo {
 
 	static <T extends Servlet> ServletInfo servletInfo(final String name, final Class<T> servletClass,
 			final GenericFactory<T> instanceFactory) {
-		return instanceFactory == null ?
-				new ServletInfo(name, servletClass) :
-				new ServletInfo(name, servletClass, instanceFactory);
+		return instanceFactory == null ? new ServletInfo(name, servletClass) : new ServletInfo(name, servletClass,
+				instanceFactory);
 	}
 
 	public ServletContextBuilder servlet(final String name, final Class<? extends Servlet> servletClass,
@@ -114,8 +118,8 @@ public class ServletContextBuilder extends DeploymentInfo {
 		final WebServlet webServlet = AnnotationsUtils.getFirstAnnotation(servletClass, WebServlet.class);
 		if (webServlet != null) {
 
-			servletInfo =
-					servletInfo(StringUtils.isEmpty(name) ? webServlet.name() : name, servletClass, instanceFactory);
+			servletInfo = servletInfo(StringUtils.isEmpty(name) ? webServlet.name() : name, servletClass,
+					instanceFactory);
 			servletInfo.setLoadOnStartup(webServlet.loadOnStartup());
 			servletInfo.setAsyncSupported(webServlet.asyncSupported());
 
@@ -133,8 +137,8 @@ public class ServletContextBuilder extends DeploymentInfo {
 			servletInfo.addMappings(urlPatterns);
 
 		// ServletSecurity
-		final ServletSecurity servletSecurity =
-				AnnotationsUtils.getFirstAnnotation(servletClass, ServletSecurity.class);
+		final ServletSecurity servletSecurity = AnnotationsUtils.getFirstAnnotation(servletClass,
+				ServletSecurity.class);
 		if (servletSecurity != null) {
 
 			final ServletSecurityInfo servletSecurityInfo = new ServletSecurityInfo();
@@ -160,8 +164,8 @@ public class ServletContextBuilder extends DeploymentInfo {
 			servletInfo.setServletSecurityInfo(servletSecurityInfo);
 		}
 
-		final MultipartConfig multipartConfig =
-				AnnotationsUtils.getFirstAnnotation(servletClass, MultipartConfig.class);
+		final MultipartConfig multipartConfig = AnnotationsUtils.getFirstAnnotation(servletClass,
+				MultipartConfig.class);
 		if (multipartConfig != null) {
 			final String location = StringUtils.isEmpty(multipartConfig.location()) ?
 					SystemUtils.getJavaIoTmpDir().getAbsolutePath() :
@@ -201,7 +205,7 @@ public class ServletContextBuilder extends DeploymentInfo {
 	public ServletContextBuilder servlets(final Class<? extends Servlet>... servletClasses) {
 		if (servletClasses != null)
 			for (Class<? extends Servlet> servletClass : servletClasses)
-				servlet(servletClass, null);
+				servlet(servletClass);
 		return this;
 	}
 
