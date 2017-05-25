@@ -19,8 +19,16 @@ package com.qwazr.server;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.qwazr.utils.FileUtils;
 import com.qwazr.utils.RuntimeUtils;
 
+import java.io.IOException;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -33,6 +41,7 @@ public class WelcomeStatus {
 	public final Set<String> webapp_endpoints;
 	public final Set<String> webservice_endpoints;
 	public final MemoryStatus memory;
+	public final Map<String, DiskStatus> file_stores;
 	public final RuntimeStatus runtime;
 	public final SortedMap<String, Object> properties;
 	public final SortedMap<String, String> env;
@@ -42,7 +51,9 @@ public class WelcomeStatus {
 			@JsonProperty("specification") TitleVendorVersion specification,
 			@JsonProperty("webapp_endpoints") Set<String> webapp_endpoints,
 			@JsonProperty("webservice_endpoints") Set<String> webservice_endpoints,
-			@JsonProperty("memory") MemoryStatus memory, @JsonProperty("runtime") RuntimeStatus runtime,
+			@JsonProperty("memory") MemoryStatus memory,
+			@JsonProperty("file_stores") Map<String, DiskStatus> file_stores,
+			@JsonProperty("runtime") RuntimeStatus runtime,
 			@JsonProperty("properties") SortedMap<String, Object> properties,
 			@JsonProperty("env") SortedMap<String, String> env) {
 		this.implementation = implementation;
@@ -50,12 +61,14 @@ public class WelcomeStatus {
 		this.webapp_endpoints = webapp_endpoints;
 		this.webservice_endpoints = webservice_endpoints;
 		this.memory = memory;
+		this.file_stores = file_stores;
 		this.runtime = runtime;
 		this.properties = properties;
 		this.env = env;
 	}
 
-	WelcomeStatus(final GenericServer server, final Boolean showProperties, final Boolean showEnvVars) {
+	WelcomeStatus(final GenericServer server, final Boolean showProperties, final Boolean showEnvVars)
+			throws IOException {
 		this.webapp_endpoints = server == null ? null : server.getWebAppEndPoints();
 		this.webservice_endpoints = server == null ? null : server.getWebServiceEndPoints();
 		final Package pkg = getClass().getPackage();
@@ -64,6 +77,12 @@ public class WelcomeStatus {
 		specification = new TitleVendorVersion(pkg.getSpecificationTitle(), pkg.getSpecificationVendor(),
 				pkg.getSpecificationVersion());
 		memory = new MemoryStatus();
+		file_stores = new LinkedHashMap<>();
+		for (Path rootDir : FileSystems.getDefault().getRootDirectories()) {
+			final FileStore fileStore = Files.getFileStore(rootDir);
+			if (fileStore.getTotalSpace() > 0)
+				file_stores.put(rootDir.toString(), new DiskStatus(fileStore));
+		}
 		runtime = new RuntimeStatus();
 		if (showProperties != null && showProperties) {
 			properties = new TreeMap<>();
@@ -95,23 +114,23 @@ public class WelcomeStatus {
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public static class MemoryStatus {
 
-		public final Long free;
-		public final Long total;
-		public final Long max;
+		public final BytesValues free;
+		public final BytesValues total;
+		public final BytesValues max;
+		public final BytesValues usage;
 
 		@JsonCreator
-		MemoryStatus(@JsonProperty("free") Long free, @JsonProperty("total") Long total,
-				@JsonProperty("max") Long max) {
+		MemoryStatus(@JsonProperty("free") BytesValues free, @JsonProperty("total") BytesValues total,
+				@JsonProperty("max") BytesValues max, @JsonProperty("usage") BytesValues usage) {
 			this.free = free;
 			this.total = total;
 			this.max = max;
+			this.usage = usage;
 		}
 
 		MemoryStatus() {
-			Runtime runtime = Runtime.getRuntime();
-			free = runtime.freeMemory();
-			total = runtime.totalMemory();
-			max = runtime.maxMemory();
+			this(BytesValues.of(Runtime.getRuntime().freeMemory()), BytesValues.of(Runtime.getRuntime().totalMemory()),
+					BytesValues.of(Runtime.getRuntime().maxMemory()), BytesValues.of(RuntimeUtils.getMemoryUsage()));
 		}
 	}
 
@@ -128,8 +147,52 @@ public class WelcomeStatus {
 		}
 
 		RuntimeStatus() {
-			activeThreads = RuntimeUtils.getActiveThreadCount();
-			openFiles = RuntimeUtils.getOpenFileCount();
+			this(RuntimeUtils.getActiveThreadCount(), RuntimeUtils.getOpenFileCount());
+		}
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public static class DiskStatus {
+
+		public final String type;
+		public final BytesValues free;
+		public final BytesValues total;
+		public final BytesValues used;
+		public final Float usage;
+
+		@JsonCreator
+		DiskStatus(@JsonProperty("type") String type, @JsonProperty("free") BytesValues free,
+				@JsonProperty("total") BytesValues total, @JsonProperty("max") BytesValues used,
+				@JsonProperty("usage") Float usage) {
+			this.type = type;
+			this.free = free;
+			this.total = total;
+			this.used = used;
+			this.usage = usage;
+		}
+
+		DiskStatus(FileStore fileStore) throws IOException {
+			this(fileStore.type(), BytesValues.of(fileStore.getUsableSpace()),
+					BytesValues.of(fileStore.getTotalSpace()),
+					BytesValues.of(fileStore.getTotalSpace() - fileStore.getUnallocatedSpace()),
+					(float) (fileStore.getTotalSpace() - fileStore.getUnallocatedSpace()) / fileStore.getTotalSpace() *
+							100);
+		}
+	}
+
+	public static class BytesValues {
+
+		public final Long bytes;
+		public final String text;
+
+		@JsonCreator
+		BytesValues(@JsonProperty("bytes") Long bytes, @JsonProperty("text") String text) {
+			this.bytes = bytes;
+			this.text = text;
+		}
+
+		static BytesValues of(Long bytes) {
+			return new BytesValues(bytes, FileUtils.byteCountToDisplaySize(bytes));
 		}
 	}
 

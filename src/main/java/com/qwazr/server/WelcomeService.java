@@ -20,6 +20,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import java.io.IOException;
 
 @RolesAllowed(WelcomeService.SERVICE_NAME)
 @Path("/")
@@ -29,7 +30,8 @@ public class WelcomeService extends AbstractServiceImpl {
 
 	@GET
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-	public WelcomeStatus welcome(@QueryParam("properties") Boolean properties, @QueryParam("env") Boolean env) {
+	public WelcomeStatus welcome(@QueryParam("properties") Boolean properties, @QueryParam("env") Boolean env)
+			throws IOException {
 		return new WelcomeStatus(getContextAttribute(GenericServer.class), properties, env);
 	}
 
