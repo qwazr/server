@@ -15,15 +15,20 @@
  */
 package com.qwazr.server;
 
+import com.qwazr.utils.AnnotationsUtils;
+import com.qwazr.utils.StringUtils;
 import org.glassfish.jersey.server.ResourceConfig;
 
+import javax.ws.rs.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class ApplicationBuilder {
 
@@ -111,5 +116,19 @@ public class ApplicationBuilder {
 		final ResourceConfig resourceConfig = new ResourceConfig();
 		apply(resourceConfig);
 		return cache = resourceConfig;
+	}
+
+	public void forEachEndPoint(final Consumer<String> consumer) {
+		Objects.requireNonNull(consumer, "The consumer is null");
+		final Set<Class<?>> cls = new LinkedHashSet<>(classes);
+		singletons.forEach(s -> cls.add(s.getClass()));
+		for (String applicationPath : applicationPaths) {
+			final String appPathPrefix = StringUtils.removeEnd(applicationPath, "*");
+			for (Class<?> cl : cls) {
+				final Path path = AnnotationsUtils.getFirstAnnotation(cl, Path.class);
+				if (path != null && !path.value().isEmpty())
+					consumer.accept('/' + StringUtils.join(StringUtils.split(appPathPrefix + path.value(), '/'), '/'));
+			}
+		}
 	}
 }

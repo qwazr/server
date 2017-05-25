@@ -241,8 +241,10 @@ public class ServletContextBuilder extends DeploymentInfo {
 		final ServletInfo servletInfo = new ServletInfo(
 				StringUtils.isEmpty(name) ? applicationBuilder.getClass() + "@" + applicationBuilder.hashCode() : name,
 				jaxRsServlet.getClass(), new GenericFactory.FromInstance<>(jaxRsServlet));
-		if (applicationBuilder.applicationPaths != null)
+		if (applicationBuilder.applicationPaths != null) {
 			servletInfo.addMappings(applicationBuilder.applicationPaths);
+			applicationBuilder.forEachEndPoint(endPoints::add);
+		}
 		servletInfo.setAsyncSupported(true).setLoadOnStartup(1);
 		return addServlet(servletInfo, servletInfoHook);
 	}

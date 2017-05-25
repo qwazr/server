@@ -63,7 +63,7 @@ public class SimpleServerTest {
 		Assert.assertNotNull(welcomeStatus.webapp_endpoints);
 		Assert.assertNotNull(welcomeStatus.webservice_endpoints);
 		Assert.assertEquals(2, welcomeStatus.webapp_endpoints.size());
-		Assert.assertEquals(1, welcomeStatus.webservice_endpoints.size());
+		Assert.assertEquals(3, welcomeStatus.webservice_endpoints.size());
 	}
 
 	@Test
