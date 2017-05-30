@@ -18,6 +18,7 @@ package com.qwazr.server;
 import com.qwazr.server.configuration.ServerConfiguration;
 import com.qwazr.utils.CollectionsUtils;
 import com.qwazr.utils.StringUtils;
+import com.qwazr.utils.reflection.ConstructorParameters;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.security.idm.IdentityManager;
@@ -333,8 +334,13 @@ final public class GenericServer {
 
 	}
 
+	public static Builder of(ServerConfiguration config, ExecutorService executorService, ClassLoader classLoader,
+			ConstructorParameters constructorParameters) {
+		return new Builder(config, executorService, classLoader, constructorParameters);
+	}
+
 	public static Builder of(ServerConfiguration config, ExecutorService executorService, ClassLoader classLoader) {
-		return new Builder(config, executorService, classLoader);
+		return of(config, executorService, classLoader, null);
 	}
 
 	public static Builder of(ServerConfiguration config, ExecutorService executorService) {
@@ -350,6 +356,7 @@ final public class GenericServer {
 		final ServerConfiguration configuration;
 		final ExecutorService executorService;
 		final ClassLoader classLoader;
+		final ConstructorParameters constructorParameters;
 
 		final ServletContextBuilder webAppContext;
 		final ServletContextBuilder webServiceContext;
@@ -367,16 +374,22 @@ final public class GenericServer {
 		Collection<GenericServer.Listener> shutdownListeners;
 
 		private Builder(final ServerConfiguration configuration, final ExecutorService executorService,
-				final ClassLoader classLoader) {
+				final ClassLoader classLoader, final ConstructorParameters constructorParameters) {
 			this.configuration = configuration;
 			this.executorService = executorService;
 			this.classLoader = classLoader == null ? Thread.currentThread().getContextClassLoader() : classLoader;
+			this.constructorParameters =
+					constructorParameters == null ? ConstructorParameters.withConcurrentMap() : constructorParameters;
 			this.webAppContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT", "WEBAPP");
 			this.webServiceContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT", "WEBSERVICE");
 		}
 
 		public ServerConfiguration getConfiguration() {
 			return configuration;
+		}
+
+		public ConstructorParameters getConstructorParameters() {
+			return constructorParameters;
 		}
 
 		public GenericServer build() throws IOException {
