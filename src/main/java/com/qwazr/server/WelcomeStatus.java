@@ -79,6 +79,8 @@ public class WelcomeStatus {
 		memory = new MemoryStatus();
 		file_stores = new LinkedHashMap<>();
 		for (Path rootDir : FileSystems.getDefault().getRootDirectories()) {
+			if (!Files.isReadable(rootDir))
+				continue;
 			final FileStore fileStore = Files.getFileStore(rootDir);
 			if (fileStore.getTotalSpace() > 0)
 				file_stores.put(rootDir.toString(), new DiskStatus(fileStore));
