@@ -1,5 +1,5 @@
-/**
- * Copyright 2014-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,14 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderMap;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.MDC;
 
 import java.net.InetSocketAddress;
 import java.security.Principal;
-import java.util.Calendar;
+import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class LogMetricsHandler implements HttpHandler, ConnectorStatisticsMXBean {
 
@@ -39,9 +40,11 @@ public class LogMetricsHandler implements HttpHandler, ConnectorStatisticsMXBean
 	private final Logger logger;
 	public final AtomicInteger active;
 	public final AtomicInteger maxActive;
+	private final String logMessage;
+	private final LogParameters[] logParameters;
 
 	LogMetricsHandler(final HttpHandler next, final Logger logger, final String address, final int port,
-			final String name) {
+			final String name, final String logMessage, LogParameters... logParameters) {
 		this.next = next;
 		this.logger = logger;
 		this.active = new AtomicInteger();
@@ -49,6 +52,8 @@ public class LogMetricsHandler implements HttpHandler, ConnectorStatisticsMXBean
 		this.address = address;
 		this.port = port;
 		this.name = name;
+		this.logMessage = logMessage == null ? StringUtils.EMPTY : logMessage;
+		this.logParameters = Objects.requireNonNull(logParameters, "Missing logging parameters");
 	}
 
 	@Override
@@ -97,46 +102,48 @@ public class LogMetricsHandler implements HttpHandler, ConnectorStatisticsMXBean
 
 	private class CompletionListener implements ExchangeCompletionListener {
 
-		private final long newTime = System.currentTimeMillis();
+		private class LogContext {
+
+			final HttpServerExchange exchange;
+			final HeaderMap requestHeaders;
+
+			final InetSocketAddress destinationAddress;
+			final InetSocketAddress sourceAddress;
+
+			final long nanoStartTime;
+			final long nanoEndTime;
+			final LocalDateTime logDateTime;
+
+			private LogContext(HttpServerExchange exchange) {
+				this.exchange = exchange;
+				this.requestHeaders = exchange.getRequestHeaders();
+				this.destinationAddress = exchange.getDestinationAddress();
+				this.sourceAddress = exchange.getSourceAddress();
+				this.nanoStartTime = exchange.getRequestStartTime();
+				this.nanoEndTime = System.nanoTime();
+				this.logDateTime = LocalDateTime.now();
+			}
+
+		}
 
 		@Override
 		final public void exchangeEvent(final HttpServerExchange exchange, final NextListener nextListener) {
 			try {
-
-				final HeaderMap requestHeaders = exchange.getRequestHeaders();
-				final Calendar calendar = Calendar.getInstance();
-
-				final InetSocketAddress destinationAddress = exchange.getDestinationAddress();
-				final InetSocketAddress sourceAddress = exchange.getSourceAddress();
-
-				final long startTime = exchange.getRequestStartTime();
-
-				final long endTime = System.currentTimeMillis();
-
-				MDC.put("c-ip", sourceAddress.getAddress().getHostAddress());
-				MDC.put("cs-host", sourceAddress.getHostName());
-				MDC.put("cs-method", exchange.getRequestMethod().toString());
-				MDC.put("cs-uri-query", exchange.getQueryString());
-				MDC.put("cs-uri-stem", exchange.getRequestPath());
-				MDC.put("cs-user-agent", requestHeaders.getFirst("User-Agent"));
-				MDC.put("cs-username", getUsername(exchange.getSecurityContext()));
-				MDC.put("cs-x-forwarded-for", requestHeaders.getFirst("X-Forwarded-For"));
-				MDC.put("date", getDate(calendar));
-				MDC.put("cs-referer", requestHeaders.getFirst("Referer"));
-				MDC.put("sc-status", Integer.toString(exchange.getStatusCode()));
-				MDC.put("s-ip", destinationAddress.getAddress().getHostAddress());
-				MDC.put("s-port", Integer.toString(destinationAddress.getPort()));
-				MDC.put("time", getTime(calendar));
-				MDC.put("time-taken", Long.toString(endTime - (startTime == -1 ? newTime : startTime)));
-				MDC.put("cs-bytes", Long.toString(exchange.getRequestContentLength()));
-				MDC.put("sc-bytes", Long.toString(exchange.getResponseBytesSent()));
-
-				logger.info(StringUtils.EMPTY);
-				MDC.clear();
+				final LogContext context = new LogContext(exchange);
+				final Object[] parameters = new Object[logParameters.length];
+				int i = 0;
+				for (LogParameters logParameter : logParameters)
+					parameters[i++] = logParameter.supplier.supply(context);
+				logger.log(Level.INFO, logMessage, parameters);
 			} finally {
 				nextListener.proceed();
 			}
 		}
+	}
+
+	@FunctionalInterface
+	private interface LogSupplier {
+		String supply(CompletionListener.LogContext context);
 	}
 
 	private static String getUsername(final SecurityContext securityContext) {
@@ -165,26 +172,77 @@ public class LogMetricsHandler implements HttpHandler, ConnectorStatisticsMXBean
 		sb.append(value);
 	}
 
-	private static String getDate(final Calendar calendar) {
+	private static String getDate(final LocalDateTime localDateTime) {
 		final StringBuilder sb = new StringBuilder();
-		sb.append(calendar.get(Calendar.YEAR));
+		sb.append(localDateTime.getYear());
 		sb.append('-');
-		span2(sb, calendar.get(Calendar.MONTH) + 1);
+		span2(sb, localDateTime.getMonthValue());
 		sb.append('-');
-		span2(sb, calendar.get(Calendar.DAY_OF_MONTH));
+		span2(sb, localDateTime.getDayOfMonth());
 		return sb.toString();
 	}
 
-	private static String getTime(final Calendar calendar) {
+	private static String getTime(final LocalDateTime localDateTime) {
 		final StringBuilder sb = new StringBuilder();
-		span2(sb, calendar.get(Calendar.HOUR_OF_DAY));
+		span2(sb, localDateTime.getHour());
 		sb.append(':');
-		span2(sb, calendar.get(Calendar.MINUTE));
+		span2(sb, localDateTime.getMinute());
 		sb.append(':');
-		span2(sb, calendar.get(Calendar.SECOND));
+		span2(sb, localDateTime.getSecond());
 		sb.append('.');
-		span3(sb, calendar.get(Calendar.MILLISECOND));
+		span3(sb, localDateTime.getNano() / 1000000);
 		return sb.toString();
+	}
+
+	public enum LogParameters {
+
+		C_IP(0, "c-ip", ctx -> ctx.sourceAddress.getAddress().getHostAddress()),
+
+		CS_HOST(1, "cs-host", ctx -> ctx.sourceAddress.getHostName()),
+
+		CS_METHOD(2, "cs-method", ctx -> ctx.exchange.getRequestMethod().toString()),
+
+		CS_URI_QUERY(3, "cs-uri-query", ctx -> ctx.exchange.getQueryString()),
+
+		CS_URI_STEM(4, "cs-uri-stem", ctx -> ctx.exchange.getRequestPath()),
+
+		CS_USER_AGENT(5, "cs-user-agent", ctx -> ctx.requestHeaders.getFirst("User-Agent")),
+
+		CS_USERNAME(6, "cs-username", ctx -> getUsername(ctx.exchange.getSecurityContext())),
+
+		CS_X_FORWARDED_FOR(7, "cs-x-forwarded-for", ctx -> ctx.requestHeaders.getFirst("X-Forwarded-For")),
+
+		DATE(8, "date", ctx -> getDate(ctx.logDateTime)),
+
+		CS_REFERER(9, "cs-referer", ctx -> ctx.requestHeaders.getFirst("Referer")),
+
+		SC_STATUS(10, "sc-status", ctx -> Integer.toString(ctx.exchange.getStatusCode())),
+
+		S_IP(11, "s-ip", ctx -> ctx.destinationAddress.getAddress().getHostAddress()),
+
+		S_PORT(12, "s-port", ctx -> Integer.toString(ctx.destinationAddress.getPort())),
+
+		TIME(13, "time", ctx -> getTime(ctx.logDateTime)),
+
+		TIME_TAKEN(14, "time-taken", ctx -> Float.toString(
+				ctx.nanoStartTime == -1 ? 0 : (ctx.nanoEndTime - ctx.nanoStartTime) / 1000000000)),
+
+		CS_BYTES(15, "cs-bytes", ctx -> Long.toString(ctx.exchange.getRequestContentLength())),
+
+		SC_BYTES(16, "sc-bytes", ctx -> Long.toString(ctx.exchange.getResponseBytesSent()));
+
+		final int pos;
+
+		final String name;
+
+		final LogSupplier supplier;
+
+		LogParameters(int pos, String name, LogSupplier supplier) {
+			this.pos = pos;
+			this.name = name;
+			this.supplier = supplier;
+		}
+
 	}
 
 }

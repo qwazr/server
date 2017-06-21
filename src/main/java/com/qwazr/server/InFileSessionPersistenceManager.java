@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,23 +12,33 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.server;
 
+import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.SerializationUtils;
 import io.undertow.servlet.api.SessionPersistenceManager;
 import org.apache.commons.io.filefilter.FileFileFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.NotSerializableException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class InFileSessionPersistenceManager implements SessionPersistenceManager {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(InFileSessionPersistenceManager.class);
+	private static final Logger LOGGER = LoggerUtils.getLogger(InFileSessionPersistenceManager.class);
 
 	private final File sessionDir;
 
@@ -44,12 +54,11 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 		if (!deploymentDir.exists())
 			deploymentDir.mkdir();
 		if (!deploymentDir.exists() && !deploymentDir.isDirectory()) {
-			if (LOGGER.isWarnEnabled())
-				LOGGER.warn("Cannot create the session directory " + deploymentDir + ": persistence aborted.");
+			LOGGER.warning(() -> "Cannot create the session directory " + deploymentDir + ": persistence aborted.");
 			return;
 		}
-		sessionData
-				.forEach((sessionId, persistentSession) -> writeSession(deploymentDir, sessionId, persistentSession));
+		sessionData.forEach(
+				(sessionId, persistentSession) -> writeSession(deploymentDir, sessionId, persistentSession));
 	}
 
 	private void writeSession(final File deploymentDir, final String sessionId,
@@ -69,8 +78,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 				}
 			}
 		} catch (IOException e) {
-			if (LOGGER.isWarnEnabled())
-				LOGGER.warn("Cannot save sessions in " + sessionFile + " " + e.getMessage(), e);
+			LOGGER.log(Level.WARNING, e, () -> "Cannot save sessions in " + sessionFile + " " + e.getMessage());
 		}
 	}
 
@@ -82,22 +90,19 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 		try {
 			out.writeUTF(attribute); // Attribute name stored as string
 		} catch (IOException e) {
-			if (LOGGER.isWarnEnabled())
-				LOGGER.warn("Cannot write session attribute " + attribute + ": persistence aborted.");
+			LOGGER.warning(() -> "Cannot write session attribute " + attribute + ": persistence aborted.");
 			return; // The attribute cannot be written, we abort
 		}
 		try {
 			out.writeObject(object);
 			return; // The object was written, job done, we can exit
 		} catch (IOException e) {
-			if (LOGGER.isWarnEnabled())
-				LOGGER.warn("Cannot write session object " + object);
+			LOGGER.warning(() -> "Cannot write session object " + object);
 			try {
 				out.writeObject(SerializationUtils.NullEmptyObject.INSTANCE);
 			} catch (IOException e1) {
-				if (LOGGER.isWarnEnabled())
-					LOGGER.warn(
-							"Cannot write NULL session object for attribute " + attribute + ": persistence aborted.");
+				LOGGER.warning(
+						() -> "Cannot write NULL session object for attribute " + attribute + ": persistence aborted.");
 			}
 		}
 
@@ -139,8 +144,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 				}
 			}
 		} catch (IOException e) {
-			if (LOGGER.isWarnEnabled())
-				LOGGER.warn("Cannot load sessions from " + sessionFile + " " + e.getMessage(), e);
+			LOGGER.log(Level.WARNING, e, () -> "Cannot load sessions from " + sessionFile);
 			return null;
 		}
 	}
@@ -153,8 +157,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 			if (!(object instanceof SerializationUtils.NullEmptyObject))
 				sessionData.put(attribute, object);
 		} catch (ClassNotFoundException | NotSerializableException e) {
-			if (LOGGER.isWarnEnabled())
-				LOGGER.warn("The attribute " + attribute + " cannot be deserialized: " + e.getMessage(), e);
+			LOGGER.log(Level.WARNING, e, () -> "The attribute " + attribute + " cannot be deserialized");
 		}
 	}
 

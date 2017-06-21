@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
  */
 package com.qwazr.server;
 
-import org.apache.commons.lang3.RandomStringUtils;
+import com.qwazr.utils.RandomUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,10 +39,10 @@ public class ServerExceptionTest {
 		}
 
 		Tester(Response.Status status, boolean withMessage, boolean withCause) {
-			message = withMessage ? RandomStringUtils.randomAlphanumeric(10) : null;
+			message = withMessage ? RandomUtils.alphanumeric(10) : null;
 			statusCode = status.getStatusCode();
 			if (withCause) {
-				causeMessage = RandomStringUtils.randomAlphanumeric(10);
+				causeMessage = RandomUtils.alphanumeric(10);
 				cause = new Exception(causeMessage);
 			} else {
 				causeMessage = null;
@@ -71,8 +71,8 @@ public class ServerExceptionTest {
 	@Test
 	public void withStatusWithMessage() {
 		new Tester(Response.Status.CONFLICT, true, false).check(
-				t -> new ServerException(Response.Status.CONFLICT, t.message))
-				.check(t -> new ServerException(Response.Status.CONFLICT, () -> t.message));
+				t -> new ServerException(Response.Status.CONFLICT, t.message)).check(
+				t -> new ServerException(Response.Status.CONFLICT, () -> t.message));
 	}
 
 	@Test
@@ -83,8 +83,8 @@ public class ServerExceptionTest {
 
 	@Test
 	public void withMessage() {
-		new Tester(Response.Status.INTERNAL_SERVER_ERROR, true, false).check(t -> new ServerException(t.message))
-				.check(t -> new ServerException(() -> t.message));
+		new Tester(Response.Status.INTERNAL_SERVER_ERROR, true, false).check(t -> new ServerException(t.message)).check(
+				t -> new ServerException(() -> t.message));
 	}
 
 	@Test

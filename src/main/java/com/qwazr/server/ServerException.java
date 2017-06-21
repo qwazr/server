@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,13 +18,14 @@ package com.qwazr.server;
 import com.qwazr.server.response.JsonExceptionReponse;
 import com.qwazr.utils.StringUtils;
 import org.apache.http.client.HttpResponseException;
-import org.slf4j.Logger;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ServerException extends RuntimeException {
 
@@ -112,8 +113,7 @@ public class ServerException extends RuntimeException {
 		final Throwable cause = getCause();
 		if (cause == null)
 			return this;
-		if (logger.isWarnEnabled())
-			logger.warn(getMessage(), cause);
+		logger.log(Level.WARNING, cause, () -> getMessage());
 		return this;
 	}
 
@@ -121,8 +121,7 @@ public class ServerException extends RuntimeException {
 		final Throwable cause = getCause();
 		if (cause == null)
 			return this;
-		if (logger.isErrorEnabled())
-			logger.error(getMessage(), cause);
+		logger.log(Level.SEVERE, cause, () -> getMessage());
 		return this;
 	}
 
@@ -134,10 +133,8 @@ public class ServerException extends RuntimeException {
 	}
 
 	private Response getTextResponse() {
-		return Response.status(statusCode)
-				.type(MediaType.TEXT_PLAIN)
-				.entity(message == null ? StringUtils.EMPTY : message)
-				.build();
+		return Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(
+				message == null ? StringUtils.EMPTY : message).build();
 	}
 
 	private Response getJsonResponse() {

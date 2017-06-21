@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,10 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.server;
 
-import org.apache.commons.lang3.RandomStringUtils;
+import com.qwazr.utils.RandomUtils;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -26,7 +26,7 @@ public class LoadedService extends AbstractServiceImpl {
 
 	public final static String SERVICE_NAME = "loaded";
 
-	public final static String TEXT = RandomStringUtils.randomAlphanumeric(10);
+	public final static String TEXT = RandomUtils.alphanumeric(10);
 
 	@GET
 	public String load(@QueryParam("properties") Boolean properties, @QueryParam("env") Boolean env) {

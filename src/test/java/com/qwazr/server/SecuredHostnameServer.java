@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
 package com.qwazr.server;
 
 import com.qwazr.server.configuration.ServerConfiguration;
-import org.apache.commons.lang3.RandomStringUtils;
+import com.qwazr.utils.RandomUtils;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 
 import java.io.IOException;
@@ -25,11 +25,11 @@ public class SecuredHostnameServer implements BaseServer {
 
 	public final static String CONTEXT_ATTRIBUTE_TEST = "test";
 
-	public final String contextAttribute = RandomStringUtils.randomAlphanumeric(5);
+	public final String contextAttribute = RandomUtils.alphanumeric(5);
 
-	public final String externalUsername = RandomStringUtils.randomAlphanumeric(8);
+	public final String externalUsername = RandomUtils.alphanumeric(8);
 
-	public final String realm = RandomStringUtils.randomAlphanumeric(6);
+	public final String realm = RandomUtils.alphanumeric(6);
 
 	public final HostnameAuthenticationMechanism.MapPrincipalResolver principalResolver;
 
@@ -39,24 +39,20 @@ public class SecuredHostnameServer implements BaseServer {
 		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
 		identityManager.addExternal(externalUsername, externalUsername, "secured");
 		principalResolver = new HostnameAuthenticationMechanism.MapPrincipalResolver();
-		final GenericServer.Builder builder = GenericServer.of(
-				ServerConfiguration.of().webAppAuthentication("HOSTNAME,BASIC").webAppRealm(realm).build())
+		final GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().webAppAuthentication(
+				"HOSTNAME,BASIC").webAppRealm(realm).build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.identityManagerProvider(realm -> identityManager)
 				.hostnamePrincipalResolver(principalResolver);
 
-		builder.getWebServiceContext()
-				.jaxrs(ApplicationBuilder.of("/*")
-						.classes(RestApplication.JSON_CLASSES)
-						.singletons(new WelcomeShutdownService()));
+		builder.getWebServiceContext().jaxrs(ApplicationBuilder.of("/*")
+				.classes(RestApplication.JSON_CLASSES)
+				.singletons(new WelcomeShutdownService()));
 
-		builder.getWebAppContext()
-				.servlet(SimpleServlet.class)
-				.servlet(SecuredServlet.class)
-				.jaxrs(TestJaxRsAppAuth.class)
-				.jaxrs(ApplicationBuilder.of("/jaxrs-app-auth-singletons/*")
-						.classes(RolesAllowedDynamicFeature.class)
-						.singletons(new TestJaxRsAppAuth.ServiceAuth()));
+		builder.getWebAppContext().servlet(SimpleServlet.class).servlet(SecuredServlet.class).jaxrs(
+				TestJaxRsAppAuth.class).jaxrs(ApplicationBuilder.of("/jaxrs-app-auth-singletons/*")
+				.classes(RolesAllowedDynamicFeature.class)
+				.singletons(new TestJaxRsAppAuth.ServiceAuth()));
 
 		server = builder.build();
 	}

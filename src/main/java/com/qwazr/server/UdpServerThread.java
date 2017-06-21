@@ -1,5 +1,5 @@
-/**
- * s * Copyright 2016 Emmanuel Keller / QWAZR
+/*
+ * s * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,7 @@
  */
 package com.qwazr.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.qwazr.utils.LoggerUtils;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -27,10 +26,12 @@ import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class UdpServerThread extends Thread {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(UdpServerThread.class);
+	private static final Logger LOGGER = LoggerUtils.getLogger(UdpServerThread.class);
 
 	private final PacketListener[] packetListeners;
 
@@ -71,8 +72,7 @@ public class UdpServerThread extends Thread {
 			this.datagramSocket = socket;
 			if (multicastGroupAddress != null)
 				((MulticastSocket) socket).joinGroup(multicastGroupAddress);
-			if (LOGGER.isInfoEnabled())
-				LOGGER.info("UDP Server started: " + socket.getLocalSocketAddress());
+			LOGGER.info(() -> "UDP Server started: " + socket.getLocalSocketAddress());
 			while (!isShutdown.get()) {
 				final byte[] dataBuffer = new byte[65536];
 				final DatagramPacket datagramPacket = new DatagramPacket(dataBuffer, dataBuffer.length);
@@ -81,7 +81,7 @@ public class UdpServerThread extends Thread {
 					try {
 						packetListener.acceptPacket(datagramPacket);
 					} catch (Exception e) {
-						LOGGER.warn(e.getMessage(), e);
+						LOGGER.log(Level.WARNING, e.getMessage(), e);
 					}
 				}
 			}
@@ -89,8 +89,7 @@ public class UdpServerThread extends Thread {
 			if (!isShutdown.get())
 				throw new RuntimeException("Error on UDP server " + socketAddress, e);
 		} finally {
-			if (LOGGER.isInfoEnabled())
-				LOGGER.info("UDP Server exit: " + socketAddress);
+			LOGGER.info(() -> "UDP Server exit: " + socketAddress);
 		}
 	}
 
@@ -110,7 +109,7 @@ public class UdpServerThread extends Thread {
 				try {
 					((MulticastSocket) datagramSocket).leaveGroup(multicastGroupAddress);
 				} catch (IOException e) {
-					LOGGER.warn(e.getMessage(), e);
+					LOGGER.log(Level.WARNING, e.getMessage(), e);
 				}
 			}
 			if (datagramSocket.isConnected())

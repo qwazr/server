@@ -16,7 +16,7 @@
 package com.qwazr.server;
 
 import com.qwazr.server.configuration.ServerConfiguration;
-import org.apache.commons.lang3.RandomStringUtils;
+import com.qwazr.utils.RandomUtils;
 
 import java.io.IOException;
 
@@ -24,22 +24,21 @@ public class SimpleServer implements BaseServer {
 
 	public final static String CONTEXT_ATTRIBUTE_TEST = "test";
 
-	public final String contextAttribute = RandomStringUtils.randomAlphanumeric(5);
+	public final String contextAttribute = RandomUtils.alphanumeric(5);
 
 	private GenericServer server;
 
 	public SimpleServer() throws IOException, ClassNotFoundException {
 
-		GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().build())
-				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute);
+		GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().build()).contextAttribute(
+				CONTEXT_ATTRIBUTE_TEST, contextAttribute);
 
 		builder.getWebAppContext().servlet(SimpleServlet.class, "test_bis").filter(SimpleFilter.class);
 
-		builder.getWebServiceContext()
-				.jaxrs(ApplicationBuilder.of("/*")
-						.classes(RestApplication.JSON_CLASSES)
-						.loadServices()
-						.singletons(new WelcomeShutdownService()));
+		builder.getWebServiceContext().jaxrs(ApplicationBuilder.of("/*")
+				.classes(RestApplication.JSON_CLASSES)
+				.loadServices()
+				.singletons(new WelcomeShutdownService()));
 
 		server = builder.build();
 	}

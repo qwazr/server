@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,15 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.server.configuration;
 
+import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.StringUtils;
 import org.apache.commons.io.filefilter.AndFileFilter;
 import org.apache.commons.io.filefilter.FileFileFilter;
 import org.apache.commons.net.util.SubnetUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -42,10 +41,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ServerConfiguration implements ConfigurationProperties {
 
-	private final static Logger LOGGER = LoggerFactory.getLogger(ServerConfiguration.class);
+	private final static Logger LOGGER = LoggerUtils.getLogger(ServerConfiguration.class);
 
 	private final Map<Object, Object> properties;
 
@@ -113,16 +114,15 @@ public class ServerConfiguration implements ConfigurationProperties {
 				getStringProperty(WEBAPP_AUTHENTICATION, null), getStringProperty(WEBAPP_REALM, null));
 		webServiceConnector = new WebConnector(publicAddress, getIntegerProperty(WEBSERVICE_PORT, null), 9091,
 				getStringProperty(WEBSERVICE_AUTHENTICATION, null), getStringProperty(WEBSERVICE_REALM, null));
-		multicastConnector =
-				new WebConnector(getStringProperty(MULTICAST_ADDR, null), getIntegerProperty(MULTICAST_PORT, null),
-						9091, null, null);
+		multicastConnector = new WebConnector(getStringProperty(MULTICAST_ADDR, null),
+				getIntegerProperty(MULTICAST_PORT, null), 9091, null, null);
 
 		// Collect the master address.
 		final LinkedHashSet<String> set = new LinkedHashSet<>();
 		try {
 			findMatchingAddress(getStringProperty(QWAZR_MASTERS, null), set);
 		} catch (SocketException e) {
-			LOGGER.warn("Failed in extracting IP information. No master server is configured.");
+			LOGGER.warning("Failed in extracting IP information. No master server is configured.");
 		}
 		this.masters = set.isEmpty() ? null : Collections.unmodifiableSet(set);
 
@@ -275,9 +275,8 @@ public class ServerConfiguration implements ConfigurationProperties {
 			findMatchingAddress(addressPattern, list);
 			return list.isEmpty() ? DEFAULT_LISTEN_ADDRESS : list.get(0);
 		} catch (SocketException e) {
-			LOGGER.warn(
-					"Failed in extracting IP informations. Listen address set to default (" + DEFAULT_LISTEN_ADDRESS +
-							")", e);
+			LOGGER.log(Level.WARNING, e, () -> "Failed in extracting IP informations. Listen address set to default (" +
+					DEFAULT_LISTEN_ADDRESS + ")");
 			return DEFAULT_LISTEN_ADDRESS;
 		}
 	}
@@ -288,7 +287,7 @@ public class ServerConfiguration implements ConfigurationProperties {
 		try {
 			return InetAddress.getLocalHost().getHostAddress();
 		} catch (UnknownHostException e) {
-			LOGGER.warn("Cannot extract the address of the localhost.", e);
+			LOGGER.log(Level.WARNING, "Cannot extract the address of the localhost.", e);
 			return DEFAULT_PUBLIC_ADDRESS;
 		}
 	}
@@ -304,7 +303,7 @@ public class ServerConfiguration implements ConfigurationProperties {
 		if (list.isEmpty())
 			throw new SocketException("Failed in finding a matching public IP address. Pattern: " + addressPattern);
 		if (list.size() > 1)
-			LOGGER.warn("Several matching IP adresses where found ({})", list.size());
+			LOGGER.warning(() -> "Several matching IP adresses where found (" + list.size() + ')');
 		return list.get(0);
 	}
 
@@ -340,8 +339,7 @@ public class ServerConfiguration implements ConfigurationProperties {
 			propertyFile = System.getProperty(QWAZR_PROPERTIES, System.getenv(QWAZR_PROPERTIES));
 		if (propertyFile != null) {
 			final File propFile = new File(propertyFile);
-			if (LOGGER.isInfoEnabled())
-				LOGGER.info("Load QWAZR_PROPERTIES file: " + propFile.getAbsolutePath());
+			LOGGER.info(() -> "Load QWAZR_PROPERTIES file: " + propFile.getAbsolutePath());
 			final Properties properties = new Properties();
 			try (final FileReader reader = new FileReader(propFile)) {
 				properties.load(reader);

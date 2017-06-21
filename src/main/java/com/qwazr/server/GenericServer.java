@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@ package com.qwazr.server;
 
 import com.qwazr.server.configuration.ServerConfiguration;
 import com.qwazr.utils.CollectionsUtils;
+import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.StringUtils;
 import com.qwazr.utils.reflection.ConstructorParameters;
 import io.undertow.Undertow;
@@ -30,8 +31,6 @@ import io.undertow.servlet.api.LoginConfig;
 import io.undertow.servlet.api.ServletContainer;
 import io.undertow.servlet.api.SessionPersistenceManager;
 import org.apache.commons.lang3.SystemUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.management.JMException;
 import javax.management.MBeanException;
@@ -57,6 +56,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 final public class GenericServer {
 
@@ -86,7 +86,7 @@ final public class GenericServer {
 
 	final private UdpServerThread udpServer;
 
-	static final private Logger LOGGER = LoggerFactory.getLogger(GenericServer.class);
+	static final private Logger LOGGER = LoggerUtils.getLogger(GenericServer.class);
 
 	private GenericServer(final Builder builder) throws IOException, ClassNotFoundException, InstantiationException {
 
@@ -175,8 +175,7 @@ final public class GenericServer {
 
 	public synchronized void stopAll() {
 
-		if (LOGGER.isInfoEnabled())
-			LOGGER.info("The server is stopping...");
+		LOGGER.info("The server is stopping...");
 
 		executeListener(shutdownListeners);
 
@@ -184,8 +183,7 @@ final public class GenericServer {
 			try {
 				udpServer.shutdown();
 			} catch (InterruptedException e) {
-				if (LOGGER.isWarnEnabled())
-					LOGGER.warn(e.getMessage(), e);
+				LOGGER.log(Level.WARNING, e.getMessage(), e);
 			}
 		}
 
@@ -196,8 +194,7 @@ final public class GenericServer {
 				if (manager.getState() == DeploymentManager.State.DEPLOYED)
 					manager.undeploy();
 			} catch (ServletException e) {
-				if (LOGGER.isWarnEnabled())
-					LOGGER.warn("Cannot stop the manager: " + e.getMessage(), e);
+				LOGGER.log(Level.WARNING, e, () -> "Cannot stop the manager: " + e.getMessage());
 			}
 		}
 
@@ -207,12 +204,9 @@ final public class GenericServer {
 		try {
 			executorService.awaitTermination(2, TimeUnit.MINUTES);
 		} catch (InterruptedException e) {
-			if (LOGGER.isWarnEnabled())
-				LOGGER.warn(e.getMessage(), e);
+			LOGGER.log(Level.WARNING, e, e::getMessage);
 		}
-
-		if (LOGGER.isInfoEnabled())
-			LOGGER.info("The server is stopped.");
+		LOGGER.info("The server is stopped.");
 	}
 
 	private IdentityManager getIdentityManager(final ServerConfiguration.WebConnector connector) throws IOException {
@@ -244,11 +238,11 @@ final public class GenericServer {
 		final DeploymentManager manager = servletContainer.addDeployment(context);
 		manager.deploy();
 
-		LOGGER.info("Start the connector {}:{}", configuration.listenAddress, connector.port);
+		LOGGER.info(() -> "Start the connector " + configuration.listenAddress + ":" + connector.port);
 
 		HttpHandler httpHandler = manager.start();
 		final LogMetricsHandler logMetricsHandler = new LogMetricsHandler(httpHandler, accessLogger,
-				configuration.listenAddress, connector.port, context.jmxName);
+				configuration.listenAddress, connector.port, context.jmxName, StringUtils.EMPTY);
 		deploymentManagers.add(manager);
 		httpHandler = logMetricsHandler;
 
@@ -280,7 +274,7 @@ final public class GenericServer {
 			throws IOException, ServletException, ReflectiveOperationException, JMException {
 
 		LOGGER.info("The server is starting...");
-		LOGGER.info("Data directory sets to: {}", configuration.dataDirectory);
+		LOGGER.info(() -> "Data directory sets to: " + configuration.dataDirectory);
 
 		java.util.logging.Logger.getLogger("").setLevel(Level.WARNING);
 
@@ -320,7 +314,7 @@ final public class GenericServer {
 			try {
 				listener.accept(this);
 			} catch (Exception e) {
-				LOGGER.error(e.getMessage(), e);
+				LOGGER.log(Level.SEVERE, e, () -> e.getMessage());
 			}
 		});
 	}

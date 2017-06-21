@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,21 +12,22 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.qwazr.utils.LoggerUtils;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RolesAllowed("welcome")
 @Path("/")
 public class WelcomeShutdownService extends WelcomeService {
 
-	static final private Logger LOGGER = LoggerFactory.getLogger(WelcomeShutdownService.class);
+	static final private Logger LOGGER = LoggerUtils.getLogger(WelcomeShutdownService.class);
 
 	@DELETE
 	@Path("/shutdown")
@@ -49,7 +50,7 @@ public class WelcomeShutdownService extends WelcomeService {
 				Thread.sleep(5000);
 				server.stopAll();
 			} catch (InterruptedException e) {
-				LOGGER.warn(e.getMessage(), e);
+				LOGGER.log(Level.WARNING, e, e::getMessage);
 			}
 		}
 	}
