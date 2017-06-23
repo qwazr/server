@@ -74,8 +74,9 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		cookieStore = new BasicCookieStore();
 	}
 
-	public RemoteService getRemote() {
-		return remote;
+	@Override
+	public String toString() {
+		return remote.toString();
 	}
 
 	private HttpClientContext getContext(final Integer msTimeOut) {
