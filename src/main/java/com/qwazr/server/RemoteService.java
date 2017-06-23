@@ -1,5 +1,5 @@
-/**
- * Copyright 2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,10 @@
  */
 package com.qwazr.server;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.qwazr.utils.LinkUtils;
 import com.qwazr.utils.StringUtils;
 import com.qwazr.utils.UBuilder;
@@ -77,42 +79,44 @@ public class RemoteService {
 	@JsonIgnore
 	final public String serviceAddress; // {scheme}://{host}:{port}:{path}
 
-	public RemoteService() {
-		scheme = null;
-		host = null;
-		port = null;
-		path = null;
-		timeout = null;
-		username = null;
-		password = null;
-		serverAddress = null;
-		serviceAddress = null;
+	@JsonCreator
+	RemoteService(@JsonProperty("scheme") final String scheme, @JsonProperty("host") final String host,
+			@JsonProperty("port") Integer port, @JsonProperty("path") String path,
+			@JsonProperty("timeout") Integer timeout, @JsonProperty("username") String username,
+			@JsonProperty("password") String password) {
+		this.scheme = scheme;
+		this.host = host;
+		this.port = port;
+		this.path = path;
+		this.timeout = timeout;
+		this.username = username;
+		this.password = password;
+		this.serverAddress = getServerAddress();
+		this.serviceAddress = getServiceAddress();
+	}
+
+	private String getServerAddress() {
+		return ((scheme == null ? "http" : scheme) + "://" + (host == null ? "localhost" : host) + ':' +
+				(port == null || port == -1 ? 9091 : port)).intern();
+	}
+
+	private String getServiceAddress() {
+		return (serverAddress + '/' + (path == null ? StringUtils.EMPTY : path)).intern();
 	}
 
 	protected RemoteService(final Builder builder) {
-		this.scheme = builder.scheme == null ? "http" : builder.scheme;
-		this.host = builder.host == null ? "localhost" : builder.host;
-		this.path = builder.getPathSegment(0);
-		this.port = builder.port == null ? 9091 : builder.port == -1 ? 9091 : builder.port;
-		this.timeout = builder.timeout;
-		this.username = builder.username;
-		this.password = builder.password;
-		this.serverAddress = (this.scheme + "://" + this.host + ':' + this.port).intern();
-		this.serviceAddress = (this.serverAddress + '/' + (this.path == null ? StringUtils.EMPTY : this.path)).intern();
+		this(builder.scheme, builder.host, builder.port, builder.getPathSegment(0), builder.timeout, builder.username,
+				builder.password);
 	}
 
 	@Override
 	public boolean equals(final Object o) {
 		if (o == null || !(o instanceof RemoteService))
 			return false;
+		if (this == o)
+			return true;
 		final RemoteService rs = (RemoteService) o;
-		if (!Objects.equals(scheme, rs.scheme))
-			return false;
-		if (!Objects.equals(host, rs.host))
-			return false;
-		if (!Objects.equals(port, rs.port))
-			return false;
-		if (!Objects.equals(path, rs.path))
+		if (!Objects.equals(serviceAddress, rs.serviceAddress))
 			return false;
 		if (!Objects.equals(timeout, rs.timeout))
 			return false;
@@ -120,11 +124,12 @@ public class RemoteService {
 			return false;
 		if (!Objects.equals(password, rs.password))
 			return false;
-		if (!Objects.equals(serverAddress, rs.serverAddress))
-			return false;
-		if (!Objects.equals(serviceAddress, rs.serviceAddress))
-			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return serviceAddress;
 	}
 
 	@JsonIgnore
@@ -406,9 +411,8 @@ public class RemoteService {
 			for (String path : paths)
 				if (path != null)
 					sb.append(path);
-		builder.setScheme(remote.scheme == null ? "http" : remote.scheme)
-				.setHost(remote.host == null ? "localhost" : remote.host)
-				.setPort(remote.port == null ? 9091 : remote.port);
+		builder.setScheme(remote.scheme == null ? "http" : remote.scheme).setHost(
+				remote.host == null ? "localhost" : remote.host).setPort(remote.port == null ? 9091 : remote.port);
 		if (sb.length() > 0)
 			builder.setPath(sb.toString());
 		return builder;

@@ -1,5 +1,5 @@
-/**
- * Copyright 2014-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 
 public abstract class JsonClientAbstract implements JsonClientInterface {
 
@@ -62,7 +63,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 	final private BasicCookieStore cookieStore;
 
 	protected JsonClientAbstract(final RemoteService remote) {
-		this.remote = remote;
+		this.remote = Objects.requireNonNull(remote, "The remote parameter is null");
 
 		final Credentials credentials = remote.getCredentials();
 
@@ -71,6 +72,10 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		if (credentials != null)
 			credentialsProvider.setCredentials(AuthScope.ANY, credentials);
 		cookieStore = new BasicCookieStore();
+	}
+
+	public RemoteService getRemote() {
+		return remote;
 	}
 
 	private HttpClientContext getContext(final Integer msTimeOut) {
