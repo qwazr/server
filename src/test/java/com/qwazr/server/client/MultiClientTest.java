@@ -15,5 +15,32 @@
  */
 package com.qwazr.server.client;
 
-public class JsonMultiClientTest {
+class MultiClientTest {
+
+	enum Type {
+		success, error, timeout
+	}
+
+	ClientExample[] panel(Type... types) {
+		final ClientExample[] clients = new ClientExample[types.length];
+		int i = 0;
+		for (Type type : types) {
+			final ClientExample client;
+			switch (type) {
+			default:
+			case success:
+				client = new ClientExample.SuccessClient(i);
+				break;
+			case error:
+				client = new ClientExample.ErrorClient(i);
+				break;
+			case timeout:
+				client = new ClientExample.TimeoutClient(i);
+				break;
+			}
+			clients[i++] = client;
+		}
+		return clients;
+	}
+
 }

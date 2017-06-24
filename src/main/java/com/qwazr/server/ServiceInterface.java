@@ -1,5 +1,5 @@
-/**
- * s * Copyright 2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,12 +26,12 @@ public interface ServiceInterface {
 	ResponseValidator valid200202 = ResponseValidator.create().status(200, 202);
 	ResponseValidator valid200204 = ResponseValidator.create().status(200, 204);
 	ResponseValidator valid200Json = ResponseValidator.create().status(200).content(ContentType.APPLICATION_JSON);
-	ResponseValidator valid200202Json =
-			ResponseValidator.create().status(200, 202).content(ContentType.APPLICATION_JSON);
-	ResponseValidator valid200204Json =
-			ResponseValidator.create().status(200, 204).content(ContentType.APPLICATION_JSON);
+	ResponseValidator valid200202Json = ResponseValidator.create().status(200, 202).content(
+			ContentType.APPLICATION_JSON);
+	ResponseValidator valid200204Json = ResponseValidator.create().status(200, 204).content(
+			ContentType.APPLICATION_JSON);
 	ResponseValidator valid200TextPlain = ResponseValidator.create().status(200).content(ContentType.TEXT_PLAIN);
-	ResponseValidator valid200Stream =
-			ResponseValidator.create().status(200).content(ContentType.APPLICATION_OCTET_STREAM);
+	ResponseValidator valid200Stream = ResponseValidator.create().status(200).content(
+			ContentType.APPLICATION_OCTET_STREAM);
 
 }
