@@ -18,6 +18,7 @@ package com.qwazr.server.client;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.qwazr.utils.ExceptionUtils;
+import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.RandomArrayIterator;
 
 import java.util.HashMap;
@@ -30,6 +31,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class represents a connection to a set of servers
@@ -37,6 +40,8 @@ import java.util.function.Function;
  * @param <T> The type of the class which handle the connection to one server
  */
 public class MultiClient<T> implements Iterable<T> {
+
+	private final static Logger LOGGER = LoggerUtils.getLogger(MultiClient.class);
 
 	private final T[] clients;
 
@@ -79,6 +84,7 @@ public class MultiClient<T> implements Iterable<T> {
 			try {
 				result = future.get(timeout, unit);
 			} catch (InterruptedException | ExecutionException | TimeoutException e) {
+				LOGGER.log(Level.SEVERE, e, () -> "Execution error on " + actionThread.clientId);
 				result = actionThread.error(e);
 			}
 			results.put(actionThread.client.toString(), result);
