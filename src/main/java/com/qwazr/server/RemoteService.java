@@ -80,7 +80,7 @@ public class RemoteService {
 	final public String serviceAddress; // {scheme}://{host}:{port}:{path}
 
 	@JsonCreator
-	RemoteService(@JsonProperty("scheme") final String scheme, @JsonProperty("host") final String host,
+	protected RemoteService(@JsonProperty("scheme") final String scheme, @JsonProperty("host") final String host,
 			@JsonProperty("port") Integer port, @JsonProperty("path") String path,
 			@JsonProperty("timeout") Integer timeout, @JsonProperty("username") String username,
 			@JsonProperty("password") String password) {
