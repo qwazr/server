@@ -45,6 +45,7 @@ import javax.ws.rs.core.Application;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Build a deployment descriptor and add defaultMultipartConfig concept
@@ -101,6 +102,11 @@ public class ServletContextBuilder extends DeploymentInfo {
 	public <T extends Servlet> ServletContextBuilder servlet(final String name, final Class<T> servletClass,
 			final String... urlPatterns) {
 		return servlet(name, servletClass, null, urlPatterns);
+	}
+
+	public <T extends Servlet> ServletContextBuilder servlet(final String name,
+			final Class<? extends Servlet> servletClass, final Supplier<T> servletSupplier) {
+		return servlet(name, servletClass, GenericFactory.fromSupplier(servletSupplier));
 	}
 
 	static <T extends Servlet> ServletInfo servletInfo(final String name, final Class<T> servletClass,
@@ -240,7 +246,7 @@ public class ServletContextBuilder extends DeploymentInfo {
 		final JaxRsServlet jaxRsServlet = new JaxRsServlet(applicationBuilder.build());
 		final ServletInfo servletInfo = new ServletInfo(
 				StringUtils.isEmpty(name) ? applicationBuilder.getClass() + "@" + applicationBuilder.hashCode() : name,
-				jaxRsServlet.getClass(), new GenericFactory.FromInstance<>(jaxRsServlet));
+				jaxRsServlet.getClass(), GenericFactory.fromInstance(jaxRsServlet));
 		if (applicationBuilder.applicationPaths != null) {
 			servletInfo.addMappings(applicationBuilder.applicationPaths);
 			applicationBuilder.forEachEndPoint(endPoints::add);

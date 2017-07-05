@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,20 +12,30 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.server;
 
 import io.undertow.servlet.api.InstanceFactory;
 import io.undertow.servlet.api.InstanceHandle;
 import io.undertow.servlet.util.ImmediateInstanceHandle;
 
+import java.util.function.Supplier;
+
 public interface GenericFactory<T> extends InstanceFactory<T> {
 
-	class FromInstance<T> implements InstanceFactory<T> {
+	static <T> GenericFactory<T> fromInstance(final T instance) {
+		return new FromInstance<>(instance);
+	}
+
+	static <T> GenericFactory<T> fromSupplier(final Supplier<T> supplier) {
+		return new FromSupplier<>(supplier);
+	}
+
+	final class FromInstance<T> implements GenericFactory<T> {
 
 		protected final T instance;
 
-		FromInstance(final T instance) {
+		private FromInstance(final T instance) {
 			this.instance = instance;
 		}
 
@@ -35,4 +45,17 @@ public interface GenericFactory<T> extends InstanceFactory<T> {
 		}
 	}
 
+	final class FromSupplier<T> implements GenericFactory<T> {
+
+		private final Supplier<T> supplier;
+
+		private FromSupplier(Supplier<T> supplier) {
+			this.supplier = supplier;
+		}
+
+		@Override
+		public InstanceHandle<T> createInstance() throws InstantiationException {
+			return new ImmediateInstanceHandle<>(supplier.get());
+		}
+	}
 }
