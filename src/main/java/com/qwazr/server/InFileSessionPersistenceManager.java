@@ -15,14 +15,13 @@
  */
 package com.qwazr.server;
 
+import com.qwazr.utils.FileUtils;
 import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.SerializationUtils;
 import io.undertow.servlet.api.SessionPersistenceManager;
-import org.apache.commons.io.filefilter.FileFileFilter;
 
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -30,6 +29,8 @@ import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,9 +41,9 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 
 	private static final Logger LOGGER = LoggerUtils.getLogger(InFileSessionPersistenceManager.class);
 
-	private final File sessionDir;
+	private final Path sessionDir;
 
-	public InFileSessionPersistenceManager(File sessionDir) {
+	public InFileSessionPersistenceManager(Path sessionDir) {
 		this.sessionDir = sessionDir;
 	}
 
@@ -50,26 +51,28 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 	public void persistSessions(final String deploymentName, final Map<String, PersistentSession> sessionData) {
 		if (sessionData == null)
 			return;
-		final File deploymentDir = new File(sessionDir, deploymentName);
-		if (!deploymentDir.exists())
-			deploymentDir.mkdir();
-		if (!deploymentDir.exists() && !deploymentDir.isDirectory()) {
-			LOGGER.warning(() -> "Cannot create the session directory " + deploymentDir + ": persistence aborted.");
+		final Path deploymentDir = sessionDir.resolve(deploymentName);
+		try {
+			if (!Files.exists(deploymentDir))
+				Files.createDirectory(deploymentDir);
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, e,
+					() -> "Cannot create the session directory " + deploymentDir + ": persistence aborted.");
 			return;
 		}
 		sessionData.forEach(
 				(sessionId, persistentSession) -> writeSession(deploymentDir, sessionId, persistentSession));
 	}
 
-	private void writeSession(final File deploymentDir, final String sessionId,
+	private void writeSession(final Path deploymentDir, final String sessionId,
 			final PersistentSession persistentSession) {
 		final Date expDate = persistentSession.getExpiration();
 		if (expDate == null)
 			return; // No expiry date? no serialization
 		final Map<String, Object> sessionData = persistentSession.getSessionData();
-		if (sessionData == null || sessionData.isEmpty())
-			return; // No attribute? no serialization
-		File sessionFile = new File(deploymentDir, sessionId);
+		if (sessionData == null)
+			return; // No sessionData? no serialization
+		final File sessionFile = deploymentDir.resolve(sessionId).toFile();
 		try {
 			try (final FileOutputStream fileOutputStream = new FileOutputStream(sessionFile)) {
 				try (final ObjectOutputStream out = new ObjectOutputStream(fileOutputStream)) {
@@ -78,7 +81,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 				}
 			}
 		} catch (IOException e) {
-			LOGGER.log(Level.WARNING, e, () -> "Cannot save sessions in " + sessionFile + " " + e.getMessage());
+			LOGGER.log(Level.WARNING, e, () -> "Cannot save sessions in " + sessionFile);
 		}
 	}
 
@@ -95,7 +98,6 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 		}
 		try {
 			out.writeObject(object);
-			return; // The object was written, job done, we can exit
 		} catch (IOException e) {
 			LOGGER.warning(() -> "Cannot write session object " + object);
 			try {
@@ -111,21 +113,28 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 	@Override
 	public Map<String, PersistentSession> loadSessionAttributes(final String deploymentName,
 			final ClassLoader classLoader) {
-		final File deploymentDir = new File(sessionDir, deploymentName);
-		if (!deploymentDir.exists() || !deploymentDir.isDirectory())
+		final Path deploymentDir = sessionDir.resolve(deploymentName);
+		if (!Files.exists(deploymentDir) || !Files.isDirectory(deploymentDir))
 			return null;
-		File[] sessionFiles = deploymentDir.listFiles((FileFilter) FileFileFilter.FILE);
-		if (sessionFiles == null || sessionFiles.length == 0)
+		try {
+			final long time = System.currentTimeMillis();
+			final Map<String, PersistentSession> finalMap = new HashMap<>();
+			Files.list(deploymentDir).filter(p -> Files.isRegularFile(p)).forEach(sessionPath -> {
+				final File sessionFile = sessionPath.toFile();
+				final PersistentSession persistentSession = readSession(sessionFile);
+				if (persistentSession != null && persistentSession.getExpiration().getTime() > time)
+					finalMap.put(sessionFile.getName(), persistentSession);
+				try {
+					Files.deleteIfExists(sessionPath);
+				} catch (IOException e) {
+					LOGGER.log(Level.WARNING, e, () -> "Cannot delete session file " + sessionFile);
+				}
+			});
+			return finalMap.isEmpty() ? null : finalMap;
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, e, () -> "Cannot read sessions in " + deploymentDir);
 			return null;
-		final long time = System.currentTimeMillis();
-		final Map<String, PersistentSession> finalMap = new HashMap<>();
-		for (File sessionFile : sessionFiles) {
-			PersistentSession persistentSession = readSession(sessionFile);
-			if (persistentSession != null && persistentSession.getExpiration().getTime() > time)
-				finalMap.put(sessionFile.getName(), persistentSession);
-			sessionFile.delete();
 		}
-		return finalMap.isEmpty() ? null : finalMap;
 	}
 
 	private PersistentSession readSession(final File sessionFile) {
@@ -140,7 +149,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 					} catch (EOFException e) {
 						;// Ok we reached the end of the file
 					}
-					return sessionData.isEmpty() ? null : new PersistentSession(expDate, sessionData);
+					return new PersistentSession(expDate, sessionData);
 				}
 			}
 		} catch (IOException e) {
@@ -163,5 +172,9 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 
 	@Override
 	public void clear(final String deploymentName) {
+		final Path deploymentDir = sessionDir.resolve(deploymentName);
+		final IOException e = FileUtils.deleteDirectoryQuietly(deploymentDir);
+		if (e != null)
+			LOGGER.log(Level.WARNING, e, () -> "Session cleanup failure: " + deploymentDir);
 	}
 }

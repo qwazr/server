@@ -1,5 +1,5 @@
-/**
- * Copyright 2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.qwazr.server;
 
 import com.qwazr.server.configuration.ServerConfiguration;
 import com.qwazr.utils.RandomUtils;
+import io.undertow.servlet.api.SessionPersistenceManager;
 
 import java.io.IOException;
 
@@ -28,7 +29,7 @@ public class SimpleServer implements BaseServer {
 
 	private GenericServer server;
 
-	public SimpleServer() throws IOException, ClassNotFoundException {
+	SimpleServer(SessionPersistenceManager sessionManager) throws IOException, ClassNotFoundException {
 
 		GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().build()).contextAttribute(
 				CONTEXT_ATTRIBUTE_TEST, contextAttribute);
@@ -40,7 +41,14 @@ public class SimpleServer implements BaseServer {
 				.loadServices()
 				.singletons(new WelcomeShutdownService()));
 
+		if (sessionManager != null)
+			builder.sessionPersistenceManager(sessionManager);
+
 		server = builder.build();
+	}
+
+	SimpleServer() throws IOException, ClassNotFoundException {
+		this(null);
 	}
 
 	@Override

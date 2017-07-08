@@ -1,5 +1,5 @@
-/**
- * Copyright 2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
 @WebServlet(value = "/test", name = "ServletTest")
@@ -33,15 +34,21 @@ public class SimpleServlet extends HttpServlet {
 
 	private String testString;
 
+	public static volatile String sessionId;
+	public static volatile String lastSessionAttribute;
+
 	@Override
 	public void init(ServletConfig servletConfig) {
-		testString = GenericServer
-				.getContextAttribute(servletConfig.getServletContext(), SimpleServer.CONTEXT_ATTRIBUTE_TEST,
-						String.class);
+		testString = GenericServer.getContextAttribute(servletConfig.getServletContext(),
+				SimpleServer.CONTEXT_ATTRIBUTE_TEST, String.class);
 	}
 
 	@Override
 	public void doGet(HttpServletRequest req, HttpServletResponse rep) throws IOException {
+		HttpSession session = req.getSession();
+		sessionId = session.getId();
+		lastSessionAttribute = (String) session.getAttribute("AttributeTest");
+		session.setAttribute("AttributeTest", sessionId);
 		rep.getWriter().print(testString);
 	}
 }

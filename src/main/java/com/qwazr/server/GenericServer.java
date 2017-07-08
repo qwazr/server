@@ -32,8 +32,10 @@ import io.undertow.servlet.api.ServletContainer;
 import io.undertow.servlet.api.SessionPersistenceManager;
 import org.apache.commons.lang3.SystemUtils;
 
+import javax.management.InstanceNotFoundException;
 import javax.management.JMException;
 import javax.management.MBeanException;
+import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.OperationsException;
@@ -86,6 +88,8 @@ final public class GenericServer {
 
 	final private UdpServerThread udpServer;
 
+	final private Collection<ObjectName> registeredObjectNames;
+
 	static final private Logger LOGGER = LoggerUtils.getLogger(GenericServer.class);
 
 	private GenericServer(final Builder builder) throws IOException, ClassNotFoundException, InstantiationException {
@@ -111,6 +115,7 @@ final public class GenericServer {
 		this.startedListeners = CollectionsUtils.copyIfNotEmpty(builder.startedListeners, ArrayList::new);
 		this.shutdownListeners = CollectionsUtils.copyIfNotEmpty(builder.shutdownListeners, ArrayList::new);
 		this.connectorsStatistics = new ArrayList<>();
+		this.registeredObjectNames = new LinkedHashSet<>();
 	}
 
 	/**
@@ -206,6 +211,20 @@ final public class GenericServer {
 		} catch (InterruptedException e) {
 			LOGGER.log(Level.WARNING, e, e::getMessage);
 		}
+
+		// Unregister MBeans
+		if (registeredObjectNames != null && !registeredObjectNames.isEmpty()) {
+			final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+			for (ObjectName objectName : registeredObjectNames) {
+				try {
+					mbs.unregisterMBean(objectName);
+				} catch (InstanceNotFoundException | MBeanRegistrationException e) {
+					LOGGER.log(Level.WARNING, e, e::getMessage);
+				}
+			}
+			registeredObjectNames.clear();
+		}
+
 		LOGGER.info("The server is stopped.");
 	}
 
@@ -256,8 +275,9 @@ final public class GenericServer {
 		final Hashtable<String, String> props = new Hashtable<>();
 		props.put("type", "connector");
 		props.put("name", context.jmxName);
-		final ObjectName name = new ObjectName("com.qwazr.server." + this.hashCode(), props);
+		final ObjectName name = new ObjectName("com.qwazr.server." + context.jmxName, props);
 		mbs.registerMBean(logMetricsHandler, name);
+		registeredObjectNames.add(name);
 		connectorsStatistics.add(logMetricsHandler);
 	}
 
