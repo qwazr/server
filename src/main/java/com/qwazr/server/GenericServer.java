@@ -57,6 +57,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -235,6 +236,8 @@ final public class GenericServer {
 				connector == null || connector.realm == null ? null : connector.realm);
 	}
 
+	private final static AtomicInteger serverCounter = new AtomicInteger();
+
 	private void startHttpServer(final ServerConfiguration.WebConnector connector, final ServletContextBuilder context,
 			final Logger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
 
@@ -275,7 +278,8 @@ final public class GenericServer {
 		final Hashtable<String, String> props = new Hashtable<>();
 		props.put("type", "connector");
 		props.put("name", context.jmxName);
-		final ObjectName name = new ObjectName("com.qwazr.server." + context.jmxName, props);
+		final ObjectName name = new ObjectName(
+				"com.qwazr.server." + serverCounter.incrementAndGet() + "." + context.jmxName, props);
 		mbs.registerMBean(logMetricsHandler, name);
 		registeredObjectNames.add(name);
 		connectorsStatistics.add(logMetricsHandler);
