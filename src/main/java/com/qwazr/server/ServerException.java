@@ -113,7 +113,7 @@ public class ServerException extends RuntimeException {
 		final Throwable cause = getCause();
 		if (cause == null)
 			return this;
-		logger.log(Level.WARNING, cause, () -> getMessage());
+		logger.log(Level.WARNING, cause, this::getMessage);
 		return this;
 	}
 
@@ -121,7 +121,7 @@ public class ServerException extends RuntimeException {
 		final Throwable cause = getCause();
 		if (cause == null)
 			return this;
-		logger.log(Level.SEVERE, cause, () -> getMessage());
+		logger.log(Level.SEVERE, cause, this::getMessage);
 		return this;
 	}
 
@@ -138,7 +138,7 @@ public class ServerException extends RuntimeException {
 	}
 
 	private Response getJsonResponse() {
-		return new JsonExceptionReponse(statusCode, message, this).toResponse();
+		return new JsonExceptionReponse(statusCode, message, getCause()).toResponse();
 	}
 
 	public WebApplicationException getTextException() {
@@ -146,7 +146,7 @@ public class ServerException extends RuntimeException {
 	}
 
 	public WebApplicationException getJsonException() {
-		return new WebApplicationException(this, getJsonResponse());
+		return new WebApplicationException(getCause(), getJsonResponse());
 	}
 
 	public static ServerException getServerException(final Exception e) {
