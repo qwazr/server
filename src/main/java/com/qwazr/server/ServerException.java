@@ -144,6 +144,10 @@ public class ServerException extends RuntimeException {
 				allowStackTrace).message(message).build().toResponse());
 	}
 
+	public WebApplicationException getJsonException() {
+		return getJsonException(true);
+	}
+
 	public static ServerException getServerException(final Exception e) {
 		if (e instanceof ServerException)
 			return (ServerException) e;
