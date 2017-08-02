@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,6 @@ public class JsonMappingExceptionMapper implements ExceptionMapper<JsonMappingEx
 
 	@Override
 	public Response toResponse(JsonMappingException exception) {
-		return new ServerException(exception).getJsonException().getResponse();
+		return new ServerException(exception).getJsonException(true).getResponse();
 	}
 }

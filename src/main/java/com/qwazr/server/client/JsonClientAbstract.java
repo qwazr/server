@@ -118,7 +118,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		try {
 			return executeJsonEx(request, body, msTimeOut, objectClass, validator);
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getJsonException();
+			throw ServerException.getServerException(e).getJsonException(true);
 		}
 	}
 
@@ -135,7 +135,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		try {
 			return executeJsonEx(request, body, msTimeOut, typeRef, validator);
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getJsonException();
+			throw ServerException.getServerException(e).getJsonException(true);
 		}
 	}
 
@@ -152,7 +152,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		try {
 			return executeJsonNodeEx(request, body, msTimeOut, validator);
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getJsonException();
+			throw ServerException.getServerException(e).getJsonException(true);
 		}
 	}
 

@@ -132,21 +132,16 @@ public class ServerException extends RuntimeException {
 		return super.getMessage();
 	}
 
-	private Response getTextResponse() {
-		return Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(
-				message == null ? StringUtils.EMPTY : message).build();
-	}
-
-	private Response getJsonResponse() {
-		return new JsonExceptionReponse(statusCode, message, getCause()).toResponse();
-	}
-
 	public WebApplicationException getTextException() {
-		return new WebApplicationException(this, getTextResponse());
+		return new WebApplicationException(this, Response.status(statusCode)
+				.type(MediaType.TEXT_PLAIN)
+				.entity(message == null ? StringUtils.EMPTY : message)
+				.build());
 	}
 
-	public WebApplicationException getJsonException() {
-		return new WebApplicationException(getCause(), getJsonResponse());
+	public WebApplicationException getJsonException(boolean allowStackTrace) {
+		return new WebApplicationException(this, JsonExceptionReponse.of().status(statusCode).exception(this,
+				allowStackTrace).message(message).build().toResponse());
 	}
 
 	public static ServerException getServerException(final Exception e) {
@@ -188,7 +183,7 @@ public class ServerException extends RuntimeException {
 		final WebApplicationException wae = checkCompatible(e, MediaType.APPLICATION_JSON_TYPE);
 		if (wae != null)
 			return wae;
-		return getServerException(e).warnIfCause(logger).getJsonException();
+		return getServerException(e).warnIfCause(logger).getJsonException(logger == null);
 	}
 
 }

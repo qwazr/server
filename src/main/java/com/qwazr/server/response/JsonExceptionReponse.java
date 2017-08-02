@@ -1,5 +1,5 @@
-/**
- * Copyright 2014-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,76 +15,101 @@
  */
 package com.qwazr.server.response;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.qwazr.server.ServiceInterface;
 import com.qwazr.utils.ExceptionUtils;
 import com.qwazr.utils.json.JsonMapper;
-import com.qwazr.server.ServiceInterface;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import java.util.Date;
 import java.util.List;
 
 @JsonInclude(Include.NON_EMPTY)
 public class JsonExceptionReponse {
 
-	public final String error;
-	public final String reason_phrase;
-	public final Integer status_code;
+	public final Date date;
+	@JsonProperty("status_code")
+	public final Integer statusCode;
 	public final String message;
 	public final String exception;
+	@JsonProperty("stack_traces")
 	public final List<String> stackTraces;
 
-	public JsonExceptionReponse(Status status, String message) {
-		this.error = status == null ? null : status.name();
-		this.reason_phrase = status == null ? null : status.getReasonPhrase();
-		this.status_code = status == null ? null : status.getStatusCode();
+	@JsonCreator
+	JsonExceptionReponse(@JsonProperty("date") Date date, @JsonProperty("status_code") Integer statusCode,
+			@JsonProperty("message") String message, @JsonProperty("exception") String exception,
+			@JsonProperty("stack_traces") List<String> stackTraces) {
+		this.date = date;
+		this.statusCode = statusCode;
 		this.message = message;
-		this.exception = null;
-		this.stackTraces = null;
+		this.exception = exception;
+		this.stackTraces = stackTraces;
 	}
 
-	public JsonExceptionReponse(Status status, Throwable e) {
-		this.error = status == null ? null : status.name();
-		this.reason_phrase = status == null ? null : status.getReasonPhrase();
-		this.status_code = status == null ? null : status.getStatusCode();
-		Throwable cause = e == null ? null : ExceptionUtils.getRootCause(e);
-		this.message = cause == null ? null : cause.getMessage();
-		this.exception = cause == null ? null : cause.getClass().getName();
-		this.stackTraces = cause == null ? null : ExceptionUtils.getStackTraces(cause);
-	}
-
-	public JsonExceptionReponse(Status status, String error, Throwable e) {
-		this.error = error;
-		this.reason_phrase = status == null ? null : status.getReasonPhrase();
-		this.status_code = status == null ? null : status.getStatusCode();
-		Throwable cause = e == null ? null : ExceptionUtils.getRootCause(e);
-		this.message = cause == null ? null : cause.getMessage();
-		this.exception = cause == null ? null : cause.getClass().getName();
-		this.stackTraces = cause == null ? null : ExceptionUtils.getStackTraces(cause);
-	}
-
-	public JsonExceptionReponse(int status, String message, Throwable e) {
-		this.error = null;
-		this.reason_phrase = null;
-		this.status_code = status;
-		Throwable cause = e == null ? null : ExceptionUtils.getRootCause(e);
-		this.message = message == null ? cause == null ? null : cause.getMessage() : message;
-		this.exception = cause == null ? null : cause.getClass().getName();
-		this.stackTraces = cause == null ? null : ExceptionUtils.getStackTraces(cause);
+	JsonExceptionReponse(Builder builder) {
+		this(builder.date, builder.statusCode, builder.message, builder.exception, builder.stackTraces);
 	}
 
 	public Response toResponse() {
 		try {
-			String jsonMessage = JsonMapper.MAPPER.writeValueAsString(this);
-			return Response.status(status_code)
-					.type(ServiceInterface.APPLICATION_JSON_UTF8)
-					.entity(jsonMessage)
-					.build();
+			final String jsonMessage = JsonMapper.MAPPER.writeValueAsString(this);
+			return Response.status(statusCode).type(ServiceInterface.APPLICATION_JSON_UTF8).entity(jsonMessage).build();
 		} catch (JsonProcessingException e) {
-			return Response.status(status_code).type(MediaType.TEXT_PLAIN).entity(message).build();
+			return Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(message).build();
+		}
+	}
+
+	public static Builder of() {
+		return new Builder();
+	}
+
+	public static class Builder {
+
+		private final Date date;
+		private Integer statusCode;
+		private String message;
+		private String exception;
+		private List<String> stackTraces;
+
+		private Builder() {
+			this.date = new Date();
+		}
+
+		public Builder status(Status status) {
+			statusCode = status.getStatusCode();
+			message = status.getReasonPhrase();
+			return this;
+		}
+
+		public Builder status(int statusCode) {
+			this.statusCode = statusCode;
+			return this;
+		}
+
+		public Builder message(String message) {
+			this.message = message;
+			return this;
+		}
+
+		public Builder exception(Throwable throwable, boolean printStackTrace) {
+			final Throwable cause = throwable == null ? null : ExceptionUtils.getRootCause(throwable);
+			if (cause == null)
+				return this;
+			this.message = cause.getMessage();
+			this.exception = cause.getClass().getName();
+			if (printStackTrace)
+				this.stackTraces = ExceptionUtils.getStackTraces(cause);
+			return this;
+		}
+
+		public JsonExceptionReponse build() {
+			return new JsonExceptionReponse(this);
 		}
 	}
 
