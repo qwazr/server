@@ -15,8 +15,8 @@
  */
 package com.qwazr.server;
 
+import com.qwazr.utils.ObjectMappers;
 import com.qwazr.utils.http.HttpRequest;
-import com.qwazr.utils.json.JsonMapper;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
@@ -55,7 +55,7 @@ public class SimpleServerTest {
 
 	@Test
 	public void test250welcomeStatus() throws IOException {
-		final WelcomeStatus welcomeStatus = JsonMapper.MAPPER.readValue(HttpRequest.Get("http://localhost:9091/")
+		final WelcomeStatus welcomeStatus = ObjectMappers.JSON.readValue(HttpRequest.Get("http://localhost:9091/")
 				.execute()
 				.getEntity()
 				.getContent(), WelcomeStatus.class);

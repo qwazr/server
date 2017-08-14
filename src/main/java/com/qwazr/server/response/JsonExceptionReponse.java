@@ -22,7 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.qwazr.server.ServiceInterface;
 import com.qwazr.utils.ExceptionUtils;
-import com.qwazr.utils.json.JsonMapper;
+import com.qwazr.utils.ObjectMappers;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -58,7 +58,7 @@ public class JsonExceptionReponse {
 
 	public Response toResponse() {
 		try {
-			final String jsonMessage = JsonMapper.MAPPER.writeValueAsString(this);
+			final String jsonMessage = ObjectMappers.JSON.writeValueAsString(this);
 			return Response.status(statusCode).type(ServiceInterface.APPLICATION_JSON_UTF8).entity(jsonMessage).build();
 		} catch (JsonProcessingException e) {
 			return Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(message).build();

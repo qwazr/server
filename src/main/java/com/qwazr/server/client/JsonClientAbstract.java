@@ -26,9 +26,9 @@ import com.qwazr.server.response.JsonHttpResponseHandler;
 import com.qwazr.server.response.ResponseValidator;
 import com.qwazr.server.response.StringHttpResponseHandler;
 import com.qwazr.utils.IOUtils;
+import com.qwazr.utils.ObjectMappers;
 import com.qwazr.utils.http.HttpClients;
 import com.qwazr.utils.http.HttpRequest;
-import com.qwazr.utils.json.JsonMapper;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
@@ -100,7 +100,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		else if (bodyObject instanceof InputStream)
 			requestEntity.bodyStream((InputStream) bodyObject, ContentType.APPLICATION_OCTET_STREAM);
 		else
-			requestEntity.bodyString(JsonMapper.MAPPER.writeValueAsString(bodyObject), ContentType.APPLICATION_JSON);
+			requestEntity.bodyString(ObjectMappers.JSON.writeValueAsString(bodyObject), ContentType.APPLICATION_JSON);
 	}
 
 	private <T> T executeJsonEx(final HttpRequest request, final Object bodyObject, final Integer msTimeOut,
