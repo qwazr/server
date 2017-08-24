@@ -18,7 +18,7 @@ package com.qwazr.server.client;
 class MultiClientTest {
 
 	enum Type {
-		success, error, timeout
+		success, error
 	}
 
 	ClientExample[] panel(Type... types) {
@@ -33,9 +33,6 @@ class MultiClientTest {
 				break;
 			case error:
 				client = new ClientExample.ErrorClient(i);
-				break;
-			case timeout:
-				client = new ClientExample.TimeoutClient(i);
 				break;
 			}
 			clients[i++] = client;

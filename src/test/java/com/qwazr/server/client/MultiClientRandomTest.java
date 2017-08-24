@@ -15,14 +15,35 @@
  */
 package com.qwazr.server.client;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.WebApplicationException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MultiClientRandomTest extends MultiClientTest {
 
-	MultiClient.Result<Integer> firstRandom(ClientExample[] clients) {
-		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients);
-		return multiClient.firstRandomSuccess(ClientExample::action);
+	static ExecutorService executorService;
+
+	@BeforeClass
+	public static void setup() {
+		executorService = Executors.newCachedThreadPool();
+	}
+
+	@AfterClass
+	public static void cleanup() {
+		executorService.shutdown();
+	}
+
+	Integer firstRandom(ClientExample[] clients) {
+		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients, executorService);
+		return multiClient.firstRandomSuccess(ClientExample::action, e -> false, e -> {
+			throw e != null ? e : new NotFoundException("test");
+		});
 	}
 
 	void firstRandomTest(ClientExample[] clients) {
@@ -30,13 +51,13 @@ public class MultiClientRandomTest extends MultiClientTest {
 		Assert.assertNotNull(clients);
 		Assert.assertTrue(clients.length > 0);
 
-		final MultiClient.Result<Integer> result = firstRandom(clients);
+		final Integer result = firstRandom(clients);
 		Assert.assertNotNull(result);
 
 		ClientExample clientFound = null;
 		int successCount = 0;
 		for (ClientExample client : clients) {
-			if (client.id == result.result)
+			if (client.id == result)
 				clientFound = client;
 			if (client.actionCounter.get() > 1)
 				Assert.fail("Wrong counter: " + client.actionCounter.get());
@@ -65,19 +86,35 @@ public class MultiClientRandomTest extends MultiClientTest {
 
 	void firstRandomTestEmpty(ClientExample[] clients) {
 
-		final MultiClient.Result<Integer> result = firstRandom(clients);
+		final Integer result = firstRandom(clients);
 		Assert.assertNull(result);
 		if (clients != null)
 			for (ClientExample client : clients)
 				Assert.assertEquals(1, client.actionCounter.get(), 0);
 	}
 
-	@Test
-	public void firstRandomTestWithoutResult() {
+	@Test(expected = NotFoundException.class)
+	public void firstRandomTestNullClients() {
 		firstRandomTestEmpty(null);
+	}
+
+	@Test(expected = NotFoundException.class)
+	public void firstRandomTestEmptyClients() {
 		firstRandomTestEmpty(panel());
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void firstRandomTestOneError() {
 		firstRandomTestEmpty(panel(Type.error));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void firstRandomTestTwoErrors() {
 		firstRandomTestEmpty(panel(Type.error, Type.error));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void firstRandomTestThreeErrors() {
 		firstRandomTestEmpty(panel(Type.error, Type.error, Type.error));
 	}
 

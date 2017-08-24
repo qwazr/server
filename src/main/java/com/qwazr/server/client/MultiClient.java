@@ -15,24 +15,15 @@
  */
 package com.qwazr.server.client;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.qwazr.utils.ExceptionUtils;
-import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.RandomArrayIterator;
 
-import java.util.HashMap;
+import javax.ws.rs.WebApplicationException;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * This class represents a connection to a set of servers
@@ -41,8 +32,7 @@ import java.util.logging.Logger;
  */
 public class MultiClient<T> implements Iterable<T> {
 
-	private final static Logger LOGGER = LoggerUtils.getLogger(MultiClient.class);
-
+	private final ExecutorService executorService;
 	private final T[] clients;
 
 	/**
@@ -50,8 +40,9 @@ public class MultiClient<T> implements Iterable<T> {
 	 *
 	 * @param clients an array of client
 	 */
-	protected MultiClient(final T[] clients) {
+	protected MultiClient(final T[] clients, final ExecutorService executorService) {
 		this.clients = clients;
+		this.executorService = executorService;
 	}
 
 	@Override
@@ -59,91 +50,54 @@ public class MultiClient<T> implements Iterable<T> {
 		return new RandomArrayIterator<>(clients);
 	}
 
-	protected <R> Result<R> firstRandomSuccess(final Function<T, R> action) {
-		for (T client : this) {
-			final ActionThread<R> actionThread = new ActionThread<>(client, action);
-			final Result<R> result = actionThread.call();
-			if (result.result != null && result.error == null)
-				return result;
-		}
-		return null;
-	}
-
-	protected <R> Map<String, Result<R>> forEachParallel(final ExecutorService executorService, final long timeout,
-			final TimeUnit unit, final Function<T, R> action) {
-		final Map<Future<Result<R>>, ActionThread<R>> futures = new HashMap<>();
-		// Start the parallel threads
+	protected <R> R firstRandomSuccess(final Function<T, R> action,
+			final Function<WebApplicationException, Boolean> exceptionHandler,
+			final Function<WebApplicationException, R> notFoundAction) {
+		WebApplicationException exception = null;
 		for (final T client : this) {
-			final ActionThread<R> actionThread = new ActionThread<>(client, action);
-			futures.put(executorService.submit(actionThread), actionThread);
+			try {
+				final R result = action.apply(client);
+				if (result != null)
+					return result;
+			} catch (WebApplicationException e) {
+				if (exceptionHandler == null || !exceptionHandler.apply(e))
+					exception = e;
+			}
 		}
+		return notFoundAction == null ? null : notFoundAction.apply(exception);
+	}
+
+	protected <R> void forEachParallel(final Function<T, R> action, final Consumer<R> result,
+			final Function<WebApplicationException, Boolean> exceptionHandler,
+			final Function<WebApplicationException, WebApplicationException> endException) {
+
+		WebApplicationException exception = null;
+
+		// Start the parallel threads
+		final Future<R>[] futures = new Future[clients == null ? 0 : clients.length];
+		int i = 0;
+		for (final T client : this)
+			futures[i++] = executorService.submit(() -> action.apply(client));
+
 		// Get the results
-		final Map<String, Result<R>> results = new HashMap<>();
-		futures.forEach((future, actionThread) -> {
-			Result<R> result;
+		for (Future<R> future : futures) {
+			if (future == null)
+				continue;
 			try {
-				result = future.get(timeout, unit);
-			} catch (InterruptedException | ExecutionException | TimeoutException e) {
-				LOGGER.log(Level.SEVERE, e, () -> "Execution error on " + actionThread.clientId);
-				result = actionThread.error(e);
-			}
-			results.put(actionThread.client.toString(), result);
-		});
-		return results;
-	}
-
-	private class ActionThread<R> implements Callable<Result<R>> {
-
-		final long startTime;
-		final Function<T, R> action;
-		final T client;
-		final String clientId;
-
-		ActionThread(final T client, final Function<T, R> action) {
-			this.startTime = System.nanoTime();
-			this.client = client;
-			this.clientId = client.toString();
-			this.action = action;
-		}
-
-		private long getTime() {
-			return (System.nanoTime() - startTime) / 1000000;
-		}
-
-		@Override
-		public Result<R> call() {
-			try {
-				return new Result<>(clientId, getTime(), null, action.apply(client));
-			} catch (Exception e) {
-				return error(e);
+				final R r = future.get();
+				result.accept(r);
+			} catch (ExecutionException | InterruptedException e) {
+				throw new WebApplicationException(e);
+			} catch (WebApplicationException e) {
+				if (exceptionHandler == null || !exceptionHandler.apply(e))
+					exception = e;
 			}
 		}
-
-		public Result<R> error(Throwable t) {
-			return new Result<>(clientId, getTime(), t);
-		}
-	}
-
-	public static class Result<E> {
-
-		final public String client;
-		final public long time;
-		final public String error;
-		final public E result;
-
-		@JsonCreator
-		Result(@JsonProperty("client") final String client, @JsonProperty("time") final long time,
-				@JsonProperty("error") final String error, @JsonProperty("result") E result) {
-			this.client = client;
-			this.time = time;
-			this.error = error;
-			this.result = result;
-		}
-
-		Result(String client, long time, Throwable t) {
-			this(client, time, ExceptionUtils.getMessage(t), null);
-		}
-
+		// At the end, if we had an exception, let's notify the caller
+		if (endException != null)
+			exception = endException.apply(exception);
+		if (exception != null)
+			throw exception;
 	}
 
 }

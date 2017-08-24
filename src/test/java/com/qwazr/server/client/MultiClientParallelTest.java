@@ -20,11 +20,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.Map;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.WebApplicationException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class MultiClientParallelTest extends MultiClientTest {
 
@@ -41,69 +42,98 @@ public class MultiClientParallelTest extends MultiClientTest {
 	}
 
 	void parallel(ClientExample[] clients) {
-		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients);
-		final Map<String, MultiClient.Result<Integer>> results = multiClient.forEachParallel(executor, 10,
-				TimeUnit.SECONDS, ClientExample::action);
-		Assert.assertNotNull(results);
+		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients, executor);
+		final List<Integer> results = new ArrayList<>();
+		final List<WebApplicationException> exceptions = new ArrayList<>();
+		multiClient.forEachParallel(ClientExample::action, results::add, exceptions::add,
+				e -> e != null ? e : results.isEmpty() ? new NotFoundException("test") : null);
+		Assert.assertEquals(clients == null ? 0 : clients.length, results.size());
 		if (clients == null || clients.length == 0) {
 			Assert.assertTrue(results.isEmpty());
 			return;
 		}
-		final Map<String, ClientExample> clientMap = new HashMap<>();
+
 		for (ClientExample client : clients) {
 			Assert.assertEquals(1, client.actionCounter.get(), 0);
-			clientMap.put(client.toString(), client);
-		}
-		Assert.assertEquals(results.size(), clients.length);
-		results.forEach((id, result) -> {
-			Assert.assertNotNull(result.client);
-			Assert.assertEquals(id, result.client);
-			final ClientExample client = clientMap.get(id);
-			Assert.assertNotNull(client);
 			if (client instanceof ClientExample.ErrorClient) {
-				Assert.assertNotNull(result.error);
-				Assert.assertNull(result.result);
-			} else if (client instanceof ClientExample.SuccessClient) {
-				Assert.assertNotNull(result.result);
-				Assert.assertNull(result.error);
-			} else if (client instanceof ClientExample.TimeoutClient) {
-				Assert.assertNull(result.result);
-				Assert.assertNotNull(result.error);
-			} else
-				Assert.fail("Unknown type: " + client.getClass());
-			clientMap.remove(id);
-		});
-		Assert.assertTrue(clientMap.isEmpty());
+				Assert.assertFalse(results.contains(client.id));
+				Assert.assertNotNull(((ClientExample.ErrorClient) client).exception);
+				Assert.assertTrue(exceptions.contains(((ClientExample.ErrorClient) client).exception));
+			}
+			if (client instanceof ClientExample.SuccessClient)
+				Assert.assertTrue(results.contains(client.id));
+		}
+
 	}
 
 	@Test
 	public void parallelTests() {
 		parallel(panel(Type.success));
 		parallel(panel(Type.success, Type.success));
-		parallel(panel(Type.success, Type.error));
-		parallel(panel(Type.error, Type.success));
-		parallel(panel(Type.error, Type.success, Type.error));
-		parallel(panel(Type.success, Type.error, Type.error));
-		parallel(panel(Type.error, Type.success, Type.error, Type.success));
-		parallel(panel(Type.error, Type.error, Type.success, Type.success));
-		parallel(panel(Type.success, Type.success, Type.error, Type.error));
-
-		parallel(null);
-		parallel(panel());
-
-		parallel(panel(Type.error));
-		parallel(panel(Type.error, Type.error));
-		parallel(panel(Type.error, Type.error, Type.error));
 
 		parallel(panel(Type.success));
 		parallel(panel(Type.success, Type.success));
 		parallel(panel(Type.success, Type.success, Type.success));
 	}
 
-	@Test
-	public void parallelTimeoutTest() {
-		parallel(panel(Type.timeout));
-		parallel(panel(Type.success, Type.timeout, Type.error));
+	@Test(expected = NotFoundException.class)
+	public void parallelTestsNullClients() {
+		parallel(null);
+	}
+
+	@Test(expected = NotFoundException.class)
+	public void parallelTestsEmptyClients() {
+		parallel(panel());
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsError() {
+		parallel(panel(Type.error));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsErrorError() {
+		parallel(panel(Type.error, Type.error));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsErrorErrorError() {
+		parallel(panel(Type.error, Type.error, Type.error));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsSuccessError() {
+		parallel(panel(Type.success, Type.error));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsErrorSuccess() {
+		parallel(panel(Type.error, Type.success));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsErrorSucessError() {
+		parallel(panel(Type.error, Type.success, Type.error));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsSuccessErrorError() {
+		parallel(panel(Type.success, Type.error, Type.error));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsErrorSuccessErrorSuccess() {
+		parallel(panel(Type.error, Type.success, Type.error, Type.success));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsErrorErrorSuccessSuccess() {
+		parallel(panel(Type.error, Type.error, Type.success, Type.success));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void parallelTestsSuccessSuccessErrorError() {
+		parallel(panel(Type.success, Type.success, Type.error, Type.error));
 	}
 
 }

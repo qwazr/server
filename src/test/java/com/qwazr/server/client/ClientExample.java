@@ -15,6 +15,7 @@
  */
 package com.qwazr.server.client;
 
+import javax.ws.rs.WebApplicationException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 abstract class ClientExample {
@@ -35,6 +36,8 @@ abstract class ClientExample {
 
 	static class ErrorClient extends ClientExample {
 
+		WebApplicationException exception;
+
 		ErrorClient(int id) {
 			super(id);
 		}
@@ -42,7 +45,7 @@ abstract class ClientExample {
 		@Override
 		public Integer action() {
 			actionCounter.incrementAndGet();
-			throw new RuntimeException("I failed");
+			throw exception = new WebApplicationException("I failed");
 		}
 	}
 
@@ -59,21 +62,4 @@ abstract class ClientExample {
 		}
 	}
 
-	static class TimeoutClient extends ClientExample {
-
-		TimeoutClient(int id) {
-			super(id);
-		}
-
-		@Override
-		public Integer action() {
-			actionCounter.incrementAndGet();
-			try {
-				Thread.sleep(120000);
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
-			}
-			return id;
-		}
-	}
 }
