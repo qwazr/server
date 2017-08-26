@@ -29,9 +29,10 @@ public class MultiWebApplicationException extends WebApplicationException {
 
 	private final Collection<WebApplicationException> causes;
 
-	MultiWebApplicationException(final Builder builder) {
-		super(builder.messages == null ? StringUtils.EMPTY : StringUtils.joinWith(" - ", builder.messages));
-		this.causes = Collections.unmodifiableCollection(builder.exceptions);
+	MultiWebApplicationException(final String message, final int status,
+			final Collection<WebApplicationException> exceptions) {
+		super(message, status);
+		this.causes = exceptions == null ? null : Collections.unmodifiableCollection(exceptions);
 	}
 
 	public Collection<WebApplicationException> getCauses() {
@@ -78,7 +79,20 @@ public class MultiWebApplicationException extends WebApplicationException {
 		}
 
 		public MultiWebApplicationException build() {
-			return new MultiWebApplicationException(this);
+			final String message = messages == null ? StringUtils.EMPTY : StringUtils.joinWith(" - ", messages);
+			final int status;
+			if (exceptions == null)
+				status = 500;
+			else {
+				final Set<Integer> statusSet = new HashSet<>();
+				int st = 500;
+				for (WebApplicationException e : exceptions) {
+					st = e.getResponse().getStatus();
+					statusSet.add(st);
+				}
+				status = statusSet.size() == 1 ? st : 500;
+			}
+			return new MultiWebApplicationException(message, status, exceptions);
 		}
 	}
 }
