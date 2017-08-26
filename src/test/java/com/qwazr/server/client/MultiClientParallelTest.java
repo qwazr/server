@@ -20,7 +20,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,13 +40,15 @@ public class MultiClientParallelTest extends MultiClientTest {
 		executor.shutdown();
 	}
 
-	void parallel(ClientExample[] clients) {
+	void parallel(ClientExample[] clients, int resultCount, int exceptionCount) {
 		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients, executor);
-		final List<Integer> results = new ArrayList<>();
 		final List<WebApplicationException> exceptions = new ArrayList<>();
-		multiClient.forEachParallel(ClientExample::action, results::add, exceptions::add,
-				e -> e != null ? e : results.isEmpty() ? new NotFoundException("test") : null);
-		Assert.assertEquals(clients == null ? 0 : clients.length, results.size());
+		final List<Integer> results = multiClient.forEachParallel(ClientExample::action, exceptions::add);
+
+		Assert.assertEquals(resultCount, results.size());
+		Assert.assertEquals(exceptionCount, exceptions.size());
+
+		Assert.assertEquals(clients == null ? 0 : clients.length, results.size() + exceptions.size());
 		if (clients == null || clients.length == 0) {
 			Assert.assertTrue(results.isEmpty());
 			return;
@@ -58,7 +59,13 @@ public class MultiClientParallelTest extends MultiClientTest {
 			if (client instanceof ClientExample.ErrorClient) {
 				Assert.assertFalse(results.contains(client.id));
 				Assert.assertNotNull(((ClientExample.ErrorClient) client).exception);
-				Assert.assertTrue(exceptions.contains(((ClientExample.ErrorClient) client).exception));
+
+				final Exception expectionToFind = ((ClientExample.ErrorClient) client).exception;
+				boolean expectionFound = false;
+				for (Exception exception : exceptions)
+					if (exception == expectionToFind || exception.getCause() == expectionToFind)
+						expectionFound = true;
+				Assert.assertTrue("Exception not found", expectionFound);
 			}
 			if (client instanceof ClientExample.SuccessClient)
 				Assert.assertTrue(results.contains(client.id));
@@ -67,73 +74,75 @@ public class MultiClientParallelTest extends MultiClientTest {
 	}
 
 	@Test
-	public void parallelTests() {
-		parallel(panel(Type.success));
-		parallel(panel(Type.success, Type.success));
+	public void parallelTestsWithResults() {
+		parallel(panel(Type.success), 1, 0);
+		parallel(panel(Type.success, Type.success), 2, 0);
 
-		parallel(panel(Type.success));
-		parallel(panel(Type.success, Type.success));
-		parallel(panel(Type.success, Type.success, Type.success));
+		parallel(panel(Type.success), 1, 0);
+		parallel(panel(Type.success, Type.success), 2, 0);
+		parallel(panel(Type.success, Type.success, Type.success), 3, 0);
 	}
 
-	@Test(expected = NotFoundException.class)
-	public void parallelTestsNullClients() {
-		parallel(null);
+	@Test
+	public void parallelTestsWithOnlyErrors() {
+		parallel(panel(Type.error), 0, 1);
+		parallel(panel(Type.error, Type.error), 0, 2);
+		parallel(panel(Type.error, Type.error, Type.error), 0, 3);
+
 	}
 
-	@Test(expected = NotFoundException.class)
-	public void parallelTestsEmptyClients() {
-		parallel(panel());
+	@Test
+	public void parallelTestsNoClients() {
+		parallel(null, 0, 0);
+		parallel(panel(), 0, 0);
 	}
 
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsError() {
-		parallel(panel(Type.error));
+	@Test
+	public void parallelTestsMixSuccessError() {
+		parallel(panel(Type.success, Type.error), 1, 1);
+		parallel(panel(Type.error, Type.success), 1, 1);
+		parallel(panel(Type.error, Type.success, Type.error), 1, 2);
+		parallel(panel(Type.success, Type.error, Type.error), 1, 2);
+		parallel(panel(Type.error, Type.success, Type.error, Type.success), 2, 2);
+		parallel(panel(Type.error, Type.error, Type.success, Type.success), 2, 2);
+		parallel(panel(Type.success, Type.success, Type.error, Type.error), 2, 2);
+		parallel(panel(Type.error, Type.success, Type.error, Type.error), 1, 3);
 	}
 
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsErrorError() {
-		parallel(panel(Type.error, Type.error));
+	void parallelSuccess(ClientExample[] clients, int resultCount) {
+		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients, executor);
+		List<Integer> results = multiClient.forEachParallel(ClientExample::action);
+		Assert.assertNotNull(results);
+		Assert.assertEquals(resultCount, results.size());
 	}
 
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsErrorErrorError() {
-		parallel(panel(Type.error, Type.error, Type.error));
+	@Test
+	public void parallelTestSuccess() {
+		parallelSuccess(null, 0);
+		parallelSuccess(panel(), 0);
+		parallelSuccess(panel(Type.success), 1);
+		parallelSuccess(panel(Type.success, Type.success), 2);
+		parallelSuccess(panel(Type.success, Type.success, Type.success), 3);
 	}
 
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsSuccessError() {
-		parallel(panel(Type.success, Type.error));
+	void parallelFail(ClientExample[] clients, int exceptionCount) {
+		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients, executor);
+		try {
+			multiClient.forEachParallel(ClientExample::action);
+			Assert.fail("MultiWebApplicationException not thrown");
+		} catch (MultiWebApplicationException e) {
+			Assert.assertNotNull(e.getCauses());
+			Assert.assertEquals(exceptionCount, e.getCauses().size());
+		}
 	}
 
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsErrorSuccess() {
-		parallel(panel(Type.error, Type.success));
+	@Test
+	public void parallelTestFail() {
+		parallelFail(panel(Type.error), 1);
+		parallelFail(panel(Type.error, Type.error), 2);
+		parallelFail(panel(Type.error, Type.error, Type.error), 3);
+		parallelFail(panel(Type.error, Type.success), 1);
+		parallelFail(panel(Type.error, Type.success, Type.error), 2);
+		parallelFail(panel(Type.success, Type.error, Type.success), 1);
 	}
-
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsErrorSucessError() {
-		parallel(panel(Type.error, Type.success, Type.error));
-	}
-
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsSuccessErrorError() {
-		parallel(panel(Type.success, Type.error, Type.error));
-	}
-
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsErrorSuccessErrorSuccess() {
-		parallel(panel(Type.error, Type.success, Type.error, Type.success));
-	}
-
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsErrorErrorSuccessSuccess() {
-		parallel(panel(Type.error, Type.error, Type.success, Type.success));
-	}
-
-	@Test(expected = WebApplicationException.class)
-	public void parallelTestsSuccessSuccessErrorError() {
-		parallel(panel(Type.success, Type.success, Type.error, Type.error));
-	}
-
 }

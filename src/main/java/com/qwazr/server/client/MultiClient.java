@@ -15,10 +15,14 @@
  */
 package com.qwazr.server.client;
 
+import com.qwazr.utils.FunctionUtils;
 import com.qwazr.utils.RandomArrayIterator;
 
 import javax.ws.rs.WebApplicationException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -50,54 +54,71 @@ public class MultiClient<T> implements Iterable<T> {
 		return new RandomArrayIterator<>(clients);
 	}
 
-	protected <R> R firstRandomSuccess(final Function<T, R> action,
-			final Function<WebApplicationException, Boolean> exceptionHandler,
-			final Function<WebApplicationException, R> notFoundAction) {
-		WebApplicationException exception = null;
+	private WebApplicationException ensureWebApplicationException(final Throwable t) {
+		return t instanceof WebApplicationException ? (WebApplicationException) t : new WebApplicationException(t);
+	}
+
+	private void handleException(final WebApplicationException e,
+			final Function<WebApplicationException, Boolean> checkContinue) {
+		if (checkContinue == null || !checkContinue.apply(e))
+			throw e;
+	}
+
+	protected <R> R firstRandomSuccess(final FunctionUtils.FunctionEx<T, R, Exception> action,
+			final Function<WebApplicationException, Boolean> checkContinue) {
+		if (clients == null || clients.length == 0)
+			return null;
 		for (final T client : this) {
 			try {
 				final R result = action.apply(client);
 				if (result != null)
 					return result;
 			} catch (WebApplicationException e) {
-				if (exceptionHandler == null || !exceptionHandler.apply(e))
-					exception = e;
+				handleException(e, checkContinue);
+			} catch (Exception e) {
+				handleException(ensureWebApplicationException(e), checkContinue);
 			}
 		}
-		return notFoundAction == null ? null : notFoundAction.apply(exception);
+		return null;
 	}
 
-	protected <R> void forEachParallel(final Function<T, R> action, final Consumer<R> result,
-			final Function<WebApplicationException, Boolean> exceptionHandler,
-			final Function<WebApplicationException, WebApplicationException> endException) {
+	protected <R> R firstRandomSuccess(final FunctionUtils.FunctionEx<T, R, Exception> action) {
+		return firstRandomSuccess(action, null);
+	}
 
-		WebApplicationException exception = null;
+	protected <R> List<R> forEachParallel(final FunctionUtils.FunctionEx<T, R, Exception> action,
+			final Consumer<WebApplicationException> exceptions) {
+
+		if (clients == null || clients.length == 0)
+			return Collections.emptyList();
 
 		// Start the parallel threads
-		final Future<R>[] futures = new Future[clients == null ? 0 : clients.length];
-		int i = 0;
+		final List<Future<R>> futures = new ArrayList<>(clients.length);
 		for (final T client : this)
-			futures[i++] = executorService.submit(() -> action.apply(client));
+			futures.add(executorService.submit(() -> action.apply(client)));
 
 		// Get the results
+		final List<R> results = new ArrayList<>(clients.length);
 		for (Future<R> future : futures) {
 			if (future == null)
 				continue;
 			try {
-				final R r = future.get();
-				result.accept(r);
-			} catch (ExecutionException | InterruptedException e) {
-				throw new WebApplicationException(e);
-			} catch (WebApplicationException e) {
-				if (exceptionHandler == null || !exceptionHandler.apply(e))
-					exception = e;
+				results.add(future.get());
+			} catch (ExecutionException e) {
+				exceptions.accept(ensureWebApplicationException(e.getCause()));
+			} catch (InterruptedException e) {
+				exceptions.accept(new WebApplicationException(e));
 			}
 		}
-		// At the end, if we had an exception, let's notify the caller
-		if (endException != null)
-			exception = endException.apply(exception);
-		if (exception != null)
-			throw exception;
+		return results;
+	}
+
+	protected <R> List<R> forEachParallel(final FunctionUtils.FunctionEx<T, R, Exception> action) {
+		final List<WebApplicationException> exceptions = new ArrayList<>(1);
+		final List<R> results = forEachParallel(action, exceptions::add);
+		if (exceptions.isEmpty())
+			return results;
+		throw new MultiWebApplicationException(exceptions);
 	}
 
 }

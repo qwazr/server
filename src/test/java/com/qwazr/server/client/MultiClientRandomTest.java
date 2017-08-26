@@ -20,10 +20,10 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 public class MultiClientRandomTest extends MultiClientTest {
 
@@ -39,20 +39,17 @@ public class MultiClientRandomTest extends MultiClientTest {
 		executorService.shutdown();
 	}
 
-	Integer firstRandom(ClientExample[] clients) {
+	Integer firstRandom(ClientExample[] clients, Function<WebApplicationException, Boolean> checkContinue) {
 		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients, executorService);
-		return multiClient.firstRandomSuccess(ClientExample::action, e -> false, e -> {
-			throw e != null ? e : new NotFoundException("test");
-		});
+		return multiClient.firstRandomSuccess(ClientExample::action, checkContinue);
 	}
 
-	void firstRandomTest(ClientExample[] clients) {
+	Integer firstRandomTest(ClientExample[] clients) {
 
 		Assert.assertNotNull(clients);
 		Assert.assertTrue(clients.length > 0);
 
-		final Integer result = firstRandom(clients);
-		Assert.assertNotNull(result);
+		final Integer result = firstRandom(clients, e -> true);
 
 		ClientExample clientFound = null;
 		int successCount = 0;
@@ -69,53 +66,54 @@ public class MultiClientRandomTest extends MultiClientTest {
 		Assert.assertEquals(1, clientFound.actionCounter.get(), 0);
 		Assert.assertEquals(ClientExample.SuccessClient.class, clientFound.getClass());
 		Assert.assertEquals(1, successCount, 0);
+
+		return result;
 	}
 
 	@Test
 	public void firstRandomTestsWithResult() {
-		firstRandomTest(panel(Type.success));
-		firstRandomTest(panel(Type.success, Type.success));
-		firstRandomTest(panel(Type.success, Type.error));
-		firstRandomTest(panel(Type.error, Type.success));
-		firstRandomTest(panel(Type.error, Type.success, Type.error));
-		firstRandomTest(panel(Type.success, Type.error, Type.error));
-		firstRandomTest(panel(Type.error, Type.success, Type.error, Type.success));
-		firstRandomTest(panel(Type.error, Type.error, Type.success, Type.success));
-		firstRandomTest(panel(Type.success, Type.success, Type.error, Type.error));
+		Assert.assertNotNull(firstRandomTest(panel(Type.success)));
+		Assert.assertNotNull(firstRandomTest(panel(Type.success, Type.success)));
+		Assert.assertNotNull(firstRandomTest(panel(Type.success, Type.error)));
+		Assert.assertNotNull(firstRandomTest(panel(Type.error, Type.success)));
+		Assert.assertNotNull(firstRandomTest(panel(Type.error, Type.success, Type.error)));
+		Assert.assertNotNull(firstRandomTest(panel(Type.success, Type.error, Type.error)));
+		Assert.assertNotNull(firstRandomTest(panel(Type.error, Type.success, Type.error, Type.success)));
+		Assert.assertNotNull(firstRandomTest(panel(Type.error, Type.error, Type.success, Type.success)));
+		Assert.assertNotNull(firstRandomTest(panel(Type.success, Type.success, Type.error, Type.error)));
 	}
 
 	void firstRandomTestEmpty(ClientExample[] clients) {
 
-		final Integer result = firstRandom(clients);
+		final Integer result = firstRandom(clients, e -> true);
 		Assert.assertNull(result);
 		if (clients != null)
 			for (ClientExample client : clients)
 				Assert.assertEquals(1, client.actionCounter.get(), 0);
 	}
 
-	@Test(expected = NotFoundException.class)
-	public void firstRandomTestNullClients() {
+	@Test
+	public void firstRandomTestsNoResult() {
 		firstRandomTestEmpty(null);
-	}
-
-	@Test(expected = NotFoundException.class)
-	public void firstRandomTestEmptyClients() {
 		firstRandomTestEmpty(panel());
-	}
-
-	@Test(expected = WebApplicationException.class)
-	public void firstRandomTestOneError() {
 		firstRandomTestEmpty(panel(Type.error));
-	}
-
-	@Test(expected = WebApplicationException.class)
-	public void firstRandomTestTwoErrors() {
 		firstRandomTestEmpty(panel(Type.error, Type.error));
+		firstRandomTestEmpty(panel(Type.error, Type.error, Type.error));
+	}
+
+	Integer firstRandom(ClientExample[] clients) {
+		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients, executorService);
+		return multiClient.firstRandomSuccess(ClientExample::action);
 	}
 
 	@Test(expected = WebApplicationException.class)
-	public void firstRandomTestThreeErrors() {
-		firstRandomTestEmpty(panel(Type.error, Type.error, Type.error));
+	public void firstRandomFailError() {
+		firstRandom(panel(Type.error));
+	}
+
+	@Test(expected = WebApplicationException.class)
+	public void firstRandomFailErrorError() {
+		firstRandom(panel(Type.error, Type.error));
 	}
 
 }

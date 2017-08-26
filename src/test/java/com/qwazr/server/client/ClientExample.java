@@ -15,6 +15,8 @@
  */
 package com.qwazr.server.client;
 
+import com.qwazr.utils.RandomUtils;
+
 import javax.ws.rs.WebApplicationException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,20 +34,32 @@ abstract class ClientExample {
 		return "ID " + id;
 	}
 
-	abstract Integer action();
+	abstract Integer action() throws Exception;
 
 	static class ErrorClient extends ClientExample {
 
-		WebApplicationException exception;
+		Exception exception;
 
 		ErrorClient(int id) {
 			super(id);
 		}
 
 		@Override
-		public Integer action() {
+		public Integer action() throws Exception {
 			actionCounter.incrementAndGet();
-			throw exception = new WebApplicationException("I failed");
+			switch (RandomUtils.nextInt(0, 3)) {
+			case 0:
+				exception = new WebApplicationException("I failed");
+				break;
+			case 1:
+				exception = new RuntimeException("I failed");
+				break;
+			default:
+			case 2:
+				exception = new Exception("I failed");
+				break;
+			}
+			throw exception;
 		}
 	}
 
