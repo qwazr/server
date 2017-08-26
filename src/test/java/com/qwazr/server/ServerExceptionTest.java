@@ -16,84 +16,93 @@
 package com.qwazr.server;
 
 import com.qwazr.utils.RandomUtils;
+import org.apache.http.client.HttpResponseException;
 import org.junit.Assert;
 import org.junit.Test;
 
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.function.Function;
 
 public class ServerExceptionTest {
 
-	static class Tester {
+	private void check(ServerException exception, Response.Status status, String message, Throwable cause) {
+		Assert.assertNotNull(exception);
+		Assert.assertEquals(status.getStatusCode(), exception.getStatusCode());
+		Assert.assertEquals(message, exception.getMessage());
+		Assert.assertEquals(cause, exception.getCause());
 
-		final String message;
-		final String causeMessage;
-		final Exception cause;
-		final int statusCode;
+		final WebApplicationException jsonException = ServerException.getJsonException(null, exception);
+		Assert.assertNotNull(jsonException);
+		Assert.assertEquals(message, jsonException.getMessage());
+		Assert.assertEquals(status.getStatusCode(), jsonException.getResponse().getStatus());
+		Assert.assertEquals(exception, jsonException.getCause());
+		Assert.assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(jsonException.getResponse().getMediaType()));
 
-		Tester(Response.Status status) {
-			message = status.getReasonPhrase();
-			statusCode = status.getStatusCode();
-			causeMessage = null;
-			cause = null;
-		}
+		final WebApplicationException textException = ServerException.getTextException(null, exception);
+		Assert.assertNotNull(textException);
+		Assert.assertEquals(message, textException.getMessage());
+		Assert.assertEquals(status.getStatusCode(), textException.getResponse().getStatus());
+		Assert.assertEquals(exception, textException.getCause());
+		Assert.assertTrue(MediaType.TEXT_PLAIN_TYPE.isCompatible(textException.getResponse().getMediaType()));
 
-		Tester(Response.Status status, boolean withMessage, boolean withCause) {
-			message = withMessage ? RandomUtils.alphanumeric(10) : null;
-			statusCode = status.getStatusCode();
-			if (withCause) {
-				causeMessage = RandomUtils.alphanumeric(10);
-				cause = new Exception(causeMessage);
-			} else {
-				causeMessage = null;
-				cause = null;
-			}
-		}
+	}
 
-		Tester check(Function<Tester, ServerException> exception) {
-			final ServerException e = exception.apply(this);
-			Assert.assertNotNull(e);
-			Assert.assertEquals(statusCode, e.getStatusCode());
-			if (causeMessage == null || message != null)
-				Assert.assertEquals(message, e.getMessage());
-			Assert.assertEquals(cause, e.getCause());
-			if (causeMessage != null) {
-				Assert.assertNotNull(e.getCause());
-				Assert.assertEquals(causeMessage, e.getCause().getMessage());
-				if (message == null)
-					Assert.assertEquals(causeMessage, e.getMessage());
-			}
-			return this;
-		}
+	private String random() {
+		return RandomUtils.alphanumeric(RandomUtils.nextInt(5, 15));
+	}
 
+	private Throwable cause() {
+		return new Exception(random());
 	}
 
 	@Test
 	public void withStatusWithMessage() {
-		new Tester(Response.Status.CONFLICT, true, false).check(
-				t -> new ServerException(Response.Status.CONFLICT, t.message));
+		final String msg = random();
+		check(new ServerException(Response.Status.NOT_FOUND, msg), Response.Status.NOT_FOUND, msg, null);
+		check(ServerException.of(new ServerException(Response.Status.NOT_FOUND, msg)), Response.Status.NOT_FOUND, msg,
+				null);
 	}
 
 	@Test
 	public void withStatusWithMessageWithCause() {
-		new Tester(Response.Status.INTERNAL_SERVER_ERROR, true, true).check(
-				t -> ServerException.of(t.message, t.cause));
+		final String msg = random();
+		final Throwable cause = cause();
+		check(ServerException.of(msg, cause), Response.Status.INTERNAL_SERVER_ERROR, msg, cause);
+	}
+
+	@Test
+	public void withStatusWithWebApplicationException() {
+		final NotFoundException notFoundException = new NotFoundException(random());
+		check(ServerException.of(notFoundException), Response.Status.NOT_FOUND, notFoundException.getMessage(),
+				notFoundException);
+	}
+
+	@Test
+	public void withStatusWithHttpResponseException() {
+		final String msg = random();
+		final HttpResponseException httpResponseException =
+				new HttpResponseException(Response.Status.BAD_REQUEST.getStatusCode(), msg);
+		check(ServerException.of(httpResponseException), Response.Status.BAD_REQUEST, msg, httpResponseException);
 	}
 
 	@Test
 	public void withMessage() {
-		new Tester(Response.Status.INTERNAL_SERVER_ERROR, true, false).check(t -> new ServerException(t.message))
-				.check(t -> new ServerException(t.message));
+		final String msg = random();
+		check(new ServerException(msg), Response.Status.INTERNAL_SERVER_ERROR, msg, null);
 	}
 
 	@Test
 	public void withStatus() {
-		new Tester(Response.Status.CONFLICT).check(t -> new ServerException(Response.Status.CONFLICT));
+		check(new ServerException(Response.Status.CONFLICT), Response.Status.CONFLICT,
+				Response.Status.CONFLICT.getReasonPhrase(), null);
 	}
 
 	@Test
 	public void withCause() {
-		new Tester(Response.Status.INTERNAL_SERVER_ERROR, false, true).check(t -> ServerException.of(t.cause));
+		final Throwable cause = cause();
+		check(ServerException.of(cause), Response.Status.INTERNAL_SERVER_ERROR, cause.getMessage(), cause);
 	}
 
 }

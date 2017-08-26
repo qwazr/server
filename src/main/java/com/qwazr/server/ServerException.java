@@ -60,7 +60,8 @@ public class ServerException extends RuntimeException {
 		final Throwable cause = getCause();
 		if (cause == null)
 			return this;
-		logger.log(Level.WARNING, cause, this::getMessage);
+		if (logger != null)
+			logger.log(Level.WARNING, cause, this::getMessage);
 		return this;
 	}
 
