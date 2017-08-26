@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.logging.Logger;
 
 /**
@@ -59,14 +58,8 @@ public class MultiClient<T> implements Iterable<T> {
 		return t instanceof WebApplicationException ? (WebApplicationException) t : new WebApplicationException(t);
 	}
 
-	private void handleException(final WebApplicationException e,
-			final Function<WebApplicationException, Boolean> checkContinue) {
-		if (checkContinue == null || !checkContinue.apply(e))
-			throw e;
-	}
-
 	protected <R> R firstRandomSuccess(final FunctionUtils.FunctionEx<T, R, Exception> action,
-			final Function<WebApplicationException, Boolean> checkContinue) {
+			final Consumer<WebApplicationException> exceptions) {
 		if (clients == null || clients.length == 0)
 			return null;
 		for (final T client : this) {
@@ -75,16 +68,20 @@ public class MultiClient<T> implements Iterable<T> {
 				if (result != null)
 					return result;
 			} catch (WebApplicationException e) {
-				handleException(e, checkContinue);
+				exceptions.accept(e);
 			} catch (Exception e) {
-				handleException(ensureWebApplicationException(e), checkContinue);
+				exceptions.accept(ensureWebApplicationException(e));
 			}
 		}
 		return null;
 	}
 
-	protected <R> R firstRandomSuccess(final FunctionUtils.FunctionEx<T, R, Exception> action) {
-		return firstRandomSuccess(action, null);
+	protected <R> R firstRandomSuccess(final FunctionUtils.FunctionEx<T, R, Exception> action, final Logger logger) {
+		final MultiWebApplicationException.Builder errors = MultiWebApplicationException.of(logger);
+		final R result = firstRandomSuccess(action, errors::add);
+		if (errors.isEmpty())
+			return result;
+		throw errors.build();
 	}
 
 	protected <R> List<R> forEachParallel(final FunctionUtils.FunctionEx<T, R, Exception> action,
