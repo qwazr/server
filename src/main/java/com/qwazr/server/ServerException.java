@@ -37,9 +37,13 @@ public class ServerException extends RuntimeException {
 		this.statusCode = statusCode;
 	}
 
-	public ServerException(final Response.Status status, final String message) {
-		super(message == null ? status.getReasonPhrase() : message);
+	public ServerException(final Response.Status status, final String message, final Throwable cause) {
+		super(message == null ? status.getReasonPhrase() : message, cause);
 		this.statusCode = status.getStatusCode();
+	}
+
+	public ServerException(final Response.Status status, final String message) {
+		this(status, message, null);
 	}
 
 	public ServerException(final String message) {
