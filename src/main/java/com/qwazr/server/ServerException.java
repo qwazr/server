@@ -69,13 +69,13 @@ public class ServerException extends RuntimeException {
 		return this;
 	}
 
-	WebApplicationException getTextException() {
+	public WebApplicationException getTextException() {
 		final String message = getMessage();
 		final Response response = Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(message).build();
 		return new WebApplicationException(message, this, response);
 	}
 
-	WebApplicationException getJsonException(boolean withStackTrace) {
+	public WebApplicationException getJsonException(boolean withStackTrace) {
 		final String message = getMessage();
 		final Response response = JsonExceptionReponse.of()
 				.status(statusCode)
