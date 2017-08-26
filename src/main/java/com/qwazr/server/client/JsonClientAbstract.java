@@ -45,6 +45,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 public abstract class JsonClientAbstract implements JsonClientInterface {
 
@@ -61,10 +62,11 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 	final private AuthCache authCache;
 	final private BasicCredentialsProvider credentialsProvider;
 	final private BasicCookieStore cookieStore;
+	final private Logger logger;
 
-	protected JsonClientAbstract(final RemoteService remote) {
+	protected JsonClientAbstract(final RemoteService remote, final Logger logger) {
 		this.remote = Objects.requireNonNull(remote, "The remote parameter is null");
-
+		this.logger = logger;
 		final Credentials credentials = remote.getCredentials();
 
 		authCache = new BasicAuthCache();
@@ -118,7 +120,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		try {
 			return executeJsonEx(request, body, msTimeOut, objectClass, validator);
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getJsonException(true);
+			throw ServerException.getJsonException(logger, e);
 		}
 	}
 
@@ -135,7 +137,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		try {
 			return executeJsonEx(request, body, msTimeOut, typeRef, validator);
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getJsonException(true);
+			throw ServerException.getJsonException(logger, e);
 		}
 	}
 
@@ -152,7 +154,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		try {
 			return executeJsonNodeEx(request, body, msTimeOut, validator);
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getJsonException(true);
+			throw ServerException.getJsonException(logger, e);
 		}
 	}
 
@@ -169,7 +171,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		try {
 			return executeEx(request, bodyObject, msTimeOut, validator);
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getTextException();
+			throw ServerException.getTextException(logger, e);
 		}
 	}
 
@@ -180,7 +182,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 			HttpResponse response = executeEx(request, bodyObject, msTimeOut, validator);
 			return response.getStatusLine().getStatusCode();
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getTextException();
+			throw ServerException.getTextException(logger, e);
 		}
 	}
 
@@ -197,7 +199,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		try {
 			return executeStringEx(request, bodyObject, msTimeOut, validator);
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getTextException();
+			throw ServerException.getTextException(logger, e);
 		}
 	}
 
@@ -222,7 +224,7 @@ public abstract class JsonClientAbstract implements JsonClientInterface {
 		try {
 			return executeStreamEx(request, bodyObject, msTimeOut, validator);
 		} catch (IOException e) {
-			throw ServerException.getServerException(e).getTextException();
+			throw ServerException.getTextException(logger, e);
 		}
 	}
 

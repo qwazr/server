@@ -24,6 +24,6 @@ public class JsonMappingExceptionMapper implements ExceptionMapper<JsonMappingEx
 
 	@Override
 	public Response toResponse(JsonMappingException exception) {
-		return new ServerException(exception).getJsonException(true).getResponse();
+		return ServerException.getJsonException(null, exception).getResponse();
 	}
 }

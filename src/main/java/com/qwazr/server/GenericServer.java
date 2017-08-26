@@ -102,8 +102,8 @@ final public class GenericServer {
 		this.webAppContext = builder.webAppContext;
 		this.webServiceContext = builder.webServiceContext;
 		this.webAppEndPoints = webAppContext == null ? null : Collections.unmodifiableSet(webAppContext.endPoints);
-		this.webServiceEndPoints = webServiceContext == null ? null : Collections.unmodifiableSet(
-				webServiceContext.endPoints);
+		this.webServiceEndPoints =
+				webServiceContext == null ? null : Collections.unmodifiableSet(webServiceContext.endPoints);
 		builder.contextAttribute(this);
 		this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
 		this.undertows = new ArrayList<>();
@@ -263,14 +263,16 @@ final public class GenericServer {
 		LOGGER.info(() -> "Start the connector " + configuration.listenAddress + ":" + connector.port);
 
 		HttpHandler httpHandler = manager.start();
-		final LogMetricsHandler logMetricsHandler = new LogMetricsHandler(httpHandler, accessLogger,
-				configuration.listenAddress, connector.port, context.jmxName, StringUtils.EMPTY);
+		final LogMetricsHandler logMetricsHandler =
+				new LogMetricsHandler(httpHandler, accessLogger, configuration.listenAddress, connector.port,
+						context.jmxName, StringUtils.EMPTY);
 		deploymentManagers.add(manager);
 		httpHandler = logMetricsHandler;
 
-		final Undertow.Builder servletBuilder = Undertow.builder().addHttpListener(connector.port,
-				configuration.listenAddress).setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000).setHandler(
-				httpHandler);
+		final Undertow.Builder servletBuilder = Undertow.builder()
+				.addHttpListener(connector.port, configuration.listenAddress)
+				.setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000)
+				.setHandler(httpHandler);
 		start(servletBuilder.build());
 
 		// Register MBeans
@@ -278,8 +280,8 @@ final public class GenericServer {
 		final Hashtable<String, String> props = new Hashtable<>();
 		props.put("type", "connector");
 		props.put("name", context.jmxName);
-		final ObjectName name = new ObjectName(
-				"com.qwazr.server." + serverCounter.incrementAndGet() + "." + context.jmxName, props);
+		final ObjectName name =
+				new ObjectName("com.qwazr.server." + serverCounter.incrementAndGet() + "." + context.jmxName, props);
 		mbs.registerMBean(logMetricsHandler, name);
 		registeredObjectNames.add(name);
 		connectorsStatistics.add(logMetricsHandler);
@@ -339,15 +341,15 @@ final public class GenericServer {
 				listener.accept(this);
 			} catch (Exception e) {
 				if (!silent)
-					throw new ServerException("Listeners failure", e);
+					throw ServerException.of("Listeners failure", e);
 				else
 					LOGGER.log(Level.SEVERE, e, e::getMessage);
 			}
 		});
 	}
 
-	final static MultipartConfigElement DEFAULT_MULTIPART_CONFIG = new MultipartConfigElement(
-			SystemUtils.getJavaIoTmpDir().getAbsolutePath());
+	final static MultipartConfigElement DEFAULT_MULTIPART_CONFIG =
+			new MultipartConfigElement(SystemUtils.getJavaIoTmpDir().getAbsolutePath());
 
 	public interface IdentityManagerProvider {
 
@@ -417,7 +419,7 @@ final public class GenericServer {
 			try {
 				return new GenericServer(this);
 			} catch (ClassNotFoundException | InstantiationException e) {
-				throw new ServerException(e);
+				throw ServerException.of(e);
 			}
 		}
 

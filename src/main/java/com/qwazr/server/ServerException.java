@@ -17,92 +17,39 @@ package com.qwazr.server;
 
 import com.qwazr.server.response.JsonExceptionReponse;
 import com.qwazr.utils.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.client.HttpResponseException;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ServerException extends RuntimeException {
 
-	/**
-	 *
-	 */
 	private static final long serialVersionUID = -6102827990391082335L;
 
 	private final int statusCode;
-	private final String message;
 
-	private final static int INTERNAL_SERVER_ERROR = Status.INTERNAL_SERVER_ERROR.getStatusCode();
-
-	public ServerException(final Status status, String message, final Exception cause) {
+	ServerException(final int statusCode, String message, final Throwable cause) {
 		super(message, cause);
-		if (status == null && cause != null) {
-			if (cause instanceof WebApplicationException) {
-				this.statusCode = ((WebApplicationException) cause).getResponse().getStatus();
-			} else if (cause instanceof HttpResponseException) {
-				this.statusCode = ((HttpResponseException) cause).getStatusCode();
-			} else
-				this.statusCode = INTERNAL_SERVER_ERROR;
-		} else
-			this.statusCode = status != null ? status.getStatusCode() : INTERNAL_SERVER_ERROR;
-		if (StringUtils.isEmpty(message)) {
-			if (cause != null)
-				message = cause.getMessage();
-			if (StringUtils.isEmpty(message) && status != null)
-				message = status.getReasonPhrase();
-		}
-		this.message = message;
+		this.statusCode = statusCode;
 	}
 
-	final static String SAFE_MESSAGE_ERROR = "Cannot build error message: ";
-
-	private static String getSafeMessage(Supplier<String> message) {
-		try {
-			return message == null ? null : message.get();
-		} catch (RuntimeException e) {
-			return SAFE_MESSAGE_ERROR + " " + e;
-		}
-	}
-
-	public ServerException(final Status status, final Supplier<String> message, final Exception cause) {
-		this(status, message == null ? null : getSafeMessage(message), cause);
-	}
-
-	public ServerException(final Status status) {
-		this(status, status.getReasonPhrase(), null);
-	}
-
-	public ServerException(final Status status, final String message) {
-		this(status, message, null);
-	}
-
-	public ServerException(final Status status, final Supplier<String> message) {
-		this(status, message, null);
-	}
-
-	public ServerException(final String message, final Exception cause) {
-		this(null, message, cause);
-	}
-
-	public ServerException(final Supplier<String> message, final Exception cause) {
-		this(null, message, cause);
+	public ServerException(final Response.Status status, final String message) {
+		super(message == null ? status.getReasonPhrase() : message);
+		this.statusCode = status.getStatusCode();
 	}
 
 	public ServerException(final String message) {
-		this(null, message, null);
+		super(message);
+		this.statusCode = 500;
 	}
 
-	public ServerException(final Supplier<String> message) {
-		this(null, message, null);
-	}
-
-	public ServerException(final Exception cause) {
-		this(null, (String) null, cause);
+	public ServerException(final Response.Status status) {
+		super(status.getReasonPhrase());
+		this.statusCode = status.getStatusCode();
 	}
 
 	public int getStatusCode() {
@@ -117,46 +64,52 @@ public class ServerException extends RuntimeException {
 		return this;
 	}
 
-	final public ServerException errorIfCause(final Logger logger) {
-		final Throwable cause = getCause();
-		if (cause == null)
-			return this;
-		logger.log(Level.SEVERE, cause, this::getMessage);
-		return this;
+	WebApplicationException getTextException() {
+		final String message = getMessage();
+		final Response response = Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(message).build();
+		return new WebApplicationException(message, this, response);
 	}
 
-	@Override
-	final public String getMessage() {
-		if (message != null)
-			return message;
-		return super.getMessage();
+	WebApplicationException getJsonException(boolean withStackTrace) {
+		final String message = getMessage();
+		final Response response = JsonExceptionReponse.of()
+				.status(statusCode)
+				.exception(this, withStackTrace)
+				.message(message)
+				.build()
+				.toResponse();
+		return new WebApplicationException(message, this, response);
 	}
 
-	public WebApplicationException getTextException() {
-		return new WebApplicationException(this, Response.status(statusCode)
-				.type(MediaType.TEXT_PLAIN)
-				.entity(message == null ? StringUtils.EMPTY : message)
-				.build());
+	public static ServerException of(final Throwable throwable) {
+		return of(throwable.getMessage(), throwable);
 	}
 
-	public WebApplicationException getJsonException(boolean allowStackTrace) {
-		return new WebApplicationException(this, JsonExceptionReponse.of().status(statusCode).exception(this,
-				allowStackTrace).message(message).build().toResponse());
-	}
+	public static ServerException of(String message, final Throwable throwable) {
+		if (throwable instanceof ServerException)
+			return (ServerException) throwable;
 
-	public WebApplicationException getJsonException() {
-		return getJsonException(true);
-	}
+		int status = 500;
 
-	public static ServerException getServerException(final Exception e) {
-		if (e instanceof ServerException)
-			return (ServerException) e;
-		if (e instanceof WebApplicationException) {
-			final Throwable cause = e.getCause();
+		if (throwable instanceof WebApplicationException) {
+			final Throwable cause = throwable.getCause();
 			if (cause != null && (cause instanceof ServerException))
 				return (ServerException) cause;
+			final WebApplicationException e = (WebApplicationException) throwable;
+			status = e.getResponse().getStatus();
+		} else if (throwable instanceof HttpResponseException) {
+			final HttpResponseException e = (HttpResponseException) throwable;
+			status = e.getStatusCode();
 		}
-		return new ServerException(e);
+		if (StringUtils.isBlank(message)) {
+			message = throwable.getMessage();
+			if (StringUtils.isBlank(message))
+				message = ExceptionUtils.getRootCauseMessage(throwable);
+			if (StringUtils.isBlank(message))
+				message = "Internal server error";
+		}
+
+		return new ServerException(status, message, throwable);
 	}
 
 	private static WebApplicationException checkCompatible(final Exception e, final MediaType expectedType) {
@@ -180,14 +133,14 @@ public class ServerException extends RuntimeException {
 		final WebApplicationException wae = checkCompatible(e, MediaType.TEXT_PLAIN_TYPE);
 		if (wae != null)
 			return wae;
-		return getServerException(e).warnIfCause(logger).getTextException();
+		return of(e).warnIfCause(logger).getTextException();
 	}
 
 	public static WebApplicationException getJsonException(final Logger logger, final Exception e) {
 		final WebApplicationException wae = checkCompatible(e, MediaType.APPLICATION_JSON_TYPE);
 		if (wae != null)
 			return wae;
-		return getServerException(e).warnIfCause(logger).getJsonException(logger == null);
+		return of(e).warnIfCause(logger).getJsonException(logger == null);
 	}
 
 }

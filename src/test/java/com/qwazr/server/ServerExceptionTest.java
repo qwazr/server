@@ -71,20 +71,19 @@ public class ServerExceptionTest {
 	@Test
 	public void withStatusWithMessage() {
 		new Tester(Response.Status.CONFLICT, true, false).check(
-				t -> new ServerException(Response.Status.CONFLICT, t.message)).check(
-				t -> new ServerException(Response.Status.CONFLICT, () -> t.message));
+				t -> new ServerException(Response.Status.CONFLICT, t.message));
 	}
 
 	@Test
 	public void withStatusWithMessageWithCause() {
 		new Tester(Response.Status.INTERNAL_SERVER_ERROR, true, true).check(
-				t -> new ServerException(t.message, t.cause)).check(t -> new ServerException(() -> t.message, t.cause));
+				t -> ServerException.of(t.message, t.cause));
 	}
 
 	@Test
 	public void withMessage() {
-		new Tester(Response.Status.INTERNAL_SERVER_ERROR, true, false).check(t -> new ServerException(t.message)).check(
-				t -> new ServerException(() -> t.message));
+		new Tester(Response.Status.INTERNAL_SERVER_ERROR, true, false).check(t -> new ServerException(t.message))
+				.check(t -> new ServerException(t.message));
 	}
 
 	@Test
@@ -94,13 +93,7 @@ public class ServerExceptionTest {
 
 	@Test
 	public void withCause() {
-		new Tester(Response.Status.INTERNAL_SERVER_ERROR, false, true).check(t -> new ServerException(t.cause));
+		new Tester(Response.Status.INTERNAL_SERVER_ERROR, false, true).check(t -> ServerException.of(t.cause));
 	}
 
-	@Test
-	public void withErronousMessageSupplier() {
-		Exception e = null;
-		ServerException se = new ServerException(() -> e.getMessage());
-		Assert.assertEquals("Cannot build error message:  java.lang.NullPointerException", se.getMessage());
-	}
 }
