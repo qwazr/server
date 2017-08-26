@@ -21,14 +21,13 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.qwazr.server.ServiceInterface;
-import com.qwazr.utils.ExceptionUtils;
 import com.qwazr.utils.ObjectMappers;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import java.util.Date;
-import java.util.List;
 
 @JsonInclude(Include.NON_EMPTY)
 public class JsonExceptionReponse {
@@ -39,12 +38,12 @@ public class JsonExceptionReponse {
 	public final String message;
 	public final String exception;
 	@JsonProperty("stack_traces")
-	public final List<String> stackTraces;
+	public final String[] stackTraces;
 
 	@JsonCreator
 	JsonExceptionReponse(@JsonProperty("date") Date date, @JsonProperty("status_code") Integer statusCode,
 			@JsonProperty("message") String message, @JsonProperty("exception") String exception,
-			@JsonProperty("stack_traces") List<String> stackTraces) {
+			@JsonProperty("stack_traces") String[] stackTraces) {
 		this.date = date;
 		this.statusCode = statusCode;
 		this.message = message;
@@ -75,7 +74,7 @@ public class JsonExceptionReponse {
 		private Integer statusCode;
 		private String message;
 		private String exception;
-		private List<String> stackTraces;
+		private String[] stackTraces;
 
 		private Builder() {
 			this.date = new Date();
@@ -104,7 +103,7 @@ public class JsonExceptionReponse {
 			this.message = cause.getMessage();
 			this.exception = cause.getClass().getName();
 			if (printStackTrace)
-				this.stackTraces = ExceptionUtils.getStackTraces(cause);
+				this.stackTraces = ExceptionUtils.getStackFrames(cause);
 			return this;
 		}
 
