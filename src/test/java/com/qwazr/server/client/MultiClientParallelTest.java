@@ -15,6 +15,7 @@
  */
 package com.qwazr.server.client;
 
+import com.qwazr.utils.LoggerUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -25,8 +26,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 public class MultiClientParallelTest extends MultiClientTest {
+
+	private final static Logger LOGGER = LoggerUtils.getLogger(MultiClientParallelTest.class);
 
 	static ExecutorService executor;
 
@@ -111,7 +115,7 @@ public class MultiClientParallelTest extends MultiClientTest {
 
 	void parallelSuccess(ClientExample[] clients, int resultCount) {
 		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients, executor);
-		List<Integer> results = multiClient.forEachParallel(ClientExample::action);
+		List<Integer> results = multiClient.forEachParallel(ClientExample::action, LOGGER);
 		Assert.assertNotNull(results);
 		Assert.assertEquals(resultCount, results.size());
 	}
@@ -128,7 +132,7 @@ public class MultiClientParallelTest extends MultiClientTest {
 	void parallelFail(ClientExample[] clients, int exceptionCount) {
 		final MultiClient<ClientExample> multiClient = new MultiClient<>(clients, executor);
 		try {
-			multiClient.forEachParallel(ClientExample::action);
+			multiClient.forEachParallel(ClientExample::action, LOGGER);
 			Assert.fail("MultiWebApplicationException not thrown");
 		} catch (MultiWebApplicationException e) {
 			Assert.assertNotNull(e.getCauses());

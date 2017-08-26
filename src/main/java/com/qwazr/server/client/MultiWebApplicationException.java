@@ -15,20 +15,70 @@
  */
 package com.qwazr.server.client;
 
+import com.qwazr.utils.StringUtils;
+
 import javax.ws.rs.WebApplicationException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MultiWebApplicationException extends WebApplicationException {
 
 	private final Collection<WebApplicationException> causes;
 
-	public MultiWebApplicationException(final Collection<WebApplicationException> causes) {
-		this.causes = Collections.unmodifiableCollection(causes);
+	MultiWebApplicationException(final Builder builder) {
+		super(builder.messages == null ? StringUtils.EMPTY : StringUtils.joinWith(" - ", builder.messages));
+		this.causes = Collections.unmodifiableCollection(builder.exceptions);
 	}
 
 	public Collection<WebApplicationException> getCauses() {
 		return causes;
 	}
 
+	public static Builder of(Logger logger) {
+		return new Builder(logger);
+	}
+
+	public static class Builder {
+
+		private final Logger logger;
+		private Set<WebApplicationException> exceptions;
+		private Set<String> messages;
+
+		Builder(Logger logger) {
+			this.logger = logger;
+		}
+
+		public Builder add(WebApplicationException exception) {
+			if (exception == null)
+				return this;
+			if (logger != null)
+				logger.log(Level.WARNING, exception, exception::getMessage);
+			if (exceptions == null)
+				exceptions = new HashSet<>();
+			exceptions.add(exception);
+			message(exception.getMessage());
+			return this;
+		}
+
+		public Builder message(String message) {
+			if (message == null || StringUtils.isBlank(message))
+				return this;
+			if (messages == null)
+				messages = new HashSet<>();
+			messages.add(message);
+			return this;
+		}
+
+		public boolean isEmpty() {
+			return exceptions == null || exceptions.isEmpty();
+		}
+
+		public MultiWebApplicationException build() {
+			return new MultiWebApplicationException(this);
+		}
+	}
 }

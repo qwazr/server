@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 /**
  * This class represents a connection to a set of servers
@@ -113,12 +114,11 @@ public class MultiClient<T> implements Iterable<T> {
 		return results;
 	}
 
-	protected <R> List<R> forEachParallel(final FunctionUtils.FunctionEx<T, R, Exception> action) {
-		final List<WebApplicationException> exceptions = new ArrayList<>(1);
-		final List<R> results = forEachParallel(action, exceptions::add);
-		if (exceptions.isEmpty())
+	protected <R> List<R> forEachParallel(final FunctionUtils.FunctionEx<T, R, Exception> action, final Logger logger) {
+		final MultiWebApplicationException.Builder errors = MultiWebApplicationException.of(logger);
+		final List<R> results = forEachParallel(action, errors::add);
+		if (errors.isEmpty())
 			return results;
-		throw new MultiWebApplicationException(exceptions);
+		throw errors.build();
 	}
-
 }
