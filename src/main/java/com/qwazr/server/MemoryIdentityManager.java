@@ -15,7 +15,6 @@
  */
 package com.qwazr.server;
 
-import com.qwazr.utils.CharsetUtils;
 import io.undertow.security.idm.Account;
 import io.undertow.security.idm.Credential;
 import io.undertow.security.idm.DigestCredential;
@@ -26,6 +25,7 @@ import io.undertow.util.HexConverter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.auth.UsernamePasswordCredentials;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.Principal;
 import java.util.Arrays;
@@ -138,11 +138,11 @@ public class MemoryIdentityManager implements IdentityManager {
 			super(name, roles);
 			final MessageDigest digest = DigestUtils.getMd5Digest();
 			try {
-				digest.update(getPrincipal().getName().getBytes(CharsetUtils.CharsetUTF8));
+				digest.update(getPrincipal().getName().getBytes(StandardCharsets.UTF_8));
 				digest.update((byte) ':');
-				digest.update(realm.getBytes(CharsetUtils.CharsetUTF8));
+				digest.update(realm.getBytes(StandardCharsets.UTF_8));
 				digest.update((byte) ':');
-				digest.update(password.getBytes(CharsetUtils.CharsetUTF8));
+				digest.update(password.getBytes(StandardCharsets.UTF_8));
 				digestPassword = HexConverter.convertToHexBytes(digest.digest());
 			} finally {
 				digest.reset();

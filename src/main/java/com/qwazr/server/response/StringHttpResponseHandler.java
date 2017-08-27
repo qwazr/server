@@ -16,13 +16,13 @@
 
 package com.qwazr.server.response;
 
-import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class StringHttpResponseHandler extends AbstractHttpResponseHandler<String> {
 
@@ -34,7 +34,7 @@ public class StringHttpResponseHandler extends AbstractHttpResponseHandler<Strin
 	final public String handleResponse(final HttpResponse response) throws IOException {
 		try {
 			super.handleResponse(response);
-			return entity == null ? null : EntityUtils.toString(entity, CharsetUtils.CharsetUTF8);
+			return entity == null ? null : EntityUtils.toString(entity, StandardCharsets.UTF_8);
 		} finally {
 			IOUtils.close((CloseableHttpResponse) response);
 		}
