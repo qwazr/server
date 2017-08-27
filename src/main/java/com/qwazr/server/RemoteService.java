@@ -22,8 +22,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.qwazr.utils.LinkUtils;
 import com.qwazr.utils.StringUtils;
 import com.qwazr.utils.UBuilder;
-import org.apache.http.auth.Credentials;
-import org.apache.http.auth.UsernamePasswordCredentials;
 
 import javax.ws.rs.core.MultivaluedMap;
 import java.net.URI;
@@ -133,8 +131,8 @@ public class RemoteService {
 	}
 
 	@JsonIgnore
-	final public Credentials getCredentials() {
-		return username == null ? null : new UsernamePasswordCredentials(username, password);
+	public boolean isCredential() {
+		return !StringUtils.isBlank(username) || !StringUtils.isBlank(password);
 	}
 
 	public static Builder of() {
@@ -411,8 +409,9 @@ public class RemoteService {
 			for (String path : paths)
 				if (path != null)
 					sb.append(path);
-		builder.setScheme(remote.scheme == null ? "http" : remote.scheme).setHost(
-				remote.host == null ? "localhost" : remote.host).setPort(remote.port == null ? 9091 : remote.port);
+		builder.setScheme(remote.scheme == null ? "http" : remote.scheme)
+				.setHost(remote.host == null ? "localhost" : remote.host)
+				.setPort(remote.port == null ? 9091 : remote.port);
 		if (sb.length() > 0)
 			builder.setPath(sb.toString());
 		return builder;
