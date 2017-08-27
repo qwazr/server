@@ -17,8 +17,8 @@ package com.qwazr.server;
 
 import com.qwazr.utils.FileUtils;
 import com.qwazr.utils.LoggerUtils;
-import com.qwazr.utils.SerializationUtils;
 import io.undertow.servlet.api.SessionPersistenceManager;
+import org.apache.commons.io.output.NullOutputStream;
 
 import java.io.EOFException;
 import java.io.File;
@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -73,41 +74,40 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 		if (sessionData == null)
 			return; // No sessionData? no serialization
 		final File sessionFile = deploymentDir.resolve(sessionId).toFile();
-		try {
-			try (final FileOutputStream fileOutputStream = new FileOutputStream(sessionFile)) {
-				try (final ObjectOutputStream out = new ObjectOutputStream(fileOutputStream)) {
-					out.writeLong(expDate.getTime()); // The date is stored as long
-					sessionData.forEach((attribute, object) -> writeSessionAttribute(out, attribute, object));
-				}
+		try (final ObjectOutputStream draftOutputStream = new ObjectOutputStream(new NullOutputStream())) {
+			try (final ObjectOutputStream sessionOutputStream = new ObjectOutputStream(
+					new FileOutputStream(sessionFile))) {
+				sessionOutputStream.writeLong(expDate.getTime()); // The date is stored as long
+				sessionData.forEach(
+						(attribute, object) -> writeSessionAttribute(draftOutputStream, sessionOutputStream, attribute,
+								object));
 			}
-		} catch (IOException e) {
-			LOGGER.log(Level.WARNING, e, () -> "Cannot save sessions in " + sessionFile);
+		} catch (IOException | CancellationException e) {
+			LOGGER.log(Level.SEVERE, e, () -> "Cannot save sessions in " + sessionFile);
 		}
 	}
 
-	private void writeSessionAttribute(final ObjectOutputStream out, final String attribute, final Object object) {
-		if (attribute == null || object == null)
+	private void writeSessionAttribute(final ObjectOutputStream draftOut, final ObjectOutputStream sessionOut,
+			final String attribute, final Object object) {
+		if (attribute == null || object == null || !(object instanceof Serializable))
 			return;
-		if (!(object instanceof Serializable))
-			return;
+		// First we try to write it to the draftOutputStream
 		try {
-			out.writeUTF(attribute); // Attribute name stored as string
+			draftOut.writeObject(object);
 		} catch (IOException e) {
-			LOGGER.warning(() -> "Cannot write session attribute " + attribute + ": persistence aborted.");
-			return; // The attribute cannot be written, we abort
+			LOGGER.warning(() -> "Cannot write attribute session object (draft test) " + attribute + " - " +
+					object.getClass() + " - " + e.getMessage());
+			return;
 		}
 		try {
-			out.writeObject(object);
+			sessionOut.writeUTF(attribute); // Attribute name stored as string
+			sessionOut.writeObject(object);
 		} catch (IOException e) {
-			LOGGER.warning(() -> "Cannot write session object " + object);
-			try {
-				out.writeObject(SerializationUtils.NullEmptyObject.INSTANCE);
-			} catch (IOException e1) {
-				LOGGER.warning(
-						() -> "Cannot write NULL session object for attribute " + attribute + ": persistence aborted.");
-			}
+			// The attribute cannot be written, we abort
+			throw new CancellationException(
+					"Cannot write session attribute " + attribute + ": persistence aborted - " + object.getClass() +
+							" - " + e.getMessage());
 		}
-
 	}
 
 	@Override
@@ -162,9 +162,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 			throws IOException {
 		final String attribute = in.readUTF();
 		try {
-			final Object object = in.readObject();
-			if (!(object instanceof SerializationUtils.NullEmptyObject))
-				sessionData.put(attribute, object);
+			sessionData.put(attribute, in.readObject());
 		} catch (ClassNotFoundException | NotSerializableException e) {
 			LOGGER.log(Level.WARNING, e, () -> "The attribute " + attribute + " cannot be deserialized");
 		}
