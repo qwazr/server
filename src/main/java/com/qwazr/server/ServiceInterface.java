@@ -15,23 +15,8 @@
  */
 package com.qwazr.server;
 
-import com.qwazr.server.response.ResponseValidator;
-import org.apache.http.entity.ContentType;
-
 public interface ServiceInterface {
 
 	String APPLICATION_JSON_UTF8 = "application/json; charset=UTF-8";
-
-	ResponseValidator valid200 = ResponseValidator.create().status(200);
-	ResponseValidator valid200202 = ResponseValidator.create().status(200, 202);
-	ResponseValidator valid200204 = ResponseValidator.create().status(200, 204);
-	ResponseValidator valid200Json = ResponseValidator.create().status(200).content(ContentType.APPLICATION_JSON);
-	ResponseValidator valid200202Json = ResponseValidator.create().status(200, 202).content(
-			ContentType.APPLICATION_JSON);
-	ResponseValidator valid200204Json = ResponseValidator.create().status(200, 204).content(
-			ContentType.APPLICATION_JSON);
-	ResponseValidator valid200TextPlain = ResponseValidator.create().status(200).content(ContentType.TEXT_PLAIN);
-	ResponseValidator valid200Stream = ResponseValidator.create().status(200).content(
-			ContentType.APPLICATION_OCTET_STREAM);
 
 }

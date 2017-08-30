@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwazr.server.response;
+package com.qwazr.server;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.qwazr.server.ServiceInterface;
 import com.qwazr.utils.ObjectMappers;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 

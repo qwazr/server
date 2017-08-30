@@ -15,7 +15,6 @@
  */
 package com.qwazr.server;
 
-import com.qwazr.server.response.JsonExceptionReponse;
 import com.qwazr.utils.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.client.HttpResponseException;
