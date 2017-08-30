@@ -24,14 +24,13 @@ import org.junit.Test;
 
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
 public class JsonClientTest extends JsonClient {
 
 	final WebTarget target;
 
-	public JsonClientTest() throws URISyntaxException, MalformedURLException {
+	public JsonClientTest() throws URISyntaxException {
 		super(RemoteService.of("http://ip.jsontest.com:80").build());
 		target = client.target(remote.serviceAddress);
 	}
@@ -41,7 +40,7 @@ public class JsonClientTest extends JsonClient {
 	}
 
 	@Test
-	public void test() throws URISyntaxException, MalformedURLException {
+	public void test() throws URISyntaxException {
 
 		final JsonClientTest jsonClient = new JsonClientTest();
 		final GitHubRoot gitHubRoot = jsonClient.get();
