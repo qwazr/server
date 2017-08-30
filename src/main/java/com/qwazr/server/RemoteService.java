@@ -23,10 +23,8 @@ import com.qwazr.utils.LinkUtils;
 import com.qwazr.utils.StringUtils;
 
 import javax.ws.rs.core.MultivaluedMap;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -137,8 +135,8 @@ public class RemoteService {
 		return new Builder(uri);
 	}
 
-	public static Builder of(final String url) throws URISyntaxException, MalformedURLException {
-		return new Builder(new URL(url).toURI());
+	public static Builder of(final String url) throws URISyntaxException {
+		return new Builder(new URI(url));
 	}
 
 	public static class Builder {
