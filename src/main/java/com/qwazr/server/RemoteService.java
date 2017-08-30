@@ -21,11 +21,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.qwazr.utils.LinkUtils;
 import com.qwazr.utils.StringUtils;
-import com.qwazr.utils.UBuilder;
 
 import javax.ws.rs.core.MultivaluedMap;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -114,15 +115,8 @@ public class RemoteService {
 		if (this == o)
 			return true;
 		final RemoteService rs = (RemoteService) o;
-		if (!Objects.equals(serviceAddress, rs.serviceAddress))
-			return false;
-		if (!Objects.equals(timeout, rs.timeout))
-			return false;
-		if (!Objects.equals(username, rs.username))
-			return false;
-		if (!Objects.equals(password, rs.password))
-			return false;
-		return true;
+		return Objects.equals(serviceAddress, rs.serviceAddress) && Objects.equals(timeout, rs.timeout) &&
+				Objects.equals(username, rs.username) && Objects.equals(password, rs.password);
 	}
 
 	@Override
@@ -143,13 +137,11 @@ public class RemoteService {
 		return new Builder(uri);
 	}
 
-	public static Builder of(final String url) throws URISyntaxException {
-		return new Builder(url);
+	public static Builder of(final String url) throws URISyntaxException, MalformedURLException {
+		return new Builder(new URL(url).toURI());
 	}
 
 	public static class Builder {
-
-		private final URI initialURI;
 
 		private String scheme;
 		private String host;
@@ -161,7 +153,6 @@ public class RemoteService {
 		private MultivaluedMap<String, String> queryParams;
 
 		private Builder() {
-			initialURI = null;
 			scheme = null;
 			host = null;
 			pathSegments = null;
@@ -173,7 +164,6 @@ public class RemoteService {
 		}
 
 		private Builder(final URI uri) {
-			initialURI = uri;
 			setScheme(uri.getScheme());
 			setHost(uri.getHost());
 			setPath(uri.getPath());
@@ -184,10 +174,6 @@ public class RemoteService {
 
 		private Builder(final String url) throws URISyntaxException {
 			this(new URI(url));
-		}
-
-		public URI getInitialURI() {
-			return initialURI;
 		}
 
 		/**
@@ -217,7 +203,7 @@ public class RemoteService {
 			return this;
 		}
 
-		public String getPathSegment(final int pos) {
+		private String getPathSegment(final int pos) {
 			if (pathSegments == null)
 				return null;
 			return pathSegments.length > pos ? pathSegments[pos] : null;
@@ -289,26 +275,6 @@ public class RemoteService {
 			if (s != null)
 				setTimeout(Integer.parseInt(s));
 			return this;
-		}
-
-		/**
-		 * Return the first query value if any
-		 *
-		 * @param param the name of the parameter
-		 * @return the value or null
-		 */
-		public String getQueryParam(final String param) {
-			return queryParams == null ? null : queryParams.getFirst(param);
-		}
-
-		/**
-		 * Return the query values or null if the value is not mapped
-		 *
-		 * @param param the name of the parameter
-		 * @return a value list or null
-		 */
-		public List<String> getQueryParams(final String param) {
-			return queryParams == null ? null : queryParams.get(param);
 		}
 
 		/**
@@ -392,28 +358,4 @@ public class RemoteService {
 		return fromBuilders(builders(remoteServiceURLs));
 	}
 
-	/**
-	 * Helper for URL building. The URL is built by concatening the url
-	 * parameters given in the constructor and an array of pathes.
-	 *
-	 * @param remote the remoteservice
-	 * @param paths  An array of path
-	 * @return a new UBuilder
-	 */
-	public static UBuilder getNewUBuilder(final RemoteService remote, final String... paths) {
-		final UBuilder builder = new UBuilder();
-		StringBuilder sb = new StringBuilder();
-		if (remote.path != null)
-			sb.append(remote.path);
-		if (paths != null)
-			for (String path : paths)
-				if (path != null)
-					sb.append(path);
-		builder.setScheme(remote.scheme == null ? "http" : remote.scheme)
-				.setHost(remote.host == null ? "localhost" : remote.host)
-				.setPort(remote.port == null ? 9091 : remote.port);
-		if (sb.length() > 0)
-			builder.setPath(sb.toString());
-		return builder;
-	}
 }

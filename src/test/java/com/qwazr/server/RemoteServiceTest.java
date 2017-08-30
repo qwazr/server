@@ -26,7 +26,7 @@ public class RemoteServiceTest {
 	@Test
 	public void builderAndEquality() throws IOException, URISyntaxException {
 		RemoteService rs1 = RemoteService.of()
-				.setHost("localhost")
+				.setHost("birdie")
 				.setPort(9091)
 				.setTimeout(1234)
 				.setPath("avatar")
@@ -35,20 +35,21 @@ public class RemoteServiceTest {
 				.build();
 		Assert.assertNotNull(rs1);
 
-		RemoteService rs2 = RemoteService.of("http://jake:suly@localhost:9091/avatar").setTimeout(1234).build();
+		RemoteService rs2 = RemoteService.of("http://jake:suly@birdie:9091/avatar").setTimeout(1234).build();
 		Assert.assertEquals(rs1, rs2);
 
-		RemoteService rs3 = RemoteService.of("http://jake:suly@localhost:9091/avatar?timeout=1234").build();
+		RemoteService rs3 = RemoteService.of("http://jake:suly@birdie:9091/avatar?timeout=1234").build();
 		Assert.assertEquals(rs1, rs3);
 
-		RemoteService rsA = RemoteService.of("http://jake:suly@localhost:9091/avatar?timeout=1235").build();
+		RemoteService rsA = RemoteService.of("http://jake:suly@birdie:9091/avatar?timeout=1235").build();
 		Assert.assertNotEquals(rs1, rsA);
 
-		RemoteService rsB = RemoteService.of("http://jake:suly@localhost:9092/avatar?timeout=1234").build();
+		RemoteService rsB = RemoteService.of("http://jake:suly@birdie:9092/avatar?timeout=1234").build();
 		Assert.assertNotEquals(rs1, rsB);
 
 		RemoteService rsC = RemoteService.of("http://jake:suly@example:9091/avatar?timeout=1234").build();
 		Assert.assertNotEquals(rs1, rsC);
+
 	}
 
 }
