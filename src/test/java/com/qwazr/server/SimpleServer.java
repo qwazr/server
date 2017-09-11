@@ -15,8 +15,11 @@
  */
 package com.qwazr.server;
 
+import com.fasterxml.jackson.jaxrs.cbor.JacksonCBORProvider;
+import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 import com.qwazr.server.configuration.ServerConfiguration;
 import com.qwazr.utils.RandomUtils;
+import com.qwazr.utils.json.JacksonConfig;
 import io.undertow.servlet.api.SessionPersistenceManager;
 
 import java.io.IOException;
@@ -31,15 +34,17 @@ public class SimpleServer implements BaseServer {
 
 	SimpleServer(SessionPersistenceManager sessionManager) throws IOException, ClassNotFoundException {
 
-		GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().build()).contextAttribute(
-				CONTEXT_ATTRIBUTE_TEST, contextAttribute);
+		GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().build())
+				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute);
 
 		builder.getWebAppContext().servlet(SimpleServlet.class, "test_bis").filter(SimpleFilter.class);
 
-		builder.getWebServiceContext().jaxrs(ApplicationBuilder.of("/*")
-				.classes(RestApplication.JSON_CLASSES)
-				.loadServices()
-				.singletons(new WelcomeShutdownService()));
+		builder.getWebServiceContext()
+				.jaxrs(ApplicationBuilder.of("/*")
+						.classes(JacksonConfig.class, JacksonJsonProvider.class, JacksonCBORProvider.class,
+								JsonMappingExceptionMapper.class)
+						.loadServices()
+						.singletons(new WelcomeShutdownService()));
 
 		if (sessionManager != null)
 			builder.sessionPersistenceManager(sessionManager);

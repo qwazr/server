@@ -28,7 +28,9 @@ import javax.management.JMException;
 import javax.management.MBeanException;
 import javax.management.OperationsException;
 import javax.servlet.ServletException;
+import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.util.Map;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class SimpleServerTest {
@@ -47,18 +49,14 @@ public class SimpleServerTest {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
 		Assert.assertEquals(200, HttpRequest.Get("http://localhost:9091/").execute().getStatusLine().getStatusCode());
-		Assert.assertEquals(404, HttpRequest.Get("http://localhost:9091/sdflksjflskdfj")
-				.execute()
-				.getStatusLine()
-				.getStatusCode());
+		Assert.assertEquals(404,
+				HttpRequest.Get("http://localhost:9091/sdflksjflskdfj").execute().getStatusLine().getStatusCode());
 	}
 
 	@Test
 	public void test250welcomeStatus() throws IOException {
-		final WelcomeStatus welcomeStatus = ObjectMappers.JSON.readValue(HttpRequest.Get("http://localhost:9091/")
-				.execute()
-				.getEntity()
-				.getContent(), WelcomeStatus.class);
+		final WelcomeStatus welcomeStatus = ObjectMappers.JSON.readValue(
+				HttpRequest.Get("http://localhost:9091/").execute().getEntity().getContent(), WelcomeStatus.class);
 		Assert.assertNotNull(welcomeStatus);
 		Assert.assertNotNull(welcomeStatus.webapp_endpoints);
 		Assert.assertNotNull(welcomeStatus.webservice_endpoints);
@@ -85,6 +83,30 @@ public class SimpleServerTest {
 	public void test400LoadedService() throws IOException {
 		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/loaded").execute()) {
 			Assert.assertEquals(LoadedService.TEXT, EntityUtils.toString(response.getEntity()));
+		}
+	}
+
+	@Test
+	public void test401LoadedServiceMapCbor() throws IOException {
+		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/loaded/map")
+				.addHeader("Accept", ServiceInterface.APPLICATION_CBOR)
+				.execute()) {
+			Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+			Map<String, String> map =
+					ObjectMappers.CBOR.readValue(response.getEntity().getContent(), LoadedService.mapType);
+			Assert.assertEquals(LoadedService.TEXT, map.get(LoadedService.SERVICE_NAME));
+		}
+	}
+
+	@Test
+	public void test401LoadedServiceMapJson() throws IOException {
+		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/loaded/map")
+				.addHeader("Accept", MediaType.APPLICATION_JSON)
+				.execute()) {
+			Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+			Map<String, String> map =
+					ObjectMappers.JSON.readValue(response.getEntity().getContent(), LoadedService.mapType);
+			Assert.assertEquals(LoadedService.TEXT, map.get(LoadedService.SERVICE_NAME));
 		}
 	}
 

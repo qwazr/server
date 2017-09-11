@@ -15,11 +15,16 @@
  */
 package com.qwazr.server;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.utils.RandomUtils;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import java.util.HashMap;
+import java.util.Map;
 
 @Path("/" + LoadedService.SERVICE_NAME)
 public class LoadedService extends AbstractServiceImpl {
@@ -32,5 +37,17 @@ public class LoadedService extends AbstractServiceImpl {
 	public String load(@QueryParam("properties") Boolean properties, @QueryParam("env") Boolean env) {
 		return TEXT;
 	}
+
+	@Path("/map")
+	@GET
+	@Produces({ MediaType.APPLICATION_JSON, ServiceInterface.APPLICATION_CBOR })
+	public Map<String, String> getMap() {
+		final HashMap<String, String> map = new HashMap<>();
+		map.put(SERVICE_NAME, TEXT);
+		return map;
+	}
+
+	final public static TypeReference<Map<String, String>> mapType = new TypeReference<Map<String, String>>() {
+	};
 
 }
