@@ -15,11 +15,8 @@
  */
 package com.qwazr.server;
 
-import com.fasterxml.jackson.jaxrs.cbor.JacksonCBORProvider;
-import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 import com.qwazr.server.configuration.ServerConfiguration;
 import com.qwazr.utils.RandomUtils;
-import com.qwazr.utils.json.JacksonConfig;
 import io.undertow.servlet.api.SessionPersistenceManager;
 
 import java.io.IOException;
@@ -41,8 +38,7 @@ public class SimpleServer implements BaseServer {
 
 		builder.getWebServiceContext()
 				.jaxrs(ApplicationBuilder.of("/*")
-						.classes(JacksonConfig.class, JacksonJsonProvider.class, JacksonCBORProvider.class,
-								JsonMappingExceptionMapper.class)
+						.classes(RestApplication.JSON_CBOR_CLASSES)
 						.loadServices()
 						.singletons(new WelcomeShutdownService()));
 
