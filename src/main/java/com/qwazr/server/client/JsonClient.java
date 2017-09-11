@@ -44,7 +44,7 @@ public class JsonClient implements Closeable {
 		this.remote = Objects.requireNonNull(remote, "The remote parameter is null");
 
 		final ClientConfig clientConfig = new ClientConfig();
-		clientConfig.register(JacksonJsonProvider.class, JacksonCBORProvider.class);
+		clientConfig.register(JacksonJsonProvider.class).register(JacksonCBORProvider.class);
 
 		if (remote.isCredential()) {
 			final HttpAuthenticationFeature feature = HttpAuthenticationFeature.basicBuilder()
