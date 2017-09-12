@@ -25,7 +25,7 @@ public class GenericBuilderTest {
 
 	@Test
 	public void test() throws IOException {
-		GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().build());
+		GenericServerBuilder builder = GenericServer.of(ServerConfiguration.of().build());
 		Assert.assertNotNull(builder);
 		Assert.assertNotNull(builder.getConfiguration());
 		Assert.assertNotNull(builder.getConstructorParameters());

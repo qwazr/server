@@ -39,20 +39,24 @@ public class SecuredHostnameServer implements BaseServer {
 		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
 		identityManager.addExternal(externalUsername, externalUsername, "secured");
 		principalResolver = new HostnameAuthenticationMechanism.MapPrincipalResolver();
-		final GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().webAppAuthentication(
-				"HOSTNAME,BASIC").webAppRealm(realm).build())
+		final GenericServerBuilder builder = GenericServer.of(
+				ServerConfiguration.of().webAppAuthentication("HOSTNAME,BASIC").webAppRealm(realm).build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
 				.identityManagerProvider(realm -> identityManager)
 				.hostnamePrincipalResolver(principalResolver);
 
-		builder.getWebServiceContext().jaxrs(ApplicationBuilder.of("/*")
-				.classes(RestApplication.JSON_CLASSES)
-				.singletons(new WelcomeShutdownService()));
+		builder.getWebServiceContext()
+				.jaxrs(ApplicationBuilder.of("/*")
+						.classes(RestApplication.JSON_CLASSES)
+						.singletons(new WelcomeShutdownService()));
 
-		builder.getWebAppContext().servlet(SimpleServlet.class).servlet(SecuredServlet.class).jaxrs(
-				TestJaxRsAppAuth.class).jaxrs(ApplicationBuilder.of("/jaxrs-app-auth-singletons/*")
-				.classes(RolesAllowedDynamicFeature.class)
-				.singletons(new TestJaxRsAppAuth.ServiceAuth()));
+		builder.getWebAppContext()
+				.servlet(SimpleServlet.class)
+				.servlet(SecuredServlet.class)
+				.jaxrs(TestJaxRsAppAuth.class)
+				.jaxrs(ApplicationBuilder.of("/jaxrs-app-auth-singletons/*")
+						.classes(RolesAllowedDynamicFeature.class)
+						.singletons(new TestJaxRsAppAuth.ServiceAuth()));
 
 		server = builder.build();
 	}

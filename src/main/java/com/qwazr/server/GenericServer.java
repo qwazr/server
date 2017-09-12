@@ -16,6 +16,8 @@
 package com.qwazr.server;
 
 import com.qwazr.server.configuration.ServerConfiguration;
+import com.qwazr.server.logs.AccessLogger;
+import com.qwazr.server.logs.LogMetricsHandler;
 import com.qwazr.utils.CollectionsUtils;
 import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.StringUtils;
@@ -24,12 +26,10 @@ import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.security.idm.IdentityManager;
 import io.undertow.server.HttpHandler;
-import io.undertow.server.session.SessionListener;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentManager;
 import io.undertow.servlet.api.LoginConfig;
 import io.undertow.servlet.api.ServletContainer;
-import io.undertow.servlet.api.SessionPersistenceManager;
 import org.apache.commons.lang3.SystemUtils;
 
 import javax.management.InstanceNotFoundException;
@@ -52,7 +52,6 @@ import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -61,7 +60,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-final public class GenericServer {
+public class GenericServer {
 
 	final private ExecutorService executorService;
 	final private ServletContainer servletContainer;
@@ -81,8 +80,8 @@ final public class GenericServer {
 
 	final private ServerConfiguration configuration;
 
-	final private Logger webAppAccessLogger;
-	final private Logger webServiceAccessLogger;
+	final private AccessLogger webAppAccessLogger;
+	final private AccessLogger webServiceAccessLogger;
 
 	final private Set<String> webAppEndPoints;
 	final private Set<String> webServiceEndPoints;
@@ -93,7 +92,8 @@ final public class GenericServer {
 
 	static final private Logger LOGGER = LoggerUtils.getLogger(GenericServer.class);
 
-	private GenericServer(final Builder builder) throws IOException, ClassNotFoundException, InstantiationException {
+	GenericServer(final GenericServerBuilder builder)
+			throws IOException, ClassNotFoundException, InstantiationException {
 
 		this.configuration = builder.configuration;
 		this.executorService =
@@ -158,8 +158,8 @@ final public class GenericServer {
 		return webAppEndPoints;
 	}
 
-	private static UdpServerThread buildUdpServer(final Builder builder, final ServerConfiguration configuration)
-			throws IOException {
+	private static UdpServerThread buildUdpServer(final GenericServerBuilder builder,
+			final ServerConfiguration configuration) throws IOException {
 
 		if (builder.packetListeners == null || builder.packetListeners.isEmpty())
 			return null;
@@ -239,7 +239,7 @@ final public class GenericServer {
 	private final static AtomicInteger serverCounter = new AtomicInteger();
 
 	private void startHttpServer(final ServerConfiguration.WebConnector connector, final ServletContextBuilder context,
-			final Logger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
+			final AccessLogger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
 
 		if (context == null || context.getServlets().isEmpty())
 			return;
@@ -264,8 +264,8 @@ final public class GenericServer {
 
 		HttpHandler httpHandler = manager.start();
 		final LogMetricsHandler logMetricsHandler =
-				new LogMetricsHandler(httpHandler, accessLogger, configuration.listenAddress, connector.port,
-						context.jmxName, StringUtils.EMPTY);
+				new LogMetricsHandler(httpHandler, configuration.listenAddress, connector.port, context.jmxName,
+						accessLogger);
 		deploymentManagers.add(manager);
 		httpHandler = logMetricsHandler;
 
@@ -357,163 +357,22 @@ final public class GenericServer {
 
 	}
 
-	public static Builder of(ServerConfiguration config, ExecutorService executorService, ClassLoader classLoader,
-			ConstructorParameters constructorParameters) {
-		return new Builder(config, executorService, classLoader, constructorParameters);
+	public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
+			ClassLoader classLoader, ConstructorParameters constructorParameters) {
+		return new GenericServerBuilder(config, executorService, classLoader, constructorParameters);
 	}
 
-	public static Builder of(ServerConfiguration config, ExecutorService executorService, ClassLoader classLoader) {
+	public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
+			ClassLoader classLoader) {
 		return of(config, executorService, classLoader, null);
 	}
 
-	public static Builder of(ServerConfiguration config, ExecutorService executorService) {
+	public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService) {
 		return of(config, executorService, null);
 	}
 
-	public static Builder of(ServerConfiguration config) {
+	public static GenericServerBuilder of(ServerConfiguration config) {
 		return of(config, null);
 	}
 
-	public static class Builder {
-
-		final ServerConfiguration configuration;
-		final ExecutorService executorService;
-		final ClassLoader classLoader;
-		final ConstructorParameters constructorParameters;
-
-		final ServletContextBuilder webAppContext;
-		final ServletContextBuilder webServiceContext;
-
-		Map<String, Object> contextAttributes;
-		Collection<UdpServerThread.PacketListener> packetListeners;
-
-		Logger webAppAccessLogger;
-		Logger webServiceAccessLogger;
-
-		GenericServer.IdentityManagerProvider identityManagerProvider;
-		HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver;
-
-		Collection<GenericServer.Listener> startedListeners;
-		Collection<GenericServer.Listener> shutdownListeners;
-
-		private Builder(final ServerConfiguration configuration, final ExecutorService executorService,
-				final ClassLoader classLoader, final ConstructorParameters constructorParameters) {
-			this.configuration = configuration;
-			this.executorService = executorService;
-			this.classLoader = classLoader == null ? Thread.currentThread().getContextClassLoader() : classLoader;
-			this.constructorParameters =
-					constructorParameters == null ? ConstructorParameters.withConcurrentMap() : constructorParameters;
-			this.webAppContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT", "WEBAPP");
-			this.webServiceContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT", "WEBSERVICE");
-		}
-
-		public ServerConfiguration getConfiguration() {
-			return configuration;
-		}
-
-		public ConstructorParameters getConstructorParameters() {
-			return constructorParameters;
-		}
-
-		public GenericServer build() throws IOException {
-			try {
-				return new GenericServer(this);
-			} catch (ClassNotFoundException | InstantiationException e) {
-				throw ServerException.of(e);
-			}
-		}
-
-		public ServletContextBuilder getWebAppContext() {
-			return webAppContext;
-		}
-
-		public ServletContextBuilder getWebServiceContext() {
-			return webServiceContext;
-		}
-
-		public Builder packetListener(final UdpServerThread.PacketListener packetListener) {
-			if (packetListeners == null)
-				packetListeners = new LinkedHashSet<>();
-			this.packetListeners.add(packetListener);
-			return this;
-		}
-
-		public Builder contextAttribute(final String name, final Object object) {
-			Objects.requireNonNull(name, "The name of the context attribute is null");
-			Objects.requireNonNull(object, "The context attribute " + name + " is null");
-			if (contextAttributes == null)
-				contextAttributes = new LinkedHashMap<>();
-			contextAttributes.put(name, object);
-			return this;
-		}
-
-		public Builder contextAttribute(final Object object) {
-			Objects.requireNonNull(object, "The context attribute object is null");
-			return contextAttribute(object.getClass().getName(), object);
-		}
-
-		public Builder startedListener(final GenericServer.Listener listener) {
-			Objects.requireNonNull(listener, "The GenericServer.Listener object is null");
-			if (startedListeners == null)
-				startedListeners = new LinkedHashSet<>();
-			startedListeners.add(listener);
-			return this;
-		}
-
-		public Builder shutdownListener(final GenericServer.Listener listener) {
-			Objects.requireNonNull(listener, "The GenericServer.Listener object is null");
-			if (shutdownListeners == null)
-				shutdownListeners = new LinkedHashSet<>();
-			shutdownListeners.add(listener);
-			return this;
-		}
-
-		public Builder sessionPersistenceManager(final SessionPersistenceManager manager) {
-			webAppContext.setSessionPersistenceManager(manager);
-			return this;
-		}
-
-		public Builder identityManagerProvider(final GenericServer.IdentityManagerProvider provider) {
-			identityManagerProvider = provider;
-			return this;
-		}
-
-		public Builder hostnamePrincipalResolver(
-				final HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver) {
-			this.hostnamePrincipalResolver = hostnamePrincipalResolver;
-			return this;
-		}
-
-		public Builder sessionListener(final SessionListener listener) {
-			webAppContext.addSessionListener(listener);
-			return this;
-		}
-
-		@Deprecated
-		public Builder servletAccessLogger(final Logger logger) {
-			return webAppAccessLogger(logger);
-		}
-
-		public Builder webAppAccessLogger(final Logger logger) {
-			webAppAccessLogger = logger;
-			return this;
-		}
-
-		@Deprecated
-		public Builder restAccessLogger(final Logger logger) {
-			return webServiceAccessLogger(logger);
-		}
-
-		public Builder webServiceAccessLogger(final Logger logger) {
-			webServiceAccessLogger = logger;
-			return this;
-		}
-
-		public Builder defaultMultipartConfig(String location, long maxFileSize, long maxRequestSize,
-				int fileSizeThreshold) {
-			webAppContext.setDefaultMultipartConfig(location, maxFileSize, maxRequestSize, fileSizeThreshold);
-			return this;
-		}
-
-	}
 }

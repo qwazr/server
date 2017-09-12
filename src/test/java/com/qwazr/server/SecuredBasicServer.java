@@ -40,20 +40,23 @@ public class SecuredBasicServer implements BaseServer {
 	public SecuredBasicServer() throws IOException {
 		final MemoryIdentityManager identityManager = new MemoryIdentityManager();
 		identityManager.addBasic(basicUsername, basicUsername, basicPassword, "secured");
-		final GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of()
-				.webAppAuthentication("BASIC")
-				.webAppRealm(realm)
-				.build()).contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute).identityManagerProvider(
-				realm -> identityManager);
+		final GenericServerBuilder builder =
+				GenericServer.of(ServerConfiguration.of().webAppAuthentication("BASIC").webAppRealm(realm).build())
+						.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute)
+						.identityManagerProvider(realm -> identityManager);
 
-		builder.getWebServiceContext().jaxrs(ApplicationBuilder.of("/*")
-				.classes(RestApplication.JSON_CLASSES)
-				.singletons(new WelcomeShutdownService()));
+		builder.getWebServiceContext()
+				.jaxrs(ApplicationBuilder.of("/*")
+						.classes(RestApplication.JSON_CLASSES)
+						.singletons(new WelcomeShutdownService()));
 
-		builder.getWebAppContext().servlet(SimpleServlet.class).servlet(SecuredServlet.class).jaxrs(
-				TestJaxRsAppAuth.class).jaxrs(new ApplicationBuilder("/jaxrs-app-auth-singletons/*").classes(
-				RolesAllowedDynamicFeature.class).singletons(new TestJaxRsAppAuth.ServiceAuth())).addSecurityConstraint(
-				Servlets.securityConstraint()
+		builder.getWebAppContext()
+				.servlet(SimpleServlet.class)
+				.servlet(SecuredServlet.class)
+				.jaxrs(TestJaxRsAppAuth.class)
+				.jaxrs(new ApplicationBuilder("/jaxrs-app-auth-singletons/*").classes(RolesAllowedDynamicFeature.class)
+						.singletons(new TestJaxRsAppAuth.ServiceAuth()))
+				.addSecurityConstraint(Servlets.securityConstraint()
 						.setEmptyRoleSemantic(SecurityInfo.EmptyRoleSemantic.AUTHENTICATE)
 						.addWebResourceCollection(Servlets.webResourceCollection()
 								.addUrlPatterns("/jaxrs-app-auth/*", "/jaxrs-app-auth-singletons/*")));

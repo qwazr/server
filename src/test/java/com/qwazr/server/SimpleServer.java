@@ -16,10 +16,14 @@
 package com.qwazr.server;
 
 import com.qwazr.server.configuration.ServerConfiguration;
+import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.RandomUtils;
 import io.undertow.servlet.api.SessionPersistenceManager;
 
 import java.io.IOException;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 public class SimpleServer implements BaseServer {
 
@@ -29,10 +33,17 @@ public class SimpleServer implements BaseServer {
 
 	private GenericServer server;
 
+	private final Logger accessLogger = LoggerUtils.getLogger(SimpleServer.class);
+	public final LogHandler logHandler = new LogHandler();
+
 	SimpleServer(SessionPersistenceManager sessionManager) throws IOException, ClassNotFoundException {
 
-		GenericServer.Builder builder = GenericServer.of(ServerConfiguration.of().build())
+		GenericServerBuilder builder = GenericServer.of(ServerConfiguration.of().build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute);
+
+		accessLogger.addHandler(logHandler);
+		builder.webAppAccessLogger(accessLogger);
+		builder.webServiceAccessLogger(accessLogger);
 
 		builder.getWebAppContext().servlet(SimpleServlet.class, "test_bis").filter(SimpleFilter.class);
 
@@ -55,6 +66,24 @@ public class SimpleServer implements BaseServer {
 	@Override
 	public GenericServer getServer() {
 		return server;
+	}
+
+	public class LogHandler extends Handler {
+
+		public LogRecord lastRecord;
+
+		@Override
+		public void publish(LogRecord record) {
+			lastRecord = record;
+		}
+
+		@Override
+		public void flush() {
+		}
+
+		@Override
+		public void close() throws SecurityException {
+		}
 	}
 
 }
