@@ -15,8 +15,8 @@
  */
 package com.qwazr.server.client;
 
-import com.fasterxml.jackson.jaxrs.cbor.JacksonCBORProvider;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
+import com.fasterxml.jackson.jaxrs.smile.JacksonSmileProvider;
 import com.qwazr.server.RemoteService;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
@@ -44,7 +44,7 @@ public class JsonClient implements Closeable {
 		this.remote = Objects.requireNonNull(remote, "The remote parameter is null");
 
 		final ClientConfig clientConfig = new ClientConfig();
-		clientConfig.register(JacksonJsonProvider.class).register(JacksonCBORProvider.class);
+		clientConfig.register(JacksonJsonProvider.class).register(JacksonSmileProvider.class);
 
 		if (remote.isCredential()) {
 			final HttpAuthenticationFeature feature = HttpAuthenticationFeature.basicBuilder()

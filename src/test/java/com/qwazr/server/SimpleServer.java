@@ -38,7 +38,7 @@ public class SimpleServer implements BaseServer {
 
 		builder.getWebServiceContext()
 				.jaxrs(ApplicationBuilder.of("/*")
-						.classes(RestApplication.JSON_CBOR_CLASSES)
+						.classes(RestApplication.JSON_CLASSES)
 						.loadServices()
 						.singletons(new WelcomeShutdownService()));
 

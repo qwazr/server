@@ -18,6 +18,5 @@ package com.qwazr.server;
 public interface ServiceInterface {
 
 	String APPLICATION_JSON_UTF8 = "application/json; charset=UTF-8";
-	String APPLICATION_CBOR = "application/cbor";
 
 }

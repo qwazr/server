@@ -15,6 +15,7 @@
  */
 package com.qwazr.server;
 
+import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
 import com.qwazr.utils.ObjectMappers;
 import com.qwazr.utils.http.HttpRequest;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -87,13 +88,13 @@ public class SimpleServerTest {
 	}
 
 	@Test
-	public void test401LoadedServiceMapCbor() throws IOException {
+	public void test401LoadedServiceMapSmile() throws IOException {
 		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/loaded/map")
-				.addHeader("Accept", ServiceInterface.APPLICATION_CBOR)
+				.addHeader("Accept", SmileMediaTypes.APPLICATION_JACKSON_SMILE)
 				.execute()) {
 			Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 			Map<String, String> map =
-					ObjectMappers.CBOR.readValue(response.getEntity().getContent(), LoadedService.mapType);
+					ObjectMappers.SMILE.readValue(response.getEntity().getContent(), LoadedService.mapType);
 			Assert.assertEquals(LoadedService.TEXT, map.get(LoadedService.SERVICE_NAME));
 		}
 	}

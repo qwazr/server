@@ -31,33 +31,33 @@ public class JsonClientTest extends JsonClient {
 	final WebTarget target;
 
 	public JsonClientTest() throws URISyntaxException {
-		super(RemoteService.of("http://ip.jsontest.com:80").build());
+		super(RemoteService.of("https://api.github.com:443").build());
 		target = client.target(remote.serviceAddress);
 	}
 
-	public GitHubRoot get() {
-		return target.request(MediaType.APPLICATION_JSON).get(GitHubRoot.class);
+	public JsonTest get() {
+		return target.request(MediaType.APPLICATION_JSON).get(JsonTest.class);
 	}
 
 	@Test
 	public void test() throws URISyntaxException {
 
 		final JsonClientTest jsonClient = new JsonClientTest();
-		final GitHubRoot gitHubRoot = jsonClient.get();
-		Assert.assertNotNull(gitHubRoot);
-		Assert.assertNotNull(gitHubRoot.ip);
+		final JsonTest jsonTest = jsonClient.get();
+		Assert.assertNotNull(jsonTest);
+		Assert.assertEquals("https://api.github.com/user", jsonTest.test);
 
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	public static class GitHubRoot {
+	public static class JsonTest {
 
-		@JsonProperty("ip")
-		final String ip;
+		@JsonProperty("current_user_url")
+		final String test;
 
 		@JsonCreator
-		public GitHubRoot(@JsonProperty("ip") String ip) {
-			this.ip = ip;
+		public JsonTest(@JsonProperty("current_user_url") String test) {
+			this.test = test;
 		}
 	}
 }

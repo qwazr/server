@@ -16,6 +16,7 @@
 package com.qwazr.server;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
 import com.qwazr.utils.RandomUtils;
 
 import javax.ws.rs.GET;
@@ -40,7 +41,7 @@ public class LoadedService extends AbstractServiceImpl {
 
 	@Path("/map")
 	@GET
-	@Produces({ MediaType.APPLICATION_JSON, ServiceInterface.APPLICATION_CBOR })
+	@Produces({ MediaType.APPLICATION_JSON, SmileMediaTypes.APPLICATION_JACKSON_SMILE })
 	public Map<String, String> getMap() {
 		final HashMap<String, String> map = new HashMap<>();
 		map.put(SERVICE_NAME, TEXT);

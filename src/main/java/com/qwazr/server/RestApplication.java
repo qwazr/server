@@ -15,8 +15,8 @@
  */
 package com.qwazr.server;
 
-import com.fasterxml.jackson.jaxrs.cbor.JacksonCBORProvider;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
+import com.fasterxml.jackson.jaxrs.smile.JacksonSmileProvider;
 import com.qwazr.utils.json.JacksonConfig;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 
@@ -32,12 +32,9 @@ import java.util.Set;
  */
 public abstract class RestApplication extends Application {
 
-	public static final Class<?>[] JSON_CLASSES =
-			{ JacksonConfig.class, JacksonJsonProvider.class, JsonMappingExceptionMapper.class };
-
-	public static final Class<?>[] JSON_CBOR_CLASSES = { JacksonConfig.class,
+	public static final Class<?>[] JSON_CLASSES = { JacksonConfig.class,
 			JacksonJsonProvider.class,
-			JacksonCBORProvider.class,
+			JacksonSmileProvider.class,
 			JsonMappingExceptionMapper.class };
 
 	@Context
