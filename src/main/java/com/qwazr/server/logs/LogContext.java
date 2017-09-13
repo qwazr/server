@@ -21,10 +21,11 @@ import io.undertow.util.HeaderMap;
 
 import java.net.InetSocketAddress;
 import java.time.LocalDateTime;
+import java.util.function.Consumer;
 
-final class LogContext implements ExchangeCompletionListener {
+final public class LogContext implements ExchangeCompletionListener {
 
-	private final AccessLogger accessLogger;
+	private final Consumer<LogContext> logger;
 
 	HttpServerExchange exchange;
 	HeaderMap requestHeaders;
@@ -36,8 +37,8 @@ final class LogContext implements ExchangeCompletionListener {
 	long nanoEndTime;
 	LocalDateTime logDateTime;
 
-	LogContext(final AccessLogger accessLogger) {
-		this.accessLogger = accessLogger;
+	LogContext(final Consumer<LogContext> logger) {
+		this.logger = logger;
 	}
 
 	@Override
@@ -50,9 +51,10 @@ final class LogContext implements ExchangeCompletionListener {
 			this.nanoStartTime = exchange.getRequestStartTime();
 			this.nanoEndTime = System.nanoTime();
 			this.logDateTime = LocalDateTime.now();
-			accessLogger.log(this);
+			logger.accept(this);
 		} finally {
 			nextListener.proceed();
 		}
 	}
+
 }

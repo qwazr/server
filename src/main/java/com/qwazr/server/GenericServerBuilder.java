@@ -132,20 +132,28 @@ public class GenericServerBuilder {
 		return this;
 	}
 
+	public GenericServerBuilder webAppAccessLogger(AccessLogger accessLogger) {
+		webAppAccessLogger = accessLogger;
+		return this;
+	}
+
 	public GenericServerBuilder webAppAccessLogger(Logger logger, Level level, String logMessage,
 			LogParam... logParams) {
-		webAppAccessLogger = new AccessLogger(logger, level, logMessage, logParams);
-		return this;
+		return webAppAccessLogger(new AccessLogger.Jul(logger, level, logMessage, logParams));
 	}
 
 	public GenericServerBuilder webAppAccessLogger(Logger logger) {
 		return webAppAccessLogger(logger, Level.INFO, LogParam.DEFAULT_MESSAGE, LogParam.DEFAULT_PARAMS);
 	}
 
+	public GenericServerBuilder webServiceAccessLogger(AccessLogger accessLogger) {
+		webServiceAccessLogger = accessLogger;
+		return this;
+	}
+
 	public GenericServerBuilder webServiceAccessLogger(Logger logger, Level level, String logMessage,
 			LogParam... logParams) {
-		webServiceAccessLogger = new AccessLogger(logger, level, logMessage, logParams);
-		return this;
+		return webServiceAccessLogger(new AccessLogger.Jul(logger, level, logMessage, logParams));
 	}
 
 	public GenericServerBuilder webServiceAccessLogger(Logger logger) {

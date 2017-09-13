@@ -15,34 +15,47 @@
  */
 package com.qwazr.server.logs;
 
-import com.qwazr.utils.StringUtils;
-
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public final class AccessLogger {
+public interface AccessLogger extends Consumer<LogContext> {
 
-	private final Logger logger;
-	private final Level level;
-	private final String logMessage;
-	private final LogParam[] logParams;
+	void log(Object[] params);
 
-	public AccessLogger(Logger logger, Level level, String logMessage, LogParam... logParams) {
-		this.logger = logger;
-		this.level = level;
-		this.logMessage = logMessage;
-		this.logParams = logParams;
-	}
+	abstract class Common implements AccessLogger {
 
-	void log(final LogContext context) {
-		if (!logger.isLoggable(level))
-			return;
-		final Object[] parameters = new Object[logParams.length];
-		int i = 0;
-		for (final LogParam logParam : logParams) {
-			final Object param = logParam.supplier.apply(context);
-			parameters[i++] = param == null ? StringUtils.EMPTY : param;
+		final LogParam[] logParams;
+
+		protected Common(final LogParam... logParams) {
+			this.logParams = logParams;
 		}
-		logger.log(level, logMessage, parameters);
+
+		@Override
+		final public void accept(final LogContext context) {
+			log(LogParam.translate(context, logParams));
+		}
+
 	}
+
+	final class Jul extends Common {
+
+		private final String logMessage;
+		private final Logger logger;
+		private final Level level;
+
+		public Jul(Logger logger, Level level, String logMessage, LogParam... logParams) {
+			super(logParams);
+			this.logger = logger;
+			this.logMessage = logMessage;
+			this.level = level;
+		}
+
+		@Override
+		public void log(final Object[] params) {
+			if (logger.isLoggable(level))
+				logger.log(level, logMessage, params);
+		}
+	}
+
 }
