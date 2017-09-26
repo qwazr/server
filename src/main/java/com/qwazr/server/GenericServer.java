@@ -302,8 +302,6 @@ public class GenericServer {
 		LOGGER.info("The server is starting...");
 		LOGGER.info(() -> "Data directory sets to: " + configuration.dataDirectory);
 
-		java.util.logging.Logger.getLogger("").setLevel(Level.WARNING);
-
 		if (!configuration.dataDirectory.exists())
 			throw new IOException("The data directory does not exists: " + configuration.dataDirectory);
 		if (!configuration.dataDirectory.isDirectory())
