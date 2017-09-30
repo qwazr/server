@@ -16,7 +16,6 @@
 package com.qwazr.server;
 
 import com.qwazr.utils.RandomUtils;
-import org.apache.http.client.HttpResponseException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -77,14 +76,6 @@ public class ServerExceptionTest {
 		final NotFoundException notFoundException = new NotFoundException(random());
 		check(ServerException.of(notFoundException), Response.Status.NOT_FOUND, notFoundException.getMessage(),
 				notFoundException);
-	}
-
-	@Test
-	public void withStatusWithHttpResponseException() {
-		final String msg = random();
-		final HttpResponseException httpResponseException =
-				new HttpResponseException(Response.Status.BAD_REQUEST.getStatusCode(), msg);
-		check(ServerException.of(httpResponseException), Response.Status.BAD_REQUEST, msg, httpResponseException);
 	}
 
 	@Test

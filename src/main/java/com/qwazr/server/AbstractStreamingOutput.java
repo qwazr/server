@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,6 @@ package com.qwazr.server;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.ReaderInputStream;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.CloseableHttpResponse;
 
 import javax.ws.rs.core.StreamingOutput;
 import java.io.IOException;
@@ -30,10 +27,6 @@ import java.nio.charset.Charset;
 
 public abstract class AbstractStreamingOutput implements StreamingOutput {
 
-	final public static HttpResponseStreamingOutput with(final CloseableHttpResponse response) {
-		return new HttpResponseStreamingOutput(response);
-	}
-
 	final public static InputStreamingOutput with(final InputStream input) {
 		return new InputStreamingOutput(input);
 	}
@@ -43,38 +36,6 @@ public abstract class AbstractStreamingOutput implements StreamingOutput {
 	}
 
 	public abstract InputStream getInputStream() throws IOException;
-
-	final public static class HttpResponseStreamingOutput extends AbstractStreamingOutput {
-
-		private final CloseableHttpResponse response;
-
-		private HttpResponseStreamingOutput(final CloseableHttpResponse response) {
-			this.response = response;
-		}
-
-		final public InputStream getInputStream() throws IOException {
-			try {
-				if (response == null)
-					throw new ClientProtocolException("The response is null");
-				final HttpEntity entity = response.getEntity();
-				if (entity == null)
-					return null;
-				final InputStream input = entity.getContent();
-				if (input == null)
-					throw new ClientProtocolException("The entity content is empty");
-				return input;
-			} catch (ClientProtocolException e) {
-				IOUtils.closeQuietly(response);
-				throw e;
-			}
-		}
-
-		@Override
-		final public void write(final OutputStream output) throws IOException {
-			IOUtils.copy(getInputStream(), output);
-			IOUtils.closeQuietly(response);
-		}
-	}
 
 	public static class InputStreamingOutput extends AbstractStreamingOutput {
 

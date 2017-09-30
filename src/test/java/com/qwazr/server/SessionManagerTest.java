@@ -15,10 +15,6 @@
  */
 package com.qwazr.server;
 
-import com.qwazr.utils.http.HttpRequest;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.HttpClientContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -26,9 +22,14 @@ import org.junit.Test;
 
 import javax.management.JMException;
 import javax.servlet.ServletException;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.NewCookie;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 public class SessionManagerTest {
 
@@ -40,7 +41,6 @@ public class SessionManagerTest {
 	@Before
 	public void setup() throws IOException {
 		sessionDir = Files.createTempDirectory("sessionTest");
-		httpClientContext = new HttpClientContext();
 	}
 
 	@After
@@ -60,27 +60,25 @@ public class SessionManagerTest {
 		return server;
 	}
 
-	private HttpClientContext httpClientContext;
-
-	private void callServlet() throws IOException {
-		final HttpRequest.Base<HttpGet> request = HttpRequest.Get("http://localhost:9090/test_bis");
-		final CloseableHttpResponse response = request.execute(httpClientContext);
-		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-	}
-
 	@Test
 	public void test() throws ReflectiveOperationException, JMException, ServletException, IOException {
 
+		final WebTarget target = ClientBuilder.newClient().target("http://localhost:9090");
+
 		server1 = startNewServer();
-		callServlet();
+		Map<String, NewCookie> cookies = target.path("/test_bis").request().get().getCookies();
+
 		String firstSessionId = SimpleServlet.sessionId;
 		Assert.assertNotNull(firstSessionId);
 		server1.stop();
 		server1 = null;
 
 		server2 = startNewServer();
-		callServlet();
+		Invocation.Builder builder = target.path("/test_bis").request();
+		cookies.forEach((k, c) -> builder.cookie(c.toCookie()));
+		Assert.assertEquals(200, builder.get().getStatus());
 		Assert.assertEquals(firstSessionId, SimpleServlet.lastSessionAttribute);
+
 		server2.stop();
 		server2 = null;
 	}

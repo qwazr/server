@@ -23,6 +23,7 @@ import com.qwazr.utils.LinkUtils;
 import com.qwazr.utils.StringUtils;
 
 import javax.ws.rs.core.MultivaluedMap;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -266,13 +267,17 @@ public class RemoteService {
 		 * @return a new Builder
 		 */
 		public Builder setQuery(final String query) {
-			queryParams = LinkUtils.getQueryParameters(query);
-			if (queryParams == null)
+			try {
+				queryParams = LinkUtils.getQueryParameters(query);
+				if (queryParams == null)
+					return this;
+				final String s = queryParams.getFirst(TIMEOUT_PARAMETER);
+				if (s != null)
+					setTimeout(Integer.parseInt(s));
 				return this;
-			final String s = queryParams.getFirst(TIMEOUT_PARAMETER);
-			if (s != null)
-				setTimeout(Integer.parseInt(s));
-			return this;
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		/**

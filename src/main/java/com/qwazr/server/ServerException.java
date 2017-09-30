@@ -17,7 +17,6 @@ package com.qwazr.server;
 
 import com.qwazr.utils.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.client.HttpResponseException;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -101,9 +100,6 @@ public class ServerException extends RuntimeException {
 				return (ServerException) cause;
 			final WebApplicationException e = (WebApplicationException) throwable;
 			status = e.getResponse().getStatus();
-		} else if (throwable instanceof HttpResponseException) {
-			final HttpResponseException e = (HttpResponseException) throwable;
-			status = e.getStatusCode();
 		}
 		if (StringUtils.isBlank(message)) {
 			message = throwable.getMessage();

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,6 @@
  */
 package com.qwazr.server;
 
-import org.apache.http.HttpResponse;
 import org.junit.Assert;
 
 import javax.servlet.annotation.HttpConstraint;
@@ -24,6 +23,7 @@ import javax.servlet.annotation.ServletSecurity;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.security.Principal;
 
@@ -42,9 +42,9 @@ public class SecuredServlet extends SimpleServlet {
 		super.doGet(req, rep);
 	}
 
-	public static <T extends HttpResponse> T check(T response, String username) {
-		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-		Assert.assertEquals(username, response.getFirstHeader(HEADER_USER).getValue());
+	static Response check(Response response, String username) {
+		Assert.assertEquals(200, response.getStatus());
+		Assert.assertEquals(username, response.getHeaderString(HEADER_USER));
 		return response;
 	}
 }

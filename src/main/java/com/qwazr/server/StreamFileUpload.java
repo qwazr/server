@@ -1,5 +1,5 @@
-/**
- * Copyright 2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,8 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUpload;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.http.HttpEntity;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
@@ -37,8 +35,5 @@ public class StreamFileUpload extends FileUpload {
 		return parseRequest(new StreamRequestContext(contentType, contentLength, encoding, inputStream));
 	}
 
-	public List<FileItem> parse(final HttpEntity httpEntity) throws IOException, FileUploadException {
-		return parseRequest(new StreamRequestContext(httpEntity));
-	}
 }
 

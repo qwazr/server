@@ -16,10 +16,6 @@
 package com.qwazr.server;
 
 import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
-import com.qwazr.utils.ObjectMappers;
-import com.qwazr.utils.http.HttpRequest;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -30,11 +26,12 @@ import javax.management.MBeanException;
 import javax.management.OperationsException;
 import javax.servlet.ServletException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Map;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class SimpleServerTest {
+public class SimpleServerTest extends BaseServerTest {
 
 	private static SimpleServer server;
 
@@ -49,15 +46,15 @@ public class SimpleServerTest {
 	public void test200startServer() throws ReflectiveOperationException, JMException, ServletException, IOException {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
-		Assert.assertEquals(200, HttpRequest.Get("http://localhost:9091/").execute().getStatusLine().getStatusCode());
+		Assert.assertEquals(200, getClient().target("http://localhost:9091/").request().get().getStatus());
 		Assert.assertEquals(404,
-				HttpRequest.Get("http://localhost:9091/sdflksjflskdfj").execute().getStatusLine().getStatusCode());
+				getClient().target("http://localhost:9091/sdflksjflskdfj").request().get().getStatus());
 	}
 
 	@Test
 	public void test250welcomeStatus() throws IOException {
-		final WelcomeStatus welcomeStatus = ObjectMappers.JSON.readValue(
-				HttpRequest.Get("http://localhost:9091/").execute().getEntity().getContent(), WelcomeStatus.class);
+		final WelcomeStatus welcomeStatus =
+				getClient().target("http://localhost:9091/").request().get().readEntity(WelcomeStatus.class);
 		Assert.assertNotNull(welcomeStatus);
 		Assert.assertNotNull(welcomeStatus.webapp_endpoints);
 		Assert.assertNotNull(welcomeStatus.webservice_endpoints);
@@ -67,56 +64,49 @@ public class SimpleServerTest {
 
 	@Test
 	public void test300SimpleServletWithFilter() throws IOException {
-		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9090/test").execute()) {
-			Assert.assertEquals(server.contextAttribute, EntityUtils.toString(response.getEntity()));
-			Assert.assertEquals(SimpleFilter.TEST_VALUE, response.getFirstHeader(SimpleFilter.HEADER_NAME).getValue());
+		Response response = getClient().target("http://localhost:9090/test").request().get();
+		try {
+			Assert.assertEquals(SimpleFilter.TEST_VALUE, response.getHeaderString(SimpleFilter.HEADER_NAME));
+			Assert.assertEquals(server.contextAttribute, response.readEntity(String.class));
+		} finally {
+			response.close();
 		}
 	}
 
 	@Test
 	public void test301SimpleServletUrlMappingBis() throws IOException {
-		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9090/test_bis").execute()) {
-			Assert.assertEquals(server.contextAttribute, EntityUtils.toString(response.getEntity()));
-		}
+		Assert.assertEquals(server.contextAttribute,
+				getClient().target("http://localhost:9090/test_bis").request().get().readEntity(String.class));
 	}
 
 	@Test
 	public void test400LoadedService() throws IOException {
-		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/loaded").execute()) {
-			Assert.assertEquals(LoadedService.TEXT, EntityUtils.toString(response.getEntity()));
-		}
+		Assert.assertEquals(LoadedService.TEXT,
+				getClient().target("http://localhost:9091/loaded").request().get().readEntity(String.class));
 	}
 
 	@Test
 	public void test401LoadedServiceMapSmile() throws IOException {
-		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/loaded/map")
-				.addHeader("Accept", SmileMediaTypes.APPLICATION_JACKSON_SMILE)
-				.execute()) {
-			Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-			Map<String, String> map =
-					ObjectMappers.SMILE.readValue(response.getEntity().getContent(), LoadedService.mapType);
-			Assert.assertEquals(LoadedService.TEXT, map.get(LoadedService.SERVICE_NAME));
-		}
+		Map<String, String> map = getClient().target("http://localhost:9091/loaded/map")
+				.request(SmileMediaTypes.APPLICATION_JACKSON_SMILE)
+				.get()
+				.readEntity(LoadedService.mapType);
+		Assert.assertEquals(LoadedService.TEXT, map.get(LoadedService.SERVICE_NAME));
 	}
 
 	@Test
 	public void test401LoadedServiceMapJson() throws IOException {
-		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/loaded/map")
-				.addHeader("Accept", MediaType.APPLICATION_JSON)
-				.execute()) {
-			Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-			Map<String, String> map =
-					ObjectMappers.JSON.readValue(response.getEntity().getContent(), LoadedService.mapType);
-			Assert.assertEquals(LoadedService.TEXT, map.get(LoadedService.SERVICE_NAME));
-		}
+		Map<String, String> map = getClient().target("http://localhost:9091/loaded/map")
+				.request(MediaType.APPLICATION_JSON)
+				.get()
+				.readEntity(LoadedService.mapType);
+		Assert.assertEquals(LoadedService.TEXT, map.get(LoadedService.SERVICE_NAME));
 	}
 
 	@Test
 	public void test404() throws IOException {
-		try (final CloseableHttpResponse response = HttpRequest.Get("http://localhost:9091/sd404flsfjskdfj")
-				.execute()) {
-			Assert.assertEquals(404, response.getStatusLine().getStatusCode());
-		}
+		Assert.assertEquals(404,
+				getClient().target("http://localhost:9091/sd404flsfjskdfj").request().get().getStatus());
 	}
 
 	@Test

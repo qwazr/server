@@ -15,7 +15,6 @@
  */
 package com.qwazr.server;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
 import com.qwazr.utils.RandomUtils;
 
@@ -23,6 +22,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +48,7 @@ public class LoadedService extends AbstractServiceImpl {
 		return map;
 	}
 
-	final public static TypeReference<Map<String, String>> mapType = new TypeReference<Map<String, String>>() {
+	final static GenericType<Map<String, String>> mapType = new GenericType<Map<String, String>>() {
 	};
 
 }

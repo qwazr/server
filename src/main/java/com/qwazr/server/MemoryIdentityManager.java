@@ -1,4 +1,4 @@
-/**
+/*
  * s * Copyright 2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@ import io.undertow.security.idm.IdentityManager;
 import io.undertow.security.idm.PasswordCredential;
 import io.undertow.util.HexConverter;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.http.auth.UsernamePasswordCredentials;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -72,10 +71,6 @@ public class MemoryIdentityManager implements IdentityManager {
 
 	@Override
 	public Account verify(Credential credential) {
-		if (credential instanceof UsernamePasswordCredentials) {
-			final UsernamePasswordCredentials usernamePasswordCredentials = (UsernamePasswordCredentials) credential;
-			return verify(usernamePasswordCredentials.getUserName(), credential);
-		}
 		return null;
 	}
 
