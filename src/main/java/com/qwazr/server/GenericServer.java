@@ -272,6 +272,8 @@ public class GenericServer {
 		final Undertow.Builder servletBuilder = Undertow.builder()
 				.addHttpListener(connector.port, configuration.listenAddress)
 				.setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000)
+				.setServerOption(UndertowOptions.RECORD_REQUEST_START_TIME, true)
+				.setServerOption(UndertowOptions.ENABLE_STATISTICS, true)
 				.setHandler(httpHandler);
 		start(servletBuilder.build());
 

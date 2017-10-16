@@ -53,8 +53,8 @@ public enum LogParam {
 
 	TIME(13, "time", ctx -> getTime(ctx.logDateTime)),
 
-	TIME_TAKEN(14, "time-taken",
-			ctx -> Float.toString(ctx.nanoStartTime == -1 ? 0 : (ctx.nanoEndTime - ctx.nanoStartTime) / 1000000000)),
+	TIME_TAKEN(14, "time-taken", ctx -> Float.toString(
+			ctx.nanoStartTime == -1 ? 0 : (float) (ctx.nanoEndTime - ctx.nanoStartTime) / 1000000000)),
 
 	CS_BYTES(15, "cs-bytes", ctx -> Long.toString(ctx.exchange.getRequestContentLength())),
 
