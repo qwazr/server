@@ -15,8 +15,8 @@
  */
 package com.qwazr.server.client;
 
-import com.qwazr.utils.FunctionUtils;
 import com.qwazr.utils.RandomArrayIterator;
+import com.qwazr.utils.concurrent.FunctionEx;
 
 import javax.ws.rs.WebApplicationException;
 import java.util.ArrayList;
@@ -58,7 +58,7 @@ public class MultiClient<T> implements Iterable<T> {
 		return t instanceof WebApplicationException ? (WebApplicationException) t : new WebApplicationException(t);
 	}
 
-	protected <R> R firstRandomSuccess(final FunctionUtils.FunctionEx<T, R, Exception> action,
+	protected <R> R firstRandomSuccess(final FunctionEx<T, R, Exception> action,
 			final Consumer<WebApplicationException> exceptions) {
 		if (clients == null || clients.length == 0)
 			return null;
@@ -76,7 +76,7 @@ public class MultiClient<T> implements Iterable<T> {
 		return null;
 	}
 
-	protected <R> R firstRandomSuccess(final FunctionUtils.FunctionEx<T, R, Exception> action, final Logger logger) {
+	protected <R> R firstRandomSuccess(final FunctionEx<T, R, Exception> action, final Logger logger) {
 		final MultiWebApplicationException.Builder errors = MultiWebApplicationException.of(logger);
 		final R result = firstRandomSuccess(action, errors::add);
 		if (errors.isEmpty())
@@ -84,7 +84,7 @@ public class MultiClient<T> implements Iterable<T> {
 		throw errors.build();
 	}
 
-	protected <R> List<R> forEachParallel(final FunctionUtils.FunctionEx<T, R, Exception> action,
+	protected <R> List<R> forEachParallel(final FunctionEx<T, R, Exception> action,
 			final Consumer<WebApplicationException> exceptions) {
 
 		if (clients == null || clients.length == 0)
@@ -111,7 +111,7 @@ public class MultiClient<T> implements Iterable<T> {
 		return results;
 	}
 
-	protected <R> List<R> forEachParallel(final FunctionUtils.FunctionEx<T, R, Exception> action, final Logger logger) {
+	protected <R> List<R> forEachParallel(final FunctionEx<T, R, Exception> action, final Logger logger) {
 		final MultiWebApplicationException.Builder errors = MultiWebApplicationException.of(logger);
 		final List<R> results = forEachParallel(action, errors::add);
 		if (errors.isEmpty())

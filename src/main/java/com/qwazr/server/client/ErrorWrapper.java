@@ -16,7 +16,7 @@
 package com.qwazr.server.client;
 
 import com.qwazr.server.ServerException;
-import com.qwazr.utils.FunctionUtils;
+import com.qwazr.utils.concurrent.CallableEx;
 
 import javax.ws.rs.WebApplicationException;
 
@@ -51,8 +51,7 @@ public class ErrorWrapper {
 		}
 	}
 
-	public static <T, E extends Exception> T bypass(FunctionUtils.CallableEx<T, E> callable, int... statusCode)
-			throws E {
+	public static <T, E extends Exception> T bypass(CallableEx<T, E> callable, int... statusCode) throws E {
 		try {
 			return callable.call();
 		} catch (WebApplicationException e) {
