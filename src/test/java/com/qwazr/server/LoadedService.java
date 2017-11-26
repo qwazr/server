@@ -18,6 +18,7 @@ package com.qwazr.server;
 import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
 import com.qwazr.utils.RandomUtils;
 
+import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -28,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Path("/" + LoadedService.SERVICE_NAME)
+@Singleton
 public class LoadedService extends AbstractServiceImpl {
 
 	public final static String SERVICE_NAME = "loaded";

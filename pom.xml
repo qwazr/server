@@ -21,7 +21,7 @@
     </scm>
 
     <properties>
-        <undertow.version>1.4.20.Final</undertow.version>
+        <undertow.version>1.4.21.Final</undertow.version>
     </properties>
 
     <dependencies>
@@ -67,21 +67,5 @@
             <artifactId>jersey-hk2</artifactId>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.20</version>
-                <configuration>
-                    <systemPropertyVariables>
-                        <java.util.logging.config.file>
-                            src/test/resources/logging.properties
-                        </java.util.logging.config.file>
-                    </systemPropertyVariables>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>

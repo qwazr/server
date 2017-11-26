@@ -18,6 +18,7 @@ package com.qwazr.server;
 import com.qwazr.utils.LoggerUtils;
 
 import javax.annotation.security.RolesAllowed;
+import javax.inject.Singleton;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.Path;
 import java.util.logging.Level;
@@ -25,6 +26,7 @@ import java.util.logging.Logger;
 
 @RolesAllowed("welcome")
 @Path("/")
+@Singleton
 public class WelcomeShutdownService extends WelcomeService {
 
 	static final private Logger LOGGER = LoggerUtils.getLogger(WelcomeShutdownService.class);
