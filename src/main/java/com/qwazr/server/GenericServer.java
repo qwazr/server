@@ -183,7 +183,7 @@ public class GenericServer {
 
 		LOGGER.info("The server is stopping...");
 
-		executeListener(shutdownListeners, false);
+		executeListener(shutdownListeners, LOGGER);
 
 		if (udpServer != null) {
 			try {
@@ -319,7 +319,7 @@ public class GenericServer {
 		if (shutdownHook)
 			Runtime.getRuntime().addShutdownHook(new Thread(this::stopAll));
 
-		executeListener(startedListeners, false);
+		executeListener(startedListeners, null);
 
 		LOGGER.info("The server started successfully.");
 	}
@@ -328,19 +328,19 @@ public class GenericServer {
 		return connectorsStatistics;
 	}
 
+	@FunctionalInterface
 	public interface Listener {
-
-		void accept(GenericServer server);
+		void accept(GenericServer server) throws Exception;
 	}
 
-	private void executeListener(final Collection<Listener> listeners, final boolean silent) {
+	private void executeListener(final Collection<Listener> listeners, final Logger logger) {
 		if (listeners == null)
 			return;
 		listeners.forEach(listener -> {
 			try {
 				listener.accept(this);
 			} catch (Exception e) {
-				if (!silent)
+				if (logger == null)
 					throw ServerException.of("Listeners failure", e);
 				else
 					LOGGER.log(Level.SEVERE, e, e::getMessage);
