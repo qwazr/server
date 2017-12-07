@@ -22,9 +22,8 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import javax.management.JMException;
-import javax.management.MBeanException;
-import javax.management.OperationsException;
 import javax.servlet.ServletException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -36,8 +35,7 @@ public class SimpleServerTest extends BaseServerTest {
 	private static SimpleServer server;
 
 	@Test
-	public void test100createServer()
-			throws IOException, ReflectiveOperationException, OperationsException, ServletException, MBeanException {
+	public void test100createServer() throws IOException {
 		server = new SimpleServer();
 		Assert.assertNotNull(server.getServer());
 	}
@@ -52,18 +50,18 @@ public class SimpleServerTest extends BaseServerTest {
 	}
 
 	@Test
-	public void test250welcomeStatus() throws IOException {
+	public void test250welcomeStatus() {
 		final WelcomeStatus welcomeStatus =
 				getClient().target("http://localhost:9091/").request().get().readEntity(WelcomeStatus.class);
 		Assert.assertNotNull(welcomeStatus);
 		Assert.assertNotNull(welcomeStatus.webapp_endpoints);
 		Assert.assertNotNull(welcomeStatus.webservice_endpoints);
 		Assert.assertEquals(2, welcomeStatus.webapp_endpoints.size());
-		Assert.assertEquals(3, welcomeStatus.webservice_endpoints.size());
+		Assert.assertEquals(4, welcomeStatus.webservice_endpoints.size());
 	}
 
 	@Test
-	public void test300SimpleServletWithFilter() throws IOException {
+	public void test300SimpleServletWithFilter() {
 		Response response = getClient().target("http://localhost:9090/test").request().get();
 		try {
 			Assert.assertEquals(SimpleFilter.TEST_VALUE, response.getHeaderString(SimpleFilter.HEADER_NAME));
@@ -74,19 +72,19 @@ public class SimpleServerTest extends BaseServerTest {
 	}
 
 	@Test
-	public void test301SimpleServletUrlMappingBis() throws IOException {
+	public void test301SimpleServletUrlMappingBis() {
 		Assert.assertEquals(server.contextAttribute,
 				getClient().target("http://localhost:9090/test_bis").request().get().readEntity(String.class));
 	}
 
 	@Test
-	public void test400LoadedService() throws IOException {
+	public void test400LoadedService() {
 		Assert.assertEquals(LoadedService.TEXT,
 				getClient().target("http://localhost:9091/loaded").request().get().readEntity(String.class));
 	}
 
 	@Test
-	public void test401LoadedServiceMapSmile() throws IOException {
+	public void test401LoadedServiceMapSmile() {
 		Map<String, String> map = getClient().target("http://localhost:9091/loaded/map")
 				.request(SmileMediaTypes.APPLICATION_JACKSON_SMILE)
 				.get()
@@ -95,7 +93,7 @@ public class SimpleServerTest extends BaseServerTest {
 	}
 
 	@Test
-	public void test401LoadedServiceMapJson() throws IOException {
+	public void test401LoadedServiceMapJson() {
 		Map<String, String> map = getClient().target("http://localhost:9091/loaded/map")
 				.request(MediaType.APPLICATION_JSON)
 				.get()
@@ -104,9 +102,42 @@ public class SimpleServerTest extends BaseServerTest {
 	}
 
 	@Test
-	public void test404() throws IOException {
+	public void test404() {
 		Assert.assertEquals(404,
 				getClient().target("http://localhost:9091/sd404flsfjskdfj").request().get().getStatus());
+	}
+
+	@Test
+	public void test500ErrorJson() {
+		try {
+			getClient().target("http://localhost:9091/error").request(MediaType.APPLICATION_JSON).get(String.class);
+			Assert.fail("WebApplicationException not thrown");
+		} catch (WebApplicationException e) {
+			e = ServerException.from(e);
+			Assert.assertEquals("Not Acceptable Error", e.getMessage());
+		}
+	}
+
+	@Test
+	public void test500ErrorText() {
+		try {
+			getClient().target("http://localhost:9091/error").request(MediaType.TEXT_PLAIN).get(String.class);
+			Assert.fail("WebApplicationException not thrown");
+		} catch (WebApplicationException e) {
+			e = ServerException.from(e);
+			Assert.assertTrue(e.getMessage().startsWith("Not Acceptable Error"));
+		}
+	}
+
+	@Test
+	public void test500ErrorHtml() {
+		try {
+			getClient().target("http://localhost:9091/error").request(MediaType.TEXT_HTML).get(String.class);
+			Assert.fail("WebApplicationException not thrown");
+		} catch (WebApplicationException e) {
+			e = ServerException.from(e);
+			Assert.assertTrue(e.getMessage().startsWith("<html><body><h2>Error 406</h2>"));
+		}
 	}
 
 	@Test

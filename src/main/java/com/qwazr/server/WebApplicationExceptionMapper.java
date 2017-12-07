@@ -15,20 +15,19 @@
  */
 package com.qwazr.server;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
-
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-public class JsonMappingExceptionMapper implements ExceptionMapper<JsonMappingException> {
+public class WebApplicationExceptionMapper implements ExceptionMapper<WebApplicationException> {
 
 	@Context
 	private HttpHeaders headers;
 
 	@Override
-	public Response toResponse(final JsonMappingException exception) {
+	public Response toResponse(final WebApplicationException exception) {
 		return ServerException.toResponse(headers, exception);
 	}
 }

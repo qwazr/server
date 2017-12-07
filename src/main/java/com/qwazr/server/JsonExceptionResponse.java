@@ -29,7 +29,7 @@ import javax.ws.rs.core.Response.Status;
 import java.util.Date;
 
 @JsonInclude(Include.NON_EMPTY)
-public class JsonExceptionReponse {
+public class JsonExceptionResponse {
 
 	public final Date date;
 	@JsonProperty("status_code")
@@ -40,7 +40,7 @@ public class JsonExceptionReponse {
 	public final String[] stackTraces;
 
 	@JsonCreator
-	JsonExceptionReponse(@JsonProperty("date") Date date, @JsonProperty("status_code") Integer statusCode,
+	JsonExceptionResponse(@JsonProperty("date") Date date, @JsonProperty("status_code") Integer statusCode,
 			@JsonProperty("message") String message, @JsonProperty("exception") String exception,
 			@JsonProperty("stack_traces") String[] stackTraces) {
 		this.date = date;
@@ -50,14 +50,14 @@ public class JsonExceptionReponse {
 		this.stackTraces = stackTraces;
 	}
 
-	JsonExceptionReponse(Builder builder) {
+	JsonExceptionResponse(Builder builder) {
 		this(builder.date, builder.statusCode, builder.message, builder.exception, builder.stackTraces);
 	}
 
-	public Response toResponse() {
+	public Response toJson() {
 		try {
 			final String jsonMessage = ObjectMappers.JSON.writeValueAsString(this);
-			return Response.status(statusCode).type(ServiceInterface.APPLICATION_JSON_UTF8).entity(jsonMessage).build();
+			return Response.status(statusCode).type(MediaType.APPLICATION_JSON).entity(jsonMessage).build();
 		} catch (JsonProcessingException e) {
 			return Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(message).build();
 		}
@@ -106,8 +106,8 @@ public class JsonExceptionReponse {
 			return this;
 		}
 
-		public JsonExceptionReponse build() {
-			return new JsonExceptionReponse(this);
+		public JsonExceptionResponse build() {
+			return new JsonExceptionResponse(this);
 		}
 	}
 

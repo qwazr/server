@@ -36,7 +36,7 @@ public class SimpleServer implements BaseServer {
 	private final Logger accessLogger = LoggerUtils.getLogger(SimpleServer.class);
 	public final LogHandler logHandler = new LogHandler();
 
-	SimpleServer(SessionPersistenceManager sessionManager) throws IOException, ClassNotFoundException {
+	SimpleServer(SessionPersistenceManager sessionManager) throws IOException {
 
 		GenericServerBuilder builder = GenericServer.of(ServerConfiguration.of().build())
 				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute);
@@ -51,7 +51,7 @@ public class SimpleServer implements BaseServer {
 				.jaxrs(ApplicationBuilder.of("/*")
 						.classes(RestApplication.JSON_CLASSES)
 						.loadServices()
-						.singletons(new WelcomeShutdownService()));
+						.singletons(new WelcomeShutdownService(), new ErrorService()));
 
 		if (sessionManager != null)
 			builder.sessionPersistenceManager(sessionManager);
@@ -59,7 +59,7 @@ public class SimpleServer implements BaseServer {
 		server = builder.build();
 	}
 
-	SimpleServer() throws IOException, ClassNotFoundException {
+	SimpleServer() throws IOException {
 		this(null);
 	}
 

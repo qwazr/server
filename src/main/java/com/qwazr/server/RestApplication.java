@@ -35,7 +35,8 @@ public abstract class RestApplication extends Application {
 	public static final Class<?>[] JSON_CLASSES = { JacksonConfig.class,
 			JacksonJsonProvider.class,
 			JacksonSmileProvider.class,
-			JsonMappingExceptionMapper.class };
+			JsonMappingExceptionMapper.class,
+			WebApplicationExceptionMapper.class };
 
 	@Context
 	private ServletContext context;

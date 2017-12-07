@@ -15,20 +15,23 @@
  */
 package com.qwazr.server;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
+import javax.annotation.security.RolesAllowed;
+import javax.ws.rs.GET;
+import javax.ws.rs.NotAcceptableException;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
+@RolesAllowed(ErrorService.SERVICE_NAME)
+@Path("/error")
+public class ErrorService extends AbstractServiceImpl {
 
-public class JsonMappingExceptionMapper implements ExceptionMapper<JsonMappingException> {
+	public final static String SERVICE_NAME = "error";
 
-	@Context
-	private HttpHeaders headers;
-
-	@Override
-	public Response toResponse(final JsonMappingException exception) {
-		return ServerException.toResponse(headers, exception);
+	@GET
+	@Produces(value = { MediaType.APPLICATION_JSON, MediaType.TEXT_HTML, MediaType.TEXT_PLAIN })
+	public Object error() {
+		throw new NotAcceptableException("Not Acceptable Error");
 	}
+
 }

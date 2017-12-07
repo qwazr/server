@@ -15,12 +15,16 @@
  */
 package com.qwazr.server;
 
+import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
 import com.qwazr.utils.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
+import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -67,21 +71,58 @@ public class ServerException extends RuntimeException {
 		return this;
 	}
 
-	public WebApplicationException getTextException() {
+	WebApplicationException getTextException(boolean withStackTrace) {
 		final String message = getMessage();
-		final Response response = Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(message).build();
+		final StringBuilder sb = new StringBuilder(message);
+		if (withStackTrace) {
+			sb.append("\n");
+			sb.append(ExceptionUtils.getStackTrace(this));
+		}
+		final Response response = Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(sb.toString()).build();
 		return new WebApplicationException(message, this, response);
 	}
 
-	public WebApplicationException getJsonException(boolean withStackTrace) {
+	WebApplicationException getHtmlException(boolean withStackTrace) {
 		final String message = getMessage();
-		final Response response = JsonExceptionReponse.of()
+		final StringBuilder sb = new StringBuilder();
+		sb.append("<html><body><h2>Error ");
+		sb.append(statusCode);
+		sb.append("</h2>\n<p><pre><code>\n");
+		sb.append(message);
+		sb.append("\n</code></pre></p>");
+		if (withStackTrace) {
+			sb.append("<p><pre><code>\n");
+			sb.append(ExceptionUtils.getStackTrace(this));
+			sb.append("\n</code></pre></p>\n</body></html>");
+		}
+		final Response response = Response.status(statusCode).type(MediaType.TEXT_HTML).entity(sb.toString()).build();
+		return new WebApplicationException(message, this, response);
+	}
+
+	WebApplicationException getJsonException(boolean withStackTrace) {
+		final String message = getMessage();
+		final Response response = JsonExceptionResponse.of()
 				.status(statusCode)
 				.exception(this, withStackTrace)
 				.message(message)
 				.build()
-				.toResponse();
+				.toJson();
 		return new WebApplicationException(message, this, response);
+	}
+
+	public static Response toResponse(final HttpHeaders headers, final Exception exception) {
+		if (headers != null) {
+			final List<MediaType> mediaTypes = headers.getAcceptableMediaTypes();
+			if (mediaTypes != null) {
+				for (MediaType mediaType : mediaTypes) {
+					if (mediaType.isCompatible(MediaType.APPLICATION_JSON_TYPE))
+						return ServerException.getJsonException(null, exception).getResponse();
+					if (mediaType.isCompatible(MediaType.TEXT_HTML_TYPE))
+						return ServerException.getHtmlException(null, exception).getResponse();
+				}
+			}
+		}
+		return ServerException.getTextException(null, exception).getResponse();
 	}
 
 	public static ServerException of(final Throwable throwable) {
@@ -133,7 +174,7 @@ public class ServerException extends RuntimeException {
 		final WebApplicationException wae = checkCompatible(e, MediaType.TEXT_PLAIN_TYPE);
 		if (wae != null)
 			return wae;
-		return of(e).warnIfCause(logger).getTextException();
+		return of(e).warnIfCause(logger).getTextException(logger == null);
 	}
 
 	public static WebApplicationException getJsonException(final Logger logger, final Exception e) {
@@ -141,6 +182,37 @@ public class ServerException extends RuntimeException {
 		if (wae != null)
 			return wae;
 		return of(e).warnIfCause(logger).getJsonException(logger == null);
+	}
+
+	public static WebApplicationException getHtmlException(final Logger logger, final Exception e) {
+		final WebApplicationException wae = checkCompatible(e, MediaType.TEXT_HTML_TYPE);
+		if (wae != null)
+			return wae;
+		return of(e).warnIfCause(logger).getHtmlException(logger == null);
+	}
+
+	public static WebApplicationException from(final WebApplicationException webAppException) {
+		final Response response = webAppException.getResponse();
+		if (response == null)
+			return webAppException;
+		final MediaType type = response.getMediaType();
+		if (type == null || !response.hasEntity())
+			return webAppException;
+		final String message;
+		if (type.isCompatible(MediaType.TEXT_PLAIN_TYPE) || type.isCompatible(MediaType.TEXT_HTML_TYPE)) {
+			message = response.readEntity(String.class);
+		} else if (type.isCompatible(MediaType.APPLICATION_JSON_TYPE) ||
+				type.isCompatible(SmileMediaTypes.APPLICATION_JACKSON_SMILE_TYPE)) {
+			try {
+				message = response.readEntity(JsonExceptionResponse.class).message;
+			} catch (ProcessingException e) {
+				return webAppException;
+			}
+		} else
+			return webAppException;
+		return StringUtils.isBlank(message) ?
+				webAppException :
+				new WebApplicationException(message, response.getStatus());
 	}
 
 }
