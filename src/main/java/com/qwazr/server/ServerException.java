@@ -71,7 +71,7 @@ public class ServerException extends RuntimeException {
 		return this;
 	}
 
-	WebApplicationException getTextException(boolean withStackTrace) {
+	public WebApplicationException getTextException(boolean withStackTrace) {
 		final String message = getMessage();
 		final StringBuilder sb = new StringBuilder(message);
 		if (withStackTrace) {
@@ -82,7 +82,7 @@ public class ServerException extends RuntimeException {
 		return new WebApplicationException(message, this, response);
 	}
 
-	WebApplicationException getHtmlException(boolean withStackTrace) {
+	public WebApplicationException getHtmlException(boolean withStackTrace) {
 		final String message = getMessage();
 		final StringBuilder sb = new StringBuilder();
 		sb.append("<html><body><h2>Error ");
@@ -99,7 +99,7 @@ public class ServerException extends RuntimeException {
 		return new WebApplicationException(message, this, response);
 	}
 
-	WebApplicationException getJsonException(boolean withStackTrace) {
+	public WebApplicationException getJsonException(boolean withStackTrace) {
 		final String message = getMessage();
 		final Response response = JsonExceptionResponse.of()
 				.status(statusCode)
