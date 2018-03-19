@@ -25,6 +25,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -126,7 +127,7 @@ public class ServerException extends RuntimeException {
 	}
 
 	public static ServerException of(final Throwable throwable) {
-		return of(throwable.getMessage(), throwable);
+		return of(Objects.requireNonNull(throwable, "Throwable cannot be null").getMessage(), throwable);
 	}
 
 	public static ServerException of(String message, final Throwable throwable) {

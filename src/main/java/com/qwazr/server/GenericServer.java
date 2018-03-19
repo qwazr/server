@@ -92,8 +92,7 @@ public class GenericServer {
 
 	static final private Logger LOGGER = LoggerUtils.getLogger(GenericServer.class);
 
-	GenericServer(final GenericServerBuilder builder)
-			throws IOException, ClassNotFoundException, InstantiationException {
+	GenericServer(final GenericServerBuilder builder) throws IOException {
 
 		this.configuration = builder.configuration;
 		this.executorService =
