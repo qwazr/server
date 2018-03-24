@@ -59,11 +59,7 @@ public class GenericServerBuilder {
 	}
 
 	public GenericServer build() throws IOException {
-		try {
-			return new GenericServer(this);
-		} catch (ClassNotFoundException | InstantiationException e) {
-			throw ServerException.of(e);
-		}
+		return new GenericServer(this);
 	}
 
 	public ServletContextBuilder getWebAppContext() {
