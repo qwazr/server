@@ -16,7 +16,9 @@
 package com.qwazr.server;
 
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -31,14 +33,14 @@ public class SecuredDigestServerTest extends BaseServerTest {
 
 	private static SecuredDigestServer server;
 
-	@Test
-	public void test100createServer() throws IOException, ServletException {
+	@BeforeClass
+	public static void setupClas() throws IOException {
 		server = new SecuredDigestServer();
 		Assert.assertNotNull(server.getServer());
 	}
 
 	@Test
-	public void test200startServer() throws ReflectiveOperationException, JMException, ServletException, IOException {
+	public void test200startServer() throws JMException, ServletException, IOException {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
 		Assert.assertEquals(200, getClient().target("http://localhost:9091/").request().get().getStatus());
@@ -47,31 +49,32 @@ public class SecuredDigestServerTest extends BaseServerTest {
 	}
 
 	@Test
-	public void test300SimpleServlet() throws IOException {
+	public void test300SimpleServlet() {
 		Assert.assertEquals(server.contextAttribute,
 				getClient().target("http://localhost:9090/test").request().get().readEntity(String.class));
 	}
 
 	@Test
-	public void test400SecuredNonAuthServlet() throws IOException {
+	public void test400SecuredNonAuthServlet() {
 		Assert.assertEquals(401, getClient().target("http://localhost:9090/secured").request().get().getStatus());
 	}
 
 	@Test
-	public void test410SecuredLoginSuccessfulServlet() throws IOException {
+	public void test410SecuredLoginSuccessfulServlet() {
 		final Client client = getClient(HttpAuthenticationFeature.digest(server.digestUsername, server.digestPassword));
 		SecuredServlet.check(client.target("http://localhost:9090/secured").request().get(), server.digestUsername)
 				.close();
 	}
 
 	@Test
-	public void test415SecuredLoginFailureServlet() throws IOException {
+	public void test415SecuredLoginFailureServlet() {
 		final Client client = getClient(HttpAuthenticationFeature.digest(server.digestUsername, "---"));
 		Assert.assertEquals(401, client.target("http://localhost:9090/secured").request().get().getStatus());
 	}
 
-	@Test
-	public void test900stopServer() {
+	@AfterClass
+	public static void cleanupClass() {
 		server.stop();
 	}
+
 }

@@ -15,20 +15,26 @@
  */
 package com.qwazr.server;
 
+import com.qwazr.utils.concurrent.ThreadUtils;
+import org.apache.commons.lang3.SystemUtils;
+
 import javax.management.JMException;
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 public interface BaseServer {
 
 	GenericServer getServer();
 
-	default void start() throws ReflectiveOperationException, JMException, ServletException, IOException {
+	default void start() throws JMException, ServletException, IOException {
 		getServer().start(true);
 	}
 
 	default void stop() {
 		getServer().stopAll();
+		if (SystemUtils.IS_OS_WINDOWS) // Gracefull shutdown on Windows
+			ThreadUtils.sleep(10, TimeUnit.SECONDS);
 	}
 
 }

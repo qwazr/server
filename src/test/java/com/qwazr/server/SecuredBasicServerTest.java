@@ -16,7 +16,9 @@
 package com.qwazr.server;
 
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -31,14 +33,14 @@ public class SecuredBasicServerTest extends BaseServerTest {
 
 	private static SecuredBasicServer server;
 
-	@Test
-	public void test100createServer() throws IOException, ReflectiveOperationException {
+	@BeforeClass
+	public static void setupClass() throws IOException {
 		server = new SecuredBasicServer();
 		Assert.assertNotNull(server.getServer());
 	}
 
 	@Test
-	public void test200startServer() throws ReflectiveOperationException, JMException, ServletException, IOException {
+	public void test200startServer() throws JMException, ServletException, IOException {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
 		Assert.assertEquals(200, getClient().target("http://localhost:9091/").request().get().getStatus());
@@ -47,30 +49,30 @@ public class SecuredBasicServerTest extends BaseServerTest {
 	}
 
 	@Test
-	public void test300SimpleServlet() throws IOException {
+	public void test300SimpleServlet() {
 		Assert.assertEquals(server.contextAttribute,
 				getClient().target("http://localhost:9090/test").request().get().readEntity(String.class));
 	}
 
 	@Test
-	public void test400SecuredNonAuthServlet() throws IOException {
+	public void test400SecuredNonAuthServlet() {
 		Assert.assertEquals(401, getClient().target("http://localhost:9090/secured").request().get().getStatus());
 	}
 
 	@Test
-	public void test410SecuredBasicLoginSuccessfulServlet() throws IOException {
+	public void test410SecuredBasicLoginSuccessfulServlet() {
 		SecuredServlet.check(
 				getClient(HttpAuthenticationFeature.basic(server.basicUsername, server.basicPassword)).target(
 						"http://localhost:9090/secured").request().get(), server.basicUsername).close();
 	}
 
 	@Test
-	public void test415SecuredBasicLoginFailureServlet() throws IOException {
+	public void test415SecuredBasicLoginFailureServlet() {
 		final Client client = getClient(HttpAuthenticationFeature.basic(server.basicUsername, "--"));
 		Assert.assertEquals(401, client.target("http://localhost:9090/secured").request().get().getStatus());
 	}
 
-	private void checkAppAuth(String path) throws IOException {
+	private void checkAppAuth(String path) {
 		Assert.assertEquals(401, getClient().target(path + "auth/test").request().get().getStatus());
 		Assert.assertEquals(401,
 				getClient(HttpAuthenticationFeature.basic(server.basicUsername, "--")).target(path + "auth/test")
@@ -84,17 +86,17 @@ public class SecuredBasicServerTest extends BaseServerTest {
 	}
 
 	@Test
-	public void test500AppJaxRsAuth() throws IOException {
+	public void test500AppJaxRsAuth() {
 		checkAppAuth("http://localhost:9090/jaxrs-app-auth/");
 	}
 
 	@Test
-	public void test505AppJaxRsAuthSingletons() throws IOException {
+	public void test505AppJaxRsAuthSingletons() {
 		checkAppAuth("http://localhost:9090/jaxrs-app-auth-singletons/");
 	}
 
-	@Test
-	public void test900stopServer() {
+	@AfterClass
+	public static void cleanupClass() {
 		server.stop();
 	}
 }

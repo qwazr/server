@@ -192,24 +192,30 @@ public class GenericServer {
 			}
 		}
 
-		for (DeploymentManager manager : deploymentManagers) {
+		for (final DeploymentManager manager : deploymentManagers) {
 			try {
 				if (manager.getState() == DeploymentManager.State.STARTED)
 					manager.stop();
 				if (manager.getState() == DeploymentManager.State.DEPLOYED)
 					manager.undeploy();
-			} catch (ServletException e) {
+			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, e, () -> "Cannot stop the manager: " + e.getMessage());
 			}
 		}
 
-		undertows.forEach(Undertow::stop);
+		for (final Undertow undertow : undertows) {
+			try {
+				undertow.stop();
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, e, () -> "Cannot stop Undertow: " + e.getMessage());
+			}
+		}
 
 		executorService.shutdown();
 		try {
 			executorService.awaitTermination(2, TimeUnit.MINUTES);
 		} catch (InterruptedException e) {
-			LOGGER.log(Level.WARNING, e, e::getMessage);
+			LOGGER.log(Level.WARNING, e, () -> "Executor shutdown failed: " + e.getMessage());
 		}
 
 		// Unregister MBeans
@@ -297,8 +303,7 @@ public class GenericServer {
 	 * @throws ReflectiveOperationException if a class instanciation failed
 	 * @throws JMException                  if any JMX error occurs
 	 */
-	final public void start(boolean shutdownHook)
-			throws IOException, ServletException, ReflectiveOperationException, JMException {
+	final public void start(boolean shutdownHook) throws IOException, ServletException, JMException {
 
 		LOGGER.info("The server is starting...");
 		LOGGER.info(() -> "Data directory sets to: " + configuration.dataDirectory);

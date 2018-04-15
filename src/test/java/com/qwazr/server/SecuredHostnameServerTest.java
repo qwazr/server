@@ -15,14 +15,14 @@
  */
 package com.qwazr.server;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import javax.management.JMException;
-import javax.management.MBeanException;
-import javax.management.OperationsException;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
@@ -31,15 +31,14 @@ public class SecuredHostnameServerTest extends BaseServerTest {
 
 	private static SecuredHostnameServer server;
 
-	@Test
-	public void test100createServer()
-			throws IOException, ReflectiveOperationException, OperationsException, ServletException, MBeanException {
+	@BeforeClass
+	public static void setupClass() throws IOException {
 		server = new SecuredHostnameServer();
 		Assert.assertNotNull(server.getServer());
 	}
 
 	@Test
-	public void test200startServer() throws ReflectiveOperationException, JMException, ServletException, IOException {
+	public void test200startServer() throws JMException, ServletException, IOException {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
 
@@ -51,7 +50,7 @@ public class SecuredHostnameServerTest extends BaseServerTest {
 	}
 
 	@Test
-	public void test300SimpleServlet() throws IOException {
+	public void test300SimpleServlet() {
 		Assert.assertEquals(server.contextAttribute,
 				getClient().target("http://localhost:9090/test").request().get().readEntity(String.class));
 	}
@@ -75,8 +74,8 @@ public class SecuredHostnameServerTest extends BaseServerTest {
 		Assert.assertEquals(401, getClient().target("http://localhost:9090/secured").request().get().getStatus());
 	}
 
-	@Test
-	public void test900stopServer() {
+	@AfterClass
+	public static void cleanupClass() {
 		server.stop();
 	}
 }
