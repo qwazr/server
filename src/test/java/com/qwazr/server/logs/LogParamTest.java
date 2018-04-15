@@ -29,9 +29,9 @@ public class LogParamTest {
 		Assert.assertEquals("1234", LogParam.TIME_TAKEN.supplier.apply(logContext));
 
 		logContext.nanoStartTime = System.nanoTime();
-		Thread.sleep(1000);
+		Thread.sleep(1500);
 		logContext.nanoEndTime = System.nanoTime();
 		final int time = Integer.valueOf(LogParam.TIME_TAKEN.supplier.apply(logContext));
-		Assert.assertTrue("False time value: " + time, time >= 1000 && time <= 2000);
+		Assert.assertTrue("False time value: " + time, time >= 1000 && time <= 3000);
 	}
 }
