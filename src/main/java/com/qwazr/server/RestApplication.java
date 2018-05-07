@@ -23,8 +23,10 @@ import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -32,33 +34,32 @@ import java.util.Set;
  */
 public abstract class RestApplication extends Application {
 
-	public static final Class<?>[] JSON_CLASSES = { JacksonConfig.class,
-			JacksonJsonProvider.class,
-			JacksonSmileProvider.class,
-			JsonMappingExceptionMapper.class,
-			WebApplicationExceptionMapper.class };
+    public static final List<Class<?>> JSON_CLASSES =
+            Collections.unmodifiableList(Arrays.asList(JacksonConfig.class,
+                    JacksonJsonProvider.class,
+                    JacksonSmileProvider.class,
+                    JsonMappingExceptionMapper.class,
+                    WebApplicationExceptionMapper.class));
 
-	@Context
-	private ServletContext context;
+    @Context
+    private ServletContext context;
 
-	public static class WithoutAuth extends RestApplication {
+    public static class WithoutAuth extends RestApplication {
 
-		@Override
-		public Set<Class<?>> getClasses() {
-			final Set<Class<?>> classes = new LinkedHashSet<>();
-			Collections.addAll(classes, JSON_CLASSES);
-			return classes;
-		}
+        @Override
+        public Set<Class<?>> getClasses() {
+            return new LinkedHashSet<>(JSON_CLASSES);
+        }
 
-	}
+    }
 
-	public static class WithAuth extends WithoutAuth {
+    public static class WithAuth extends WithoutAuth {
 
-		public Set<Class<?>> getClasses() {
-			final Set<Class<?>> classes = super.getClasses();
-			classes.add(RolesAllowedDynamicFeature.class);
-			return classes;
-		}
-	}
+        public Set<Class<?>> getClasses() {
+            final Set<Class<?>> classes = super.getClasses();
+            classes.add(RolesAllowedDynamicFeature.class);
+            return classes;
+        }
+    }
 
 }

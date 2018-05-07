@@ -24,49 +24,49 @@ import java.util.List;
 
 public class ConfigurationFileFilter implements IOFileFilter {
 
-	private final List<Matcher> patterns;
-	private final boolean noMatchResult;
+    private final List<Matcher> patterns;
+    private final boolean noMatchResult;
 
-	ConfigurationFileFilter(final String[] patternArray) {
-		patterns = new ArrayList<>();
-		if (patternArray == null) {
-			noMatchResult = true;
-			return;
-		}
-		int inclusionCount = 0;
-		for (final String pattern : patternArray) {
-			if (pattern.startsWith("!"))
-				patterns.add(new Matcher(pattern.substring(1), false));
-			else {
-				patterns.add(new Matcher(pattern, true));
-				inclusionCount++;
-			}
-		}
-		noMatchResult = inclusionCount == 0;
-	}
+    ConfigurationFileFilter(final String[] patternArray) {
+        patterns = new ArrayList<>();
+        if (patternArray == null) {
+            noMatchResult = true;
+            return;
+        }
+        int inclusionCount = 0;
+        for (final String pattern : patternArray) {
+            if (pattern.startsWith("!"))
+                patterns.add(new Matcher(pattern.substring(1), false));
+            else {
+                patterns.add(new Matcher(pattern, true));
+                inclusionCount++;
+            }
+        }
+        noMatchResult = inclusionCount == 0;
+    }
 
-	@Override
-	final public boolean accept(final File pathname) {
-		return accept(pathname.getParentFile(), pathname.getName());
-	}
+    @Override
+    final public boolean accept(final File pathname) {
+        return accept(pathname.getParentFile(), pathname.getName());
+    }
 
-	@Override
-	final public boolean accept(final File dir, final String name) {
-		if (patterns == null || patterns.isEmpty())
-			return true;
-		for (Matcher matcher : patterns)
-			if (matcher.match(name))
-				return matcher.result;
-		return noMatchResult;
-	}
+    @Override
+    final public boolean accept(final File dir, final String name) {
+        if (patterns == null || patterns.isEmpty())
+            return true;
+        for (Matcher matcher : patterns)
+            if (matcher.match(name))
+                return matcher.result;
+        return noMatchResult;
+    }
 
-	private class Matcher extends WildcardMatcher {
+    private static class Matcher extends WildcardMatcher {
 
-		private final boolean result;
+        private final boolean result;
 
-		public Matcher(final String pattern, final boolean result) {
-			super(pattern);
-			this.result = result;
-		}
-	}
+        private Matcher(final String pattern, final boolean result) {
+            super(pattern);
+            this.result = result;
+        }
+    }
 }
