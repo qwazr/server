@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,17 +12,18 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.server.configuration;
 
 import com.qwazr.utils.WildcardMatcher;
-import org.apache.commons.io.filefilter.IOFileFilter;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
-public class ConfigurationFileFilter implements IOFileFilter {
+class ConfigurationFileFilter implements Predicate<Path> {
 
     private final List<Matcher> patterns;
     private final boolean noMatchResult;
@@ -46,16 +47,14 @@ public class ConfigurationFileFilter implements IOFileFilter {
     }
 
     @Override
-    final public boolean accept(final File pathname) {
-        return accept(pathname.getParentFile(), pathname.getName());
-    }
-
-    @Override
-    final public boolean accept(final File dir, final String name) {
+    final public boolean test(final Path path) {
+        if (!Files.isRegularFile(path))
+            return false;
         if (patterns == null || patterns.isEmpty())
             return true;
+        final String fileName = path.getFileName().toString();
         for (Matcher matcher : patterns)
-            if (matcher.match(name))
+            if (matcher.match(fileName))
                 return matcher.result;
         return noMatchResult;
     }

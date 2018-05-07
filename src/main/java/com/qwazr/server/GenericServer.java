@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -62,321 +63,321 @@ import java.util.logging.Logger;
 
 public class GenericServer {
 
-	final private ExecutorService executorService;
-	final private ServletContainer servletContainer;
-	final private ServletContextBuilder webAppContext;
-	final private ServletContextBuilder webServiceContext;
+    final private ExecutorService executorService;
+    final private ServletContainer servletContainer;
+    final private ServletContextBuilder webAppContext;
+    final private ServletContextBuilder webServiceContext;
 
-	final private Map<String, Object> contextAttributes;
-	final private IdentityManagerProvider identityManagerProvider;
-	final private HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver;
-	final private Collection<ConnectorStatisticsMXBean> connectorsStatistics;
+    final private Map<String, Object> contextAttributes;
+    final private IdentityManagerProvider identityManagerProvider;
+    final private HostnameAuthenticationMechanism.PrincipalResolver hostnamePrincipalResolver;
+    final private Collection<ConnectorStatisticsMXBean> connectorsStatistics;
 
-	final private Collection<Listener> startedListeners;
-	final private Collection<Listener> shutdownListeners;
+    final private Collection<Listener> startedListeners;
+    final private Collection<Listener> shutdownListeners;
 
-	final private Collection<Undertow> undertows;
-	final private Collection<DeploymentManager> deploymentManagers;
+    final private Collection<Undertow> undertows;
+    final private Collection<DeploymentManager> deploymentManagers;
 
-	final private ServerConfiguration configuration;
+    final private ServerConfiguration configuration;
 
-	final private AccessLogger webAppAccessLogger;
-	final private AccessLogger webServiceAccessLogger;
+    final private AccessLogger webAppAccessLogger;
+    final private AccessLogger webServiceAccessLogger;
 
-	final private Set<String> webAppEndPoints;
-	final private Set<String> webServiceEndPoints;
+    final private Set<String> webAppEndPoints;
+    final private Set<String> webServiceEndPoints;
 
-	final private UdpServerThread udpServer;
+    final private UdpServerThread udpServer;
 
-	final private Collection<ObjectName> registeredObjectNames;
+    final private Collection<ObjectName> registeredObjectNames;
 
-	static final private Logger LOGGER = LoggerUtils.getLogger(GenericServer.class);
+    static final private Logger LOGGER = LoggerUtils.getLogger(GenericServer.class);
 
-	GenericServer(final GenericServerBuilder builder) throws IOException {
+    GenericServer(final GenericServerBuilder builder) throws IOException {
 
-		this.configuration = builder.configuration;
-		this.executorService =
-				builder.executorService == null ? Executors.newCachedThreadPool() : builder.executorService;
-		this.servletContainer = Servlets.newContainer();
-		this.webAppContext = builder.webAppContext;
-		this.webServiceContext = builder.webServiceContext;
-		this.webAppEndPoints = webAppContext == null ? null : Collections.unmodifiableSet(webAppContext.endPoints);
-		this.webServiceEndPoints =
-				webServiceContext == null ? null : Collections.unmodifiableSet(webServiceContext.endPoints);
-		builder.contextAttribute(this);
-		this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
-		this.undertows = new ArrayList<>();
-		this.deploymentManagers = new ArrayList<>();
-		this.identityManagerProvider = builder.identityManagerProvider;
-		this.hostnamePrincipalResolver = builder.hostnamePrincipalResolver;
-		this.webAppAccessLogger = builder.webAppAccessLogger;
-		this.webServiceAccessLogger = builder.webServiceAccessLogger;
-		this.udpServer = buildUdpServer(builder, configuration);
-		this.startedListeners = CollectionsUtils.copyIfNotEmpty(builder.startedListeners, ArrayList::new);
-		this.shutdownListeners = CollectionsUtils.copyIfNotEmpty(builder.shutdownListeners, ArrayList::new);
-		this.connectorsStatistics = new ArrayList<>();
-		this.registeredObjectNames = new LinkedHashSet<>();
-	}
+        this.configuration = builder.configuration;
+        this.executorService =
+                builder.executorService == null ? Executors.newCachedThreadPool() : builder.executorService;
+        this.servletContainer = Servlets.newContainer();
+        this.webAppContext = builder.webAppContext;
+        this.webServiceContext = builder.webServiceContext;
+        this.webAppEndPoints = webAppContext == null ? null : Collections.unmodifiableSet(webAppContext.endPoints);
+        this.webServiceEndPoints =
+                webServiceContext == null ? null : Collections.unmodifiableSet(webServiceContext.endPoints);
+        builder.contextAttribute(this);
+        this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
+        this.undertows = new ArrayList<>();
+        this.deploymentManagers = new ArrayList<>();
+        this.identityManagerProvider = builder.identityManagerProvider;
+        this.hostnamePrincipalResolver = builder.hostnamePrincipalResolver;
+        this.webAppAccessLogger = builder.webAppAccessLogger;
+        this.webServiceAccessLogger = builder.webServiceAccessLogger;
+        this.udpServer = buildUdpServer(builder, configuration);
+        this.startedListeners = CollectionsUtils.copyIfNotEmpty(builder.startedListeners, ArrayList::new);
+        this.shutdownListeners = CollectionsUtils.copyIfNotEmpty(builder.shutdownListeners, ArrayList::new);
+        this.connectorsStatistics = new ArrayList<>();
+        this.registeredObjectNames = new LinkedHashSet<>();
+    }
 
-	/**
-	 * Returns the named attribute. The method checks the type of the object.
-	 *
-	 * @param context the context to request
-	 * @param name    the name of the attribute
-	 * @param type    the expected type
-	 * @param <T>     the expected object
-	 * @return the expected object
-	 */
-	public static <T> T getContextAttribute(final ServletContext context, final String name, final Class<T> type) {
-		final Object object = context.getAttribute(name);
-		if (object == null)
-			return null;
-		if (!object.getClass().isAssignableFrom(type))
-			throw new RuntimeException(
-					"Wrong returned type: " + object.getClass().getName() + " - Expected: " + type.getName());
-		return type.cast(object);
-	}
+    /**
+     * Returns the named attribute. The method checks the type of the object.
+     *
+     * @param context the context to request
+     * @param name    the name of the attribute
+     * @param type    the expected type
+     * @param <T>     the expected object
+     * @return the expected object
+     */
+    public static <T> T getContextAttribute(final ServletContext context, final String name, final Class<T> type) {
+        final Object object = context.getAttribute(name);
+        if (object == null)
+            return null;
+        if (!object.getClass().isAssignableFrom(type))
+            throw new RuntimeException(
+                    "Wrong returned type: " + object.getClass().getName() + " - Expected: " + type.getName());
+        return type.cast(object);
+    }
 
-	/**
-	 * Returns an attribute where the name of the attribute in the name of the class
-	 *
-	 * @param context the context to request
-	 * @param cls     the type of the object
-	 * @param <T>     the expected object
-	 * @return the expected object
-	 */
-	public static <T> T getContextAttribute(final ServletContext context, final Class<T> cls) {
-		return getContextAttribute(context, cls.getName(), cls);
-	}
+    /**
+     * Returns an attribute where the name of the attribute in the name of the class
+     *
+     * @param context the context to request
+     * @param cls     the type of the object
+     * @param <T>     the expected object
+     * @return the expected object
+     */
+    public static <T> T getContextAttribute(final ServletContext context, final Class<T> cls) {
+        return getContextAttribute(context, cls.getName(), cls);
+    }
 
-	Set<String> getWebServiceEndPoints() {
-		return webServiceEndPoints;
-	}
+    Set<String> getWebServiceEndPoints() {
+        return webServiceEndPoints;
+    }
 
-	Set<String> getWebAppEndPoints() {
-		return webAppEndPoints;
-	}
+    Set<String> getWebAppEndPoints() {
+        return webAppEndPoints;
+    }
 
-	private static UdpServerThread buildUdpServer(final GenericServerBuilder builder,
-			final ServerConfiguration configuration) throws IOException {
+    private static UdpServerThread buildUdpServer(final GenericServerBuilder builder,
+                                                  final ServerConfiguration configuration) throws IOException {
 
-		if (builder.packetListeners == null || builder.packetListeners.isEmpty())
-			return null;
+        if (builder.packetListeners == null || builder.packetListeners.isEmpty())
+            return null;
 
-		if (configuration.multicastConnector.address != null && configuration.multicastConnector.port != -1)
-			return new UdpServerThread(configuration.multicastConnector.address, configuration.multicastConnector.port,
-					builder.packetListeners);
-		else
-			return new UdpServerThread(
-					new InetSocketAddress(configuration.listenAddress, configuration.webServiceConnector.port),
-					builder.packetListeners);
-	}
+        if (configuration.multicastConnector.address != null && configuration.multicastConnector.port != -1)
+            return new UdpServerThread(configuration.multicastConnector.address, configuration.multicastConnector.port,
+                    builder.packetListeners);
+        else
+            return new UdpServerThread(
+                    new InetSocketAddress(configuration.listenAddress, configuration.webServiceConnector.port),
+                    builder.packetListeners);
+    }
 
-	private synchronized void start(final Undertow undertow) {
-		// start the server
-		undertow.start();
-		undertows.add(undertow);
-	}
+    private synchronized void start(final Undertow undertow) {
+        // start the server
+        undertow.start();
+        undertows.add(undertow);
+    }
 
-	public synchronized void stopAll() {
+    public synchronized void stopAll() {
 
-		LOGGER.info("The server is stopping...");
+        LOGGER.info("The server is stopping...");
 
-		executeListener(shutdownListeners, LOGGER);
+        executeListener(shutdownListeners, LOGGER);
 
-		if (udpServer != null) {
-			try {
-				udpServer.shutdown();
-			} catch (InterruptedException e) {
-				LOGGER.log(Level.WARNING, e.getMessage(), e);
-			}
-		}
+        if (udpServer != null) {
+            try {
+                udpServer.shutdown();
+            } catch (InterruptedException e) {
+                LOGGER.log(Level.WARNING, e.getMessage(), e);
+            }
+        }
 
-		for (final DeploymentManager manager : deploymentManagers) {
-			try {
-				if (manager.getState() == DeploymentManager.State.STARTED)
-					manager.stop();
-				if (manager.getState() == DeploymentManager.State.DEPLOYED)
-					manager.undeploy();
-			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, e, () -> "Cannot stop the manager: " + e.getMessage());
-			}
-		}
+        for (final DeploymentManager manager : deploymentManagers) {
+            try {
+                if (manager.getState() == DeploymentManager.State.STARTED)
+                    manager.stop();
+                if (manager.getState() == DeploymentManager.State.DEPLOYED)
+                    manager.undeploy();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, e, () -> "Cannot stop the manager: " + e.getMessage());
+            }
+        }
 
-		for (final Undertow undertow : undertows) {
-			try {
-				undertow.stop();
-			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, e, () -> "Cannot stop Undertow: " + e.getMessage());
-			}
-		}
+        for (final Undertow undertow : undertows) {
+            try {
+                undertow.stop();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, e, () -> "Cannot stop Undertow: " + e.getMessage());
+            }
+        }
 
-		executorService.shutdown();
-		try {
-			executorService.awaitTermination(2, TimeUnit.MINUTES);
-		} catch (InterruptedException e) {
-			LOGGER.log(Level.WARNING, e, () -> "Executor shutdown failed: " + e.getMessage());
-		}
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(2, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            LOGGER.log(Level.WARNING, e, () -> "Executor shutdown failed: " + e.getMessage());
+        }
 
-		// Unregister MBeans
-		if (registeredObjectNames != null && !registeredObjectNames.isEmpty()) {
-			final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-			for (ObjectName objectName : registeredObjectNames) {
-				try {
-					mbs.unregisterMBean(objectName);
-				} catch (InstanceNotFoundException | MBeanRegistrationException e) {
-					LOGGER.log(Level.WARNING, e, e::getMessage);
-				}
-			}
-			registeredObjectNames.clear();
-		}
+        // Unregister MBeans
+        if (registeredObjectNames != null && !registeredObjectNames.isEmpty()) {
+            final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+            for (ObjectName objectName : registeredObjectNames) {
+                try {
+                    mbs.unregisterMBean(objectName);
+                } catch (InstanceNotFoundException | MBeanRegistrationException e) {
+                    LOGGER.log(Level.WARNING, e, e::getMessage);
+                }
+            }
+            registeredObjectNames.clear();
+        }
 
-		LOGGER.info("The server is stopped.");
-	}
+        LOGGER.info("The server is stopped.");
+    }
 
-	private IdentityManager getIdentityManager(final ServerConfiguration.WebConnector connector) throws IOException {
-		if (identityManagerProvider == null)
-			return null;
-		return identityManagerProvider.getIdentityManager(
-				connector == null || connector.realm == null ? null : connector.realm);
-	}
+    private IdentityManager getIdentityManager(final ServerConfiguration.WebConnector connector) throws IOException {
+        if (identityManagerProvider == null)
+            return null;
+        return identityManagerProvider.getIdentityManager(
+                connector == null || connector.realm == null ? null : connector.realm);
+    }
 
-	private final static AtomicInteger serverCounter = new AtomicInteger();
+    private final static AtomicInteger serverCounter = new AtomicInteger();
 
-	private void startHttpServer(final ServerConfiguration.WebConnector connector, final ServletContextBuilder context,
-			final AccessLogger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
+    private void startHttpServer(final ServerConfiguration.WebConnector connector, final ServletContextBuilder context,
+                                 final AccessLogger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
 
-		if (context == null || context.getServlets().isEmpty())
-			return;
+        if (context == null || context.getServlets().isEmpty())
+            return;
 
-		context.setIdentityManager(getIdentityManager(connector));
+        context.setIdentityManager(getIdentityManager(connector));
 
-		contextAttributes.forEach(context::addServletContextAttribute);
+        contextAttributes.forEach(context::addServletContextAttribute);
 
-		if (context.getIdentityManager() != null && !StringUtils.isEmpty(connector.authentication)) {
-			if (hostnamePrincipalResolver != null)
-				HostnameAuthenticationMechanism.register(context, hostnamePrincipalResolver);
-			final LoginConfig loginConfig = Servlets.loginConfig(connector.realm);
-			for (String authmethod : StringUtils.split(connector.authentication, ','))
-				loginConfig.addLastAuthMethod(authmethod);
-			context.setLoginConfig(loginConfig);
-		}
+        if (context.getIdentityManager() != null && !StringUtils.isEmpty(connector.authentication)) {
+            if (hostnamePrincipalResolver != null)
+                HostnameAuthenticationMechanism.register(context, hostnamePrincipalResolver);
+            final LoginConfig loginConfig = Servlets.loginConfig(connector.realm);
+            for (String authmethod : StringUtils.split(connector.authentication, ','))
+                loginConfig.addLastAuthMethod(authmethod);
+            context.setLoginConfig(loginConfig);
+        }
 
-		final DeploymentManager manager = servletContainer.addDeployment(context);
-		manager.deploy();
+        final DeploymentManager manager = servletContainer.addDeployment(context);
+        manager.deploy();
 
-		LOGGER.info(() -> "Start the connector " + configuration.listenAddress + ":" + connector.port);
+        LOGGER.info(() -> "Start the connector " + configuration.listenAddress + ":" + connector.port);
 
-		HttpHandler httpHandler = manager.start();
-		final LogMetricsHandler logMetricsHandler =
-				new LogMetricsHandler(httpHandler, configuration.listenAddress, connector.port, context.jmxName,
-						accessLogger);
-		deploymentManagers.add(manager);
-		httpHandler = logMetricsHandler;
+        HttpHandler httpHandler = manager.start();
+        final LogMetricsHandler logMetricsHandler =
+                new LogMetricsHandler(httpHandler, configuration.listenAddress, connector.port, context.jmxName,
+                        accessLogger);
+        deploymentManagers.add(manager);
+        httpHandler = logMetricsHandler;
 
-		final Undertow.Builder servletBuilder = Undertow.builder()
-				.addHttpListener(connector.port, configuration.listenAddress)
-				.setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000)
-				.setServerOption(UndertowOptions.RECORD_REQUEST_START_TIME, true)
-				.setServerOption(UndertowOptions.ENABLE_STATISTICS, true)
-				.setHandler(httpHandler);
-		start(servletBuilder.build());
+        final Undertow.Builder servletBuilder = Undertow.builder()
+                .addHttpListener(connector.port, configuration.listenAddress)
+                .setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000)
+                .setServerOption(UndertowOptions.RECORD_REQUEST_START_TIME, true)
+                .setServerOption(UndertowOptions.ENABLE_STATISTICS, true)
+                .setHandler(httpHandler);
+        start(servletBuilder.build());
 
-		// Register MBeans
-		final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-		final Hashtable<String, String> props = new Hashtable<>();
-		props.put("type", "connector");
-		props.put("name", context.jmxName);
-		final ObjectName name =
-				new ObjectName("com.qwazr.server." + serverCounter.incrementAndGet() + "." + context.jmxName, props);
-		mbs.registerMBean(logMetricsHandler, name);
-		registeredObjectNames.add(name);
-		connectorsStatistics.add(logMetricsHandler);
-	}
+        // Register MBeans
+        final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        final Hashtable<String, String> props = new Hashtable<>();
+        props.put("type", "connector");
+        props.put("name", context.jmxName);
+        final ObjectName name =
+                new ObjectName("com.qwazr.server." + serverCounter.incrementAndGet() + "." + context.jmxName, props);
+        mbs.registerMBean(logMetricsHandler, name);
+        registeredObjectNames.add(name);
+        connectorsStatistics.add(logMetricsHandler);
+    }
 
-	/**
-	 * Call this method to start the server
-	 *
-	 * @param shutdownHook pass true to install the StopAll method as Runtime shutdown hook
-	 * @throws IOException                  if any IO error occurs
-	 * @throws ServletException             if the servlet configuration failed
-	 * @throws ReflectiveOperationException if a class instanciation failed
-	 * @throws JMException                  if any JMX error occurs
-	 */
-	final public void start(boolean shutdownHook) throws IOException, ServletException, JMException {
+    /**
+     * Call this method to start the server
+     *
+     * @param shutdownHook pass true to install the StopAll method as Runtime shutdown hook
+     * @throws IOException                  if any IO error occurs
+     * @throws ServletException             if the servlet configuration failed
+     * @throws ReflectiveOperationException if a class instanciation failed
+     * @throws JMException                  if any JMX error occurs
+     */
+    final public void start(boolean shutdownHook) throws IOException, ServletException, JMException {
 
-		LOGGER.info("The server is starting...");
-		LOGGER.info(() -> "Data directory sets to: " + configuration.dataDirectory);
+        LOGGER.info("The server is starting...");
+        LOGGER.info(() -> "Data directory sets to: " + configuration.dataDirectory);
 
-		if (!configuration.dataDirectory.exists())
-			throw new IOException("The data directory does not exists: " + configuration.dataDirectory);
-		if (!configuration.dataDirectory.isDirectory())
-			throw new IOException("The data directory path is not a directory: " + configuration.dataDirectory);
+        if (!Files.exists(configuration.dataDirectory))
+            throw new IOException("The data directory does not exists: " + configuration.dataDirectory.toAbsolutePath());
+        if (!Files.isDirectory(configuration.dataDirectory))
+            throw new IOException("The data directory path is not a directory: " + configuration.dataDirectory.toAbsolutePath());
 
-		if (udpServer != null)
-			udpServer.checkStarted();
+        if (udpServer != null)
+            udpServer.checkStarted();
 
-		// Launch the applications/connector
-		startHttpServer(configuration.webAppConnector, webAppContext, webAppAccessLogger);
-		startHttpServer(configuration.webServiceConnector, webServiceContext, webServiceAccessLogger);
+        // Launch the applications/connector
+        startHttpServer(configuration.webAppConnector, webAppContext, webAppAccessLogger);
+        startHttpServer(configuration.webServiceConnector, webServiceContext, webServiceAccessLogger);
 
-		if (shutdownHook)
-			Runtime.getRuntime().addShutdownHook(new Thread(this::stopAll));
+        if (shutdownHook)
+            Runtime.getRuntime().addShutdownHook(new Thread(this::stopAll));
 
-		executeListener(startedListeners, null);
+        executeListener(startedListeners, null);
 
-		LOGGER.info("The server started successfully.");
-	}
+        LOGGER.info("The server started successfully.");
+    }
 
-	public Collection<ConnectorStatisticsMXBean> getConnectorsStatistics() {
-		return connectorsStatistics;
-	}
+    public Collection<ConnectorStatisticsMXBean> getConnectorsStatistics() {
+        return connectorsStatistics;
+    }
 
-	@FunctionalInterface
-	public interface Listener {
-		void accept(GenericServer server) throws Exception;
-	}
+    @FunctionalInterface
+    public interface Listener {
+        void accept(GenericServer server) throws Exception;
+    }
 
-	private void executeListener(final Collection<Listener> listeners, final Logger logger) {
-		if (listeners == null)
-			return;
-		listeners.forEach(listener -> {
-			try {
-				listener.accept(this);
-			} catch (Exception e) {
-				if (logger == null)
-					throw ServerException.of("Listeners failure", e);
-				else
-					LOGGER.log(Level.SEVERE, e, e::getMessage);
-			}
-		});
-	}
+    private void executeListener(final Collection<Listener> listeners, final Logger logger) {
+        if (listeners == null)
+            return;
+        listeners.forEach(listener -> {
+            try {
+                listener.accept(this);
+            } catch (Exception e) {
+                if (logger == null)
+                    throw ServerException.of("Listeners failure", e);
+                else
+                    LOGGER.log(Level.SEVERE, e, e::getMessage);
+            }
+        });
+    }
 
-	final static MultipartConfigElement DEFAULT_MULTIPART_CONFIG =
-			new MultipartConfigElement(SystemUtils.getJavaIoTmpDir().getAbsolutePath());
+    final static MultipartConfigElement DEFAULT_MULTIPART_CONFIG =
+            new MultipartConfigElement(SystemUtils.getJavaIoTmpDir().getAbsolutePath());
 
-	public interface IdentityManagerProvider {
+    public interface IdentityManagerProvider {
 
-		IdentityManager getIdentityManager(String realm) throws IOException;
+        IdentityManager getIdentityManager(String realm) throws IOException;
 
-	}
+    }
 
-	public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
-			ClassLoader classLoader, ConstructorParameters constructorParameters) {
-		return new GenericServerBuilder(config, executorService, classLoader, constructorParameters);
-	}
+    public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
+                                          ClassLoader classLoader, ConstructorParameters constructorParameters) {
+        return new GenericServerBuilder(config, executorService, classLoader, constructorParameters);
+    }
 
-	public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
-			ClassLoader classLoader) {
-		return of(config, executorService, classLoader, null);
-	}
+    public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
+                                          ClassLoader classLoader) {
+        return of(config, executorService, classLoader, null);
+    }
 
-	public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService) {
-		return of(config, executorService, null);
-	}
+    public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService) {
+        return of(config, executorService, null);
+    }
 
-	public static GenericServerBuilder of(ServerConfiguration config) {
-		return of(config, null);
-	}
+    public static GenericServerBuilder of(ServerConfiguration config) {
+        return of(config, null);
+    }
 
 }

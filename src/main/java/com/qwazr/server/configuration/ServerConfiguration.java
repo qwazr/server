@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,10 @@ package com.qwazr.server.configuration;
 
 import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.StringUtils;
-import org.apache.commons.io.filefilter.AndFileFilter;
-import org.apache.commons.io.filefilter.FileFileFilter;
 import org.apache.commons.net.util.SubnetUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileFilter;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -46,20 +42,22 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public class ServerConfiguration implements ConfigurationProperties {
 
     private final static Logger LOGGER = LoggerUtils.getLogger(ServerConfiguration.class);
 
-    private final Map<Object, Object> properties;
+    private final Map<String, String> properties;
 
-    public final File dataDirectory;
-    public final File tempDirectory;
+    public final Path dataDirectory;
+    public final Path tempDirectory;
 
-    public final Set<File> etcDirectories;
-    public final FileFilter etcFileFilter;
+    public final Set<Path> etcDirectories;
+    public final Predicate<Path> etcFileFilter;
 
     public final String publicAddress;
     public final String listenAddress;
@@ -82,27 +80,28 @@ public class ServerConfiguration implements ConfigurationProperties {
         if (propertiesMaps != null) {
             for (Map<?, ?> props : propertiesMaps)
                 if (props != null)
-                    props.forEach((key, value) -> properties.put(key.toString(), value));
+                    props.forEach((key, value) -> {
+                        if (key != null && value != null) properties.put(key.toString(), value.toString());
+                    });
         }
 
         //Set the data directory
         dataDirectory = getDataDirectory(getStringProperty(QWAZR_DATA, null));
         if (dataDirectory == null)
             throw new IOException("The data directory has not been set.");
-        if (!dataDirectory.exists())
-            throw new IOException("The data directory does not exists: " + dataDirectory.getAbsolutePath());
-        if (!dataDirectory.isDirectory())
-            throw new IOException("The data directory is not a directory: " + dataDirectory.getAbsolutePath());
+        if (!Files.exists(dataDirectory))
+            throw new IOException("The data directory does not exists: " + dataDirectory.toAbsolutePath());
+        if (!Files.isDirectory(dataDirectory))
+            throw new IOException("The data directory is not a directory: " + dataDirectory.toAbsolutePath());
 
         //Set the temp directory
         tempDirectory = getTempDirectory(dataDirectory, getStringProperty(QWAZR_TEMP, null));
-        if (!tempDirectory.exists())
-            if (!tempDirectory.mkdirs())
-                throw new IOException("Cannot create the temp directory: " + tempDirectory);
-        if (!dataDirectory.exists())
-            throw new IOException("The temp directory does not exists: " + tempDirectory.getAbsolutePath());
-        if (!dataDirectory.isDirectory())
-            throw new IOException("The temp directory is not a directory: " + tempDirectory.getAbsolutePath());
+        if (!Files.exists(tempDirectory))
+            Files.createDirectories(tempDirectory);
+        if (!Files.exists(tempDirectory))
+            throw new IOException("The temp directory does not exists: " + tempDirectory.toAbsolutePath());
+        if (!Files.isDirectory(tempDirectory))
+            throw new IOException("The temp directory is not a directory: " + tempDirectory.toAbsolutePath());
 
         //Set the configuration directories
         etcDirectories = getEtcDirectories(getStringProperty(QWAZR_ETC_DIR, null));
@@ -134,18 +133,22 @@ public class ServerConfiguration implements ConfigurationProperties {
         this.groups = buildSet(getStringProperty(QWAZR_GROUPS, null), ",; \t", true);
     }
 
-    public Collection<File> getEtcFiles() {
-        // List the configuration files
+    /**
+     * List the configuration files
+     *
+     * @return a list with the found configuration files
+     * @throws IOException
+     */
+    public Collection<Path> getEtcFiles() throws IOException {
         if (etcDirectories == null)
-            return null;
-        final Set<File> etcFiles = new LinkedHashSet<>();
-        etcDirectories.forEach(dir -> {
-            final File[] files = etcFileFilter == null ? dir.listFiles() : dir.listFiles(etcFileFilter);
-            if (files != null)
-                for (File file : files)
-                    etcFiles.add(file);
-        });
-        return etcFiles;
+            return Collections.emptyList();
+        final Set<Path> etcPaths = new LinkedHashSet<>();
+        for (final Path etcDirectory : etcDirectories) {
+            try (final Stream<Path> stream = Files.list(etcDirectory)) {
+                stream.filter(etcFileFilter).forEach(etcPaths::add);
+            }
+        }
+        return etcPaths;
     }
 
     public String getStringProperty(final String propName, final String defaultValue) {
@@ -180,33 +183,33 @@ public class ServerConfiguration implements ConfigurationProperties {
         return Collections.unmodifiableSet(set);
     }
 
-    private static File getDataDirectory(final String dataDir) {
+    private static Path getDataDirectory(final String dataDir) {
         //Set the data directory
-        return StringUtils.isEmpty(dataDir) ? new File(System.getProperty("user.dir")) : new File(dataDir);
+        return StringUtils.isEmpty(dataDir) ? Paths.get(System.getProperty("user.dir")) : Paths.get(dataDir);
     }
 
-    private static File getTempDirectory(final File dataDir, final String value) {
-        return value == null || value.isEmpty() ? new File(dataDir, "tmp") : new File(value);
+    private static Path getTempDirectory(final Path dataDir, final String value) {
+        return StringUtils.isEmpty(value) ? dataDir.resolve("tmp") : Paths.get(value);
     }
 
-    private static Set<File> getEtcDirectories(final String value) {
-        final Set<File> set = new LinkedHashSet<>();
+    private static Set<Path> getEtcDirectories(final String value) {
+        final Set<Path> set = new LinkedHashSet<>();
         fillStringListProperty(value == null ? "etc" : value, File.pathSeparator, true, part -> {
             // By design relative path are relative to the working directory
-            final File etcFile = new File(part);
-            set.add(etcFile);
-            LOGGER.info("Configuration (ETC) directory: " + etcFile.getAbsolutePath());
+            final Path etcPath = Paths.get(part);
+            set.add(etcPath);
+            LOGGER.info("Configuration (ETC) directory: " + etcPath.toAbsolutePath());
         });
         return Collections.unmodifiableSet(set);
     }
 
-    private static FileFilter buildEtcFileFilter(final String etcFilter) {
+    private static Predicate<Path> buildEtcFileFilter(final String etcFilter) {
         if (StringUtils.isEmpty(etcFilter))
-            return FileFileFilter.FILE;
+            return path -> Files.isRegularFile(path);
         final String[] array = StringUtils.split(etcFilter, ',');
         if (array == null || array.length == 0)
-            return FileFileFilter.FILE;
-        return new AndFileFilter(FileFileFilter.FILE, new ConfigurationFileFilter(array));
+            return path -> Files.isRegularFile(path);
+        return new ConfigurationFileFilter(array);
     }
 
     public static class WebConnector {
@@ -380,15 +383,15 @@ public class ServerConfiguration implements ConfigurationProperties {
             this.etcDirectories = new LinkedHashSet<>();
         }
 
-        public Builder data(final File file) {
-            if (file != null)
-                map.put(QWAZR_DATA, file.getPath());
+        public Builder data(final Path path) {
+            if (path != null)
+                map.put(QWAZR_DATA, path.toString());
             return this;
         }
 
-        public Builder temp(final File file) {
-            if (file != null)
-                map.put(QWAZR_TEMP, file.getPath());
+        public Builder temp(final Path path) {
+            if (path != null)
+                map.put(QWAZR_TEMP, path.toString());
             return this;
         }
 
@@ -440,17 +443,17 @@ public class ServerConfiguration implements ConfigurationProperties {
             return this;
         }
 
-        public Builder etcDirectory(File... etcDirectories) {
+        public Builder etcDirectory(Path... etcDirectories) {
             if (etcDirectories != null)
-                for (File etcDirectory : etcDirectories)
-                    this.etcDirectories.add(etcDirectory.getAbsolutePath());
+                for (Path etcDirectory : etcDirectories)
+                    this.etcDirectories.add(etcDirectory.toAbsolutePath().toString());
             return this;
         }
 
-        public Builder etcDirectory(final Collection<File> etcDirectories) {
+        public Builder etcDirectory(final Collection<Path> etcDirectories) {
             if (etcDirectories != null)
-                for (File etcDirectory : etcDirectories)
-                    this.etcDirectories.add(etcDirectory.getAbsolutePath());
+                for (Path etcDirectory : etcDirectories)
+                    this.etcDirectories.add(etcDirectory.toAbsolutePath().toString());
             return this;
         }
 
