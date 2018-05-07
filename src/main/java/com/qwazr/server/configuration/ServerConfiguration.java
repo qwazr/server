@@ -144,8 +144,10 @@ public class ServerConfiguration implements ConfigurationProperties {
             return Collections.emptyList();
         final Set<Path> etcPaths = new LinkedHashSet<>();
         for (final Path etcDirectory : etcDirectories) {
-            try (final Stream<Path> stream = Files.list(etcDirectory)) {
-                stream.filter(etcFileFilter).forEach(etcPaths::add);
+            if (Files.exists(etcDirectory) && Files.isDirectory(etcDirectory)) {
+                try (final Stream<Path> stream = Files.list(etcDirectory)) {
+                    stream.filter(etcFileFilter).forEach(etcPaths::add);
+                }
             }
         }
         return etcPaths;
