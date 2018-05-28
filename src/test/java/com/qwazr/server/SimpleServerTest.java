@@ -16,6 +16,8 @@
 package com.qwazr.server;
 
 import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
+import com.qwazr.server.configuration.ServerConfiguration;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -36,12 +38,12 @@ public class SimpleServerTest extends BaseServerTest {
 
 	@Test
 	public void test100createServer() throws IOException {
-		server = new SimpleServer();
+		server = new SimpleServer(null, ServerConfiguration.of().publicAddress("localhost").build());
 		Assert.assertNotNull(server.getServer());
 	}
 
 	@Test
-	public void test200startServer() throws ReflectiveOperationException, JMException, ServletException, IOException {
+	public void test200startServer() throws JMException, ServletException, IOException {
 		server.start();
 		Assert.assertNotNull(server.contextAttribute);
 		Assert.assertEquals(200, getClient().target("http://localhost:9091/").request().get().getStatus());
@@ -140,8 +142,9 @@ public class SimpleServerTest extends BaseServerTest {
 		}
 	}
 
-	@Test
-	public void test900stopServer() {
+	@AfterClass
+	public static void cleanupTest() {
 		server.stop();
 	}
+
 }

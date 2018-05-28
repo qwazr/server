@@ -36,10 +36,11 @@ public class SimpleServer implements BaseServer {
 	private final Logger accessLogger = LoggerUtils.getLogger(SimpleServer.class);
 	public final LogHandler logHandler = new LogHandler();
 
-	SimpleServer(SessionPersistenceManager sessionManager) throws IOException {
+	SimpleServer(SessionPersistenceManager sessionManager, ServerConfiguration serverConfiguration) throws IOException {
 
-		GenericServerBuilder builder = GenericServer.of(ServerConfiguration.of().build())
-				.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute);
+		GenericServerBuilder builder =
+				GenericServer.of(serverConfiguration == null ? ServerConfiguration.of().build() : serverConfiguration)
+						.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute);
 
 		accessLogger.addHandler(logHandler);
 		builder.webAppAccessLogger(accessLogger);
@@ -57,10 +58,6 @@ public class SimpleServer implements BaseServer {
 			builder.sessionPersistenceManager(sessionManager);
 
 		server = builder.build();
-	}
-
-	SimpleServer() throws IOException {
-		this(null);
 	}
 
 	@Override

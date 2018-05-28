@@ -51,9 +51,8 @@ public class SessionManagerTest {
 			server2.stop();
 	}
 
-	private SimpleServer startNewServer()
-			throws IOException, ReflectiveOperationException, ServletException, JMException {
-		final SimpleServer server = new SimpleServer(new InFileSessionPersistenceManager(sessionDir));
+	private SimpleServer startNewServer() throws IOException, ServletException, JMException {
+		final SimpleServer server = new SimpleServer(new InFileSessionPersistenceManager(sessionDir), null);
 		Assert.assertNotNull(server.getServer());
 		Assert.assertTrue(Files.exists(sessionDir));
 		server.start();

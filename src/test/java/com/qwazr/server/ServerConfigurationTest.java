@@ -267,4 +267,11 @@ public class ServerConfigurationTest {
         final ServerConfiguration config = ServerConfiguration.of().publicAddress("127.0.0.1/24").build();
         Assert.assertEquals("127.0.0.1", config.publicAddress);
     }
+
+	@Test
+	public void checkLocalhostAsPublicAddress() throws IOException {
+		final ServerConfiguration config = ServerConfiguration.of().publicAddress("localhost").build();
+		Assert.assertEquals("localhost", config.publicAddress);
+		Assert.assertEquals("0.0.0.0", config.listenAddress);
+	}
 }
