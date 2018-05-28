@@ -31,12 +31,12 @@ public class JsonClientTest extends JsonClient {
 	final WebTarget target;
 
 	public JsonClientTest() throws URISyntaxException {
-		super(RemoteService.of("https://api.github.com:443").build());
+		super(RemoteService.of("https://jsonplaceholder.typicode.com:443").build());
 		target = client.target(remote.serviceAddress);
 	}
 
 	public JsonTest get() {
-		return target.request(MediaType.APPLICATION_JSON).get(JsonTest.class);
+		return target.path("/posts/1").request(MediaType.APPLICATION_JSON).get(JsonTest.class);
 	}
 
 	@Test
@@ -45,19 +45,25 @@ public class JsonClientTest extends JsonClient {
 		final JsonClientTest jsonClient = new JsonClientTest();
 		final JsonTest jsonTest = jsonClient.get();
 		Assert.assertNotNull(jsonTest);
-		Assert.assertEquals("https://api.github.com/user", jsonTest.test);
+		Assert.assertEquals(Integer.valueOf(1), jsonTest.userId);
+		Assert.assertEquals("sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+				jsonTest.title);
 
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public static class JsonTest {
 
-		@JsonProperty("current_user_url")
-		final String test;
+		@JsonProperty("userId")
+		final Integer userId;
+
+		@JsonProperty("title")
+		final String title;
 
 		@JsonCreator
-		public JsonTest(@JsonProperty("current_user_url") String test) {
-			this.test = test;
+		public JsonTest(@JsonProperty("userId") Integer userId, @JsonProperty("title") String title) {
+			this.userId = userId;
+			this.title = title;
 		}
 	}
 }
