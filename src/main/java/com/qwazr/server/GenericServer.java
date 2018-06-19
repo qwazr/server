@@ -97,13 +97,13 @@ public class GenericServer {
 
         this.configuration = builder.configuration;
         this.executorService =
-                builder.executorService == null ? Executors.newCachedThreadPool() : builder.executorService;
+            builder.executorService == null ? Executors.newCachedThreadPool() : builder.executorService;
         this.servletContainer = Servlets.newContainer();
         this.webAppContext = builder.webAppContext;
         this.webServiceContext = builder.webServiceContext;
         this.webAppEndPoints = webAppContext == null ? null : Collections.unmodifiableSet(webAppContext.endPoints);
         this.webServiceEndPoints =
-                webServiceContext == null ? null : Collections.unmodifiableSet(webServiceContext.endPoints);
+            webServiceContext == null ? null : Collections.unmodifiableSet(webServiceContext.endPoints);
         builder.contextAttribute(this);
         this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
         this.undertows = new ArrayList<>();
@@ -134,7 +134,7 @@ public class GenericServer {
             return null;
         if (!object.getClass().isAssignableFrom(type))
             throw new RuntimeException(
-                    "Wrong returned type: " + object.getClass().getName() + " - Expected: " + type.getName());
+                "Wrong returned type: " + object.getClass().getName() + " - Expected: " + type.getName());
         return type.cast(object);
     }
 
@@ -159,18 +159,18 @@ public class GenericServer {
     }
 
     private static UdpServerThread buildUdpServer(final GenericServerBuilder builder,
-                                                  final ServerConfiguration configuration) throws IOException {
+        final ServerConfiguration configuration) throws IOException {
 
         if (builder.packetListeners == null || builder.packetListeners.isEmpty())
             return null;
 
         if (configuration.multicastConnector.address != null && configuration.multicastConnector.port != -1)
             return new UdpServerThread(configuration.multicastConnector.address, configuration.multicastConnector.port,
-                    builder.packetListeners);
+                builder.packetListeners);
         else
             return new UdpServerThread(
-                    new InetSocketAddress(configuration.listenAddress, configuration.webServiceConnector.port),
-                    builder.packetListeners);
+                new InetSocketAddress(configuration.listenAddress, configuration.webServiceConnector.port),
+                builder.packetListeners);
     }
 
     private synchronized void start(final Undertow undertow) {
@@ -239,13 +239,13 @@ public class GenericServer {
         if (identityManagerProvider == null)
             return null;
         return identityManagerProvider.getIdentityManager(
-                connector == null || connector.realm == null ? null : connector.realm);
+            connector == null || connector.realm == null ? null : connector.realm);
     }
 
     private final static AtomicInteger serverCounter = new AtomicInteger();
 
     private void startHttpServer(final ServerConfiguration.WebConnector connector, final ServletContextBuilder context,
-                                 final AccessLogger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
+        final AccessLogger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
 
         if (context == null || context.getServlets().isEmpty())
             return;
@@ -270,17 +270,18 @@ public class GenericServer {
 
         HttpHandler httpHandler = manager.start();
         final LogMetricsHandler logMetricsHandler =
-                new LogMetricsHandler(httpHandler, configuration.listenAddress, connector.port, context.jmxName,
-                        accessLogger);
+            new LogMetricsHandler(httpHandler, configuration.listenAddress, connector.port, context.jmxName,
+                accessLogger);
         deploymentManagers.add(manager);
         httpHandler = logMetricsHandler;
 
         final Undertow.Builder servletBuilder = Undertow.builder()
-                .addHttpListener(connector.port, configuration.listenAddress)
-                .setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000)
-                .setServerOption(UndertowOptions.RECORD_REQUEST_START_TIME, true)
-                .setServerOption(UndertowOptions.ENABLE_STATISTICS, true)
-                .setHandler(httpHandler);
+            .addHttpListener(connector.port, configuration.listenAddress)
+            .setServerOption(UndertowOptions.NO_REQUEST_TIMEOUT, 10000)
+            .setServerOption(UndertowOptions.RECORD_REQUEST_START_TIME, true)
+            .setServerOption(UndertowOptions.ENABLE_STATISTICS, true)
+            .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
+            .setHandler(httpHandler);
         start(servletBuilder.build());
 
         // Register MBeans
@@ -289,7 +290,7 @@ public class GenericServer {
         props.put("type", "connector");
         props.put("name", context.jmxName);
         final ObjectName name =
-                new ObjectName("com.qwazr.server." + serverCounter.incrementAndGet() + "." + context.jmxName, props);
+            new ObjectName("com.qwazr.server." + serverCounter.incrementAndGet() + "." + context.jmxName, props);
         mbs.registerMBean(logMetricsHandler, name);
         registeredObjectNames.add(name);
         connectorsStatistics.add(logMetricsHandler);
@@ -310,9 +311,11 @@ public class GenericServer {
         LOGGER.info(() -> "Data directory sets to: " + configuration.dataDirectory);
 
         if (!Files.exists(configuration.dataDirectory))
-            throw new IOException("The data directory does not exists: " + configuration.dataDirectory.toAbsolutePath());
+            throw new IOException(
+                "The data directory does not exists: " + configuration.dataDirectory.toAbsolutePath());
         if (!Files.isDirectory(configuration.dataDirectory))
-            throw new IOException("The data directory path is not a directory: " + configuration.dataDirectory.toAbsolutePath());
+            throw new IOException(
+                "The data directory path is not a directory: " + configuration.dataDirectory.toAbsolutePath());
 
         if (udpServer != null)
             udpServer.checkStarted();
@@ -354,7 +357,7 @@ public class GenericServer {
     }
 
     final static MultipartConfigElement DEFAULT_MULTIPART_CONFIG =
-            new MultipartConfigElement(SystemUtils.getJavaIoTmpDir().getAbsolutePath());
+        new MultipartConfigElement(SystemUtils.getJavaIoTmpDir().getAbsolutePath());
 
     public interface IdentityManagerProvider {
 
@@ -363,12 +366,12 @@ public class GenericServer {
     }
 
     public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
-                                          ClassLoader classLoader, ConstructorParameters constructorParameters) {
+        ClassLoader classLoader, ConstructorParameters constructorParameters) {
         return new GenericServerBuilder(config, executorService, classLoader, constructorParameters);
     }
 
     public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
-                                          ClassLoader classLoader) {
+        ClassLoader classLoader) {
         return of(config, executorService, classLoader, null);
     }
 
