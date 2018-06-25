@@ -159,12 +159,10 @@ public class ServerConfiguration implements ConfigurationProperties {
     }
 
     public Integer getIntegerProperty(final String propName, final Integer defaultValue) {
-        final Object o = properties.get(propName);
-        if (o == null)
+        final String value = properties.get(propName);
+        if (value == null)
             return defaultValue;
-        if (o instanceof Number)
-            return ((Number) o).intValue();
-        return Integer.parseInt(o.toString());
+        return Integer.parseInt(value);
     }
 
     protected static void fillStringListProperty(final String value, final String separatorChars, final boolean trim,
