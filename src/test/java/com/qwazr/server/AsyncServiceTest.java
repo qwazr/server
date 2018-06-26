@@ -30,31 +30,29 @@ import java.util.concurrent.ExecutionException;
 
 public class AsyncServiceTest {
 
-	private static AsyncJaxRsServer server;
+    private static AsyncJaxRsServer server;
 
-	@BeforeClass
-	public static void setup() throws ServletException, IOException, JMException {
-		server = new AsyncJaxRsServer();
-		server.start();
-	}
+    @BeforeClass
+    public static void setup() throws ServletException, IOException, JMException {
+        server = new AsyncJaxRsServer();
+        server.start();
+    }
 
-	@Test
-	public void testAsync() throws ExecutionException, InterruptedException {
-		Assert.assertTrue(true);
-		Client client = ClientBuilder.newClient();
-		final String randomTest = RandomUtils.alphanumeric(10);
-		final String returnedString = client.target("http://localhost:9091/async")
-				.queryParam("test", randomTest)
-				.request()
-				.rx()
-				.get(String.class)
-				.toCompletableFuture()
-				.get();
-		Assert.assertEquals(randomTest, returnedString);
-	}
+    @Test
+    public void testAsync() throws ExecutionException, InterruptedException {
+        Assert.assertTrue(true);
+        Client client = ClientBuilder.newClient();
+        final String randomTest = RandomUtils.alphanumeric(10);
+        final String returnedString = client.target("http://localhost:9091/async")
+                .queryParam("test", randomTest)
+                .request()
+                .async()
+                .get(String.class).get();
+        Assert.assertEquals(randomTest, returnedString);
+    }
 
-	@AfterClass
-	public static void cleanup() {
-		server.stop();
-	}
+    @AfterClass
+    public static void cleanup() {
+        server.stop();
+    }
 }

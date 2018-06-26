@@ -18,27 +18,24 @@ package com.qwazr.server;
 import com.qwazr.server.configuration.ServerConfiguration;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class AsyncJaxRsServer implements BaseServer {
 
-	private GenericServer server;
+    private GenericServer server;
 
-	AsyncJaxRsServer() throws IOException {
+    AsyncJaxRsServer() throws IOException {
 
-		final ExecutorService executorService = Executors.newCachedThreadPool();
-		final GenericServerBuilder builder = GenericServer.of(ServerConfiguration.of().build(), executorService);
+        final GenericServerBuilder builder = GenericServer.of(ServerConfiguration.of().build());
 
-		builder.getWebServiceContext()
-				.jaxrs(ApplicationBuilder.of("/*").loadServices().singletons(new AsyncService(executorService)));
+        builder.getWebServiceContext()
+                .jaxrs(ApplicationBuilder.of("/*").loadServices().singletons(new AsyncService()));
 
-		server = builder.build();
-	}
+        server = builder.build();
+    }
 
-	@Override
-	public GenericServer getServer() {
-		return server;
-	}
+    @Override
+    public GenericServer getServer() {
+        return server;
+    }
 
 }
