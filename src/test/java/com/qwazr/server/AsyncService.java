@@ -15,32 +15,26 @@
  */
 package com.qwazr.server;
 
+import com.qwazr.utils.concurrent.ThreadUtils;
+import org.glassfish.jersey.server.ManagedAsync;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Path("/")
 public class AsyncService {
 
-	private final ExecutorService executorService;
+    public AsyncService() {
+    }
 
-	public AsyncService(ExecutorService executorService) {
-		this.executorService = executorService;
-	}
-
-	@Path("/async")
-	@GET
-	public CompletionStage<String> async(@QueryParam("test") String test) {
-		final CompletableFuture<String> completion = new CompletableFuture<>();
-		executorService.submit(() -> {
-			Thread.sleep(1000);
-			completion.complete(test);
-			return test;
-		});
-		return completion;
-	}
+    @Path("/async")
+    @GET
+    @ManagedAsync
+    public String async(@QueryParam("test") String test) {
+        ThreadUtils.sleep(3, TimeUnit.SECONDS);
+        return test;
+    }
 
 }

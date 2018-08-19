@@ -52,7 +52,10 @@ class ConfigurationFileFilter implements Predicate<Path> {
             return false;
         if (patterns == null || patterns.isEmpty())
             return true;
-        final String fileName = path.getFileName().toString();
+        final Path fileNamePath = path.getFileName();
+        if (fileNamePath == null)
+            return false;
+        final String fileName = fileNamePath.toString();
         for (Matcher matcher : patterns)
             if (matcher.match(fileName))
                 return matcher.result;

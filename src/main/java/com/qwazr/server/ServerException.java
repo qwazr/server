@@ -31,189 +31,191 @@ import java.util.logging.Logger;
 
 public class ServerException extends RuntimeException {
 
-	private static final long serialVersionUID = -6102827990391082335L;
+    private static final long serialVersionUID = -6102827990391082335L;
 
-	private final int statusCode;
+    private final int statusCode;
 
-	ServerException(final int statusCode, String message, final Throwable cause) {
-		super(message, cause);
-		this.statusCode = statusCode;
-	}
+    ServerException(final int statusCode, String message, final Throwable cause) {
+        super(message, cause);
+        this.statusCode = statusCode;
+    }
 
-	public ServerException(final Response.Status status, final String message, final Throwable cause) {
-		super(message == null ? status.getReasonPhrase() : message, cause);
-		this.statusCode = status.getStatusCode();
-	}
+    public ServerException(final Response.Status status, final String message, final Throwable cause) {
+        super(message == null ? status.getReasonPhrase() : message, cause);
+        this.statusCode = status.getStatusCode();
+    }
 
-	public ServerException(final Response.Status status, final String message) {
-		this(status, message, null);
-	}
+    public ServerException(final Response.Status status, final String message) {
+        this(status, message, null);
+    }
 
-	public ServerException(final String message) {
-		super(message);
-		this.statusCode = 500;
-	}
+    public ServerException(final String message) {
+        super(message);
+        this.statusCode = 500;
+    }
 
-	public ServerException(final Response.Status status) {
-		super(status.getReasonPhrase());
-		this.statusCode = status.getStatusCode();
-	}
+    public ServerException(final Response.Status status) {
+        super(status.getReasonPhrase());
+        this.statusCode = status.getStatusCode();
+    }
 
-	public int getStatusCode() {
-		return statusCode;
-	}
+    public int getStatusCode() {
+        return statusCode;
+    }
 
-	final public ServerException warnIfCause(final Logger logger) {
-		final Throwable cause = getCause();
-		if (cause == null)
-			return this;
-		if (logger != null)
-			logger.log(Level.WARNING, cause, this::getMessage);
-		return this;
-	}
+    final public ServerException warnIfCause(final Logger logger) {
+        final Throwable cause = getCause();
+        if (cause == null)
+            return this;
+        if (logger != null)
+            logger.log(Level.WARNING, cause, this::getMessage);
+        return this;
+    }
 
-	public WebApplicationException getTextException(boolean withStackTrace) {
-		final String message = getMessage();
-		final StringBuilder sb = new StringBuilder(message);
-		if (withStackTrace) {
-			sb.append("\n");
-			sb.append(ExceptionUtils.getStackTrace(this));
-		}
-		final Response response = Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(sb.toString()).build();
-		return new WebApplicationException(message, this, response);
-	}
+    public WebApplicationException getTextException(boolean withStackTrace) {
+        final String message = getMessage();
+        final StringBuilder sb = new StringBuilder(message);
+        if (withStackTrace) {
+            sb.append("\n");
+            sb.append(ExceptionUtils.getStackTrace(this));
+        }
+        final Response response = Response.status(statusCode).type(MediaType.TEXT_PLAIN).entity(sb.toString()).build();
+        return new WebApplicationException(message, this, response);
+    }
 
-	public WebApplicationException getHtmlException(boolean withStackTrace) {
-		final String message = getMessage();
-		final StringBuilder sb = new StringBuilder();
-		sb.append("<html><body><h2>Error ");
-		sb.append(statusCode);
-		sb.append("</h2>\n<p><pre><code>\n");
-		sb.append(message);
-		sb.append("\n</code></pre></p>");
-		if (withStackTrace) {
-			sb.append("<p><pre><code>\n");
-			sb.append(ExceptionUtils.getStackTrace(this));
-			sb.append("\n</code></pre></p>\n</body></html>");
-		}
-		final Response response = Response.status(statusCode).type(MediaType.TEXT_HTML).entity(sb.toString()).build();
-		return new WebApplicationException(message, this, response);
-	}
+    public WebApplicationException getHtmlException(boolean withStackTrace) {
+        final String message = getMessage();
+        final StringBuilder sb = new StringBuilder();
+        sb.append("<html><body><h2>Error ");
+        sb.append(statusCode);
+        sb.append("</h2>\n<p><pre><code>\n");
+        sb.append(message);
+        sb.append("\n</code></pre></p>");
+        if (withStackTrace) {
+            sb.append("<p><pre><code>\n");
+            sb.append(ExceptionUtils.getStackTrace(this));
+            sb.append("\n</code></pre></p>\n</body></html>");
+        }
+        final Response response = Response.status(statusCode).type(MediaType.TEXT_HTML).entity(sb.toString()).build();
+        return new WebApplicationException(message, this, response);
+    }
 
-	public WebApplicationException getJsonException(boolean withStackTrace) {
-		final String message = getMessage();
-		final Response response = JsonExceptionResponse.of()
-				.status(statusCode)
-				.exception(this, withStackTrace)
-				.message(message)
-				.build()
-				.toJson();
-		return new WebApplicationException(message, this, response);
-	}
+    public WebApplicationException getJsonException(boolean withStackTrace) {
+        final String message = getMessage();
+        final Response response = JsonExceptionResponse.of()
+                .status(statusCode)
+                .exception(this, withStackTrace)
+                .message(message)
+                .build()
+                .toJson();
+        return new WebApplicationException(message, this, response);
+    }
 
-	public static Response toResponse(final HttpHeaders headers, final Exception exception) {
-		if (headers != null) {
-			final List<MediaType> mediaTypes = headers.getAcceptableMediaTypes();
-			if (mediaTypes != null) {
-				for (MediaType mediaType : mediaTypes) {
-					if (mediaType.isCompatible(MediaType.APPLICATION_JSON_TYPE))
-						return ServerException.getJsonException(null, exception).getResponse();
-					if (mediaType.isCompatible(MediaType.TEXT_HTML_TYPE))
-						return ServerException.getHtmlException(null, exception).getResponse();
-				}
-			}
-		}
-		return ServerException.getTextException(null, exception).getResponse();
-	}
+    public static Response toResponse(final HttpHeaders headers, final Exception exception) {
+        if (headers != null) {
+            final List<MediaType> mediaTypes = headers.getAcceptableMediaTypes();
+            if (mediaTypes != null) {
+                for (MediaType mediaType : mediaTypes) {
+                    if (mediaType.isCompatible(MediaType.APPLICATION_JSON_TYPE))
+                        return ServerException.getJsonException(null, exception).getResponse();
+                    if (mediaType.isCompatible(MediaType.TEXT_HTML_TYPE))
+                        return ServerException.getHtmlException(null, exception).getResponse();
+                }
+            }
+        }
+        return ServerException.getTextException(null, exception).getResponse();
+    }
 
-	public static ServerException of(final Throwable throwable) {
-		return of(Objects.requireNonNull(throwable, "Throwable cannot be null").getMessage(), throwable);
-	}
+    public static ServerException of(final Throwable throwable) {
+        return of(Objects.requireNonNull(throwable, "Throwable cannot be null").getMessage(), throwable);
+    }
 
-	public static ServerException of(String message, final Throwable throwable) {
-		if (throwable instanceof ServerException)
-			return (ServerException) throwable;
+    public static ServerException of(String message, final Throwable throwable) {
+        if (throwable instanceof ServerException)
+            return (ServerException) throwable;
 
-		int status = 500;
+        int status = 500;
 
-		if (throwable instanceof WebApplicationException) {
-			final Throwable cause = throwable.getCause();
-			if (cause != null && (cause instanceof ServerException))
-				return (ServerException) cause;
-			final WebApplicationException e = (WebApplicationException) throwable;
-			status = e.getResponse().getStatus();
-		}
-		if (StringUtils.isBlank(message)) {
-			message = throwable.getMessage();
-			if (StringUtils.isBlank(message))
-				message = ExceptionUtils.getRootCauseMessage(throwable);
-			if (StringUtils.isBlank(message))
-				message = "Internal server error";
-		}
+        final int serverExceptionPos = ExceptionUtils.indexOfType(throwable, ServerException.class);
+        if (serverExceptionPos != -1)
+            return (ServerException) ExceptionUtils.getThrowableList(throwable).get(serverExceptionPos);
 
-		return new ServerException(status, message, throwable);
-	}
+        final int webApplicationExceptionPos = ExceptionUtils.indexOfType(throwable, WebApplicationException.class);
+        if (webApplicationExceptionPos != -1)
+            status = ((WebApplicationException) ExceptionUtils.getThrowableList(throwable)
+                    .get(webApplicationExceptionPos)).getResponse().getStatus();
+        
+        if (StringUtils.isBlank(message)) {
+            message = throwable.getMessage();
+            if (StringUtils.isBlank(message))
+                message = ExceptionUtils.getRootCauseMessage(throwable);
+            if (StringUtils.isBlank(message))
+                message = "Internal server error";
+        }
 
-	private static WebApplicationException checkCompatible(final Exception e, final MediaType expectedType) {
-		if (!(e instanceof WebApplicationException))
-			return null;
-		final WebApplicationException wae = (WebApplicationException) e;
-		final Response response = wae.getResponse();
-		if (response == null)
-			return null;
-		if (!response.hasEntity())
-			return null;
-		final MediaType mediaType = response.getMediaType();
-		if (mediaType == null)
-			return null;
-		if (!expectedType.isCompatible(mediaType))
-			return null;
-		return wae;
-	}
+        return new ServerException(status, message, throwable);
+    }
 
-	public static WebApplicationException getTextException(final Logger logger, final Exception e) {
-		final WebApplicationException wae = checkCompatible(e, MediaType.TEXT_PLAIN_TYPE);
-		if (wae != null)
-			return wae;
-		return of(e).warnIfCause(logger).getTextException(logger == null);
-	}
+    private static WebApplicationException checkCompatible(final Exception e, final MediaType expectedType) {
+        if (!(e instanceof WebApplicationException))
+            return null;
+        final WebApplicationException wae = (WebApplicationException) e;
+        final Response response = wae.getResponse();
+        if (response == null)
+            return null;
+        if (!response.hasEntity())
+            return null;
+        final MediaType mediaType = response.getMediaType();
+        if (mediaType == null)
+            return null;
+        if (!expectedType.isCompatible(mediaType))
+            return null;
+        return wae;
+    }
 
-	public static WebApplicationException getJsonException(final Logger logger, final Exception e) {
-		final WebApplicationException wae = checkCompatible(e, MediaType.APPLICATION_JSON_TYPE);
-		if (wae != null)
-			return wae;
-		return of(e).warnIfCause(logger).getJsonException(logger == null);
-	}
+    public static WebApplicationException getTextException(final Logger logger, final Exception e) {
+        final WebApplicationException wae = checkCompatible(e, MediaType.TEXT_PLAIN_TYPE);
+        if (wae != null)
+            return wae;
+        return of(e).warnIfCause(logger).getTextException(logger == null);
+    }
 
-	public static WebApplicationException getHtmlException(final Logger logger, final Exception e) {
-		final WebApplicationException wae = checkCompatible(e, MediaType.TEXT_HTML_TYPE);
-		if (wae != null)
-			return wae;
-		return of(e).warnIfCause(logger).getHtmlException(logger == null);
-	}
+    public static WebApplicationException getJsonException(final Logger logger, final Exception e) {
+        final WebApplicationException wae = checkCompatible(e, MediaType.APPLICATION_JSON_TYPE);
+        if (wae != null)
+            return wae;
+        return of(e).warnIfCause(logger).getJsonException(logger == null);
+    }
 
-	public static WebApplicationException from(final WebApplicationException webAppException) {
-		final Response response = webAppException.getResponse();
-		if (response == null)
-			return webAppException;
-		final MediaType type = response.getMediaType();
-		if (type == null || !response.hasEntity())
-			return webAppException;
-		final String message;
-		if (type.isCompatible(MediaType.TEXT_PLAIN_TYPE) || type.isCompatible(MediaType.TEXT_HTML_TYPE)) {
-			message = response.readEntity(String.class);
-		} else if (type.isCompatible(MediaType.APPLICATION_JSON_TYPE) ||
-				type.isCompatible(SmileMediaTypes.APPLICATION_JACKSON_SMILE_TYPE)) {
-			try {
-				message = response.readEntity(JsonExceptionResponse.class).message;
-			} catch (ProcessingException e) {
-				return webAppException;
-			}
-		} else
-			return webAppException;
-		return StringUtils.isBlank(message) ?
-				webAppException :
-				new WebApplicationException(message, response.getStatus());
-	}
+    public static WebApplicationException getHtmlException(final Logger logger, final Exception e) {
+        final WebApplicationException wae = checkCompatible(e, MediaType.TEXT_HTML_TYPE);
+        if (wae != null)
+            return wae;
+        return of(e).warnIfCause(logger).getHtmlException(logger == null);
+    }
+
+    public static WebApplicationException from(final WebApplicationException webAppException) {
+        final Response response = webAppException.getResponse();
+        if (response == null)
+            return webAppException;
+        final MediaType type = response.getMediaType();
+        if (type == null || !response.hasEntity())
+            return webAppException;
+        final String message;
+        if (type.isCompatible(MediaType.TEXT_PLAIN_TYPE) || type.isCompatible(MediaType.TEXT_HTML_TYPE)) {
+            message = response.readEntity(String.class);
+        } else if (type.isCompatible(MediaType.APPLICATION_JSON_TYPE) ||
+                type.isCompatible(SmileMediaTypes.APPLICATION_JACKSON_SMILE_TYPE)) {
+            try {
+                message = response.readEntity(JsonExceptionResponse.class).message;
+            } catch (ProcessingException e) {
+                return webAppException;
+            }
+        } else
+            return webAppException;
+        return StringUtils.isBlank(message) ?
+                webAppException :
+                new WebApplicationException(message, response.getStatus());
+    }
 
 }
