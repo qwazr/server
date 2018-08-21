@@ -59,7 +59,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
     }
 
     private void writeSession(final Path deploymentDir, final String sessionId,
-                              final PersistentSession persistentSession) {
+            final PersistentSession persistentSession) {
         final Date expDate = persistentSession.getExpiration();
         if (expDate == null)
             return; // No expiry date? no serialization
@@ -81,7 +81,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
     }
 
     private void writeSessionAttribute(final ObjectOutputStream draftOut, final ObjectOutputStream sessionOut,
-                                       final String attribute, final Object object) {
+            final String attribute, final Object object) {
         if (attribute == null || object == null || !(object instanceof Serializable))
             return;
         // First we try to write it to the draftOutputStream
@@ -105,7 +105,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 
     @Override
     public Map<String, PersistentSession> loadSessionAttributes(final String deploymentName,
-                                                                final ClassLoader classLoader) {
+            final ClassLoader classLoader) {
         final Path deploymentDir = sessionDir.resolve(deploymentName);
         if (!Files.exists(deploymentDir) || !Files.isDirectory(deploymentDir))
             return null;
@@ -166,8 +166,10 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
     @Override
     public void clear(final String deploymentName) {
         final Path deploymentDir = sessionDir.resolve(deploymentName);
-        final IOException e = FileUtils.deleteDirectoryQuietly(deploymentDir);
-        if (e != null)
+        try {
+            FileUtils.deleteDirectory(deploymentDir);
+        } catch (IOException e) {
             LOGGER.log(Level.WARNING, e, () -> "Session cleanup failure: " + deploymentDir);
+        }
     }
 }
