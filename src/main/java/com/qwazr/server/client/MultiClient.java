@@ -36,86 +36,87 @@ import java.util.logging.Logger;
  */
 public class MultiClient<T> implements Iterable<T> {
 
-	private final ExecutorService executorService;
-	private final T[] clients;
+    private final ExecutorService executorService;
+    private final T[] clients;
 
-	/**
-	 * Create a new multi client with given clients
-	 *
-	 * @param clients an array of client
-	 */
-	protected MultiClient(final T[] clients, final ExecutorService executorService) {
-		this.clients = clients;
-		this.executorService = executorService;
-	}
+    /**
+     * Create a new multi client with given clients
+     *
+     * @param clients         an array of client
+     * @param executorService an externally maintained executor service
+     */
+    protected MultiClient(final T[] clients, final ExecutorService executorService) {
+        this.clients = clients;
+        this.executorService = executorService;
+    }
 
-	@Override
-	final public Iterator<T> iterator() {
-		return new RandomArrayIterator<>(clients);
-	}
+    @Override
+    final public Iterator<T> iterator() {
+        return new RandomArrayIterator<>(clients);
+    }
 
-	private WebApplicationException ensureWebApplicationException(final Throwable t) {
-		return t instanceof WebApplicationException ? (WebApplicationException) t : new WebApplicationException(t);
-	}
+    private WebApplicationException ensureWebApplicationException(final Throwable t) {
+        return t instanceof WebApplicationException ? (WebApplicationException) t : new WebApplicationException(t);
+    }
 
-	protected <R> R firstRandomSuccess(final FunctionEx<T, R, Exception> action,
-			final Consumer<WebApplicationException> exceptions) {
-		if (clients == null || clients.length == 0)
-			return null;
-		for (final T client : this) {
-			try {
-				final R result = action.apply(client);
-				if (result != null)
-					return result;
-			} catch (WebApplicationException e) {
-				exceptions.accept(e);
-			} catch (Exception e) {
-				exceptions.accept(ensureWebApplicationException(e));
-			}
-		}
-		return null;
-	}
+    protected <R> R firstRandomSuccess(final FunctionEx<T, R, Exception> action,
+            final Consumer<WebApplicationException> exceptions) {
+        if (clients == null || clients.length == 0)
+            return null;
+        for (final T client : this) {
+            try {
+                final R result = action.apply(client);
+                if (result != null)
+                    return result;
+            } catch (WebApplicationException e) {
+                exceptions.accept(e);
+            } catch (Exception e) {
+                exceptions.accept(ensureWebApplicationException(e));
+            }
+        }
+        return null;
+    }
 
-	protected <R> R firstRandomSuccess(final FunctionEx<T, R, Exception> action, final Logger logger) {
-		final MultiWebApplicationException.Builder errors = MultiWebApplicationException.of(logger);
-		final R result = firstRandomSuccess(action, errors::add);
-		if (errors.isEmpty())
-			return result;
-		throw errors.build();
-	}
+    protected <R> R firstRandomSuccess(final FunctionEx<T, R, Exception> action, final Logger logger) {
+        final MultiWebApplicationException.Builder errors = MultiWebApplicationException.of(logger);
+        final R result = firstRandomSuccess(action, errors::add);
+        if (errors.isEmpty())
+            return result;
+        throw errors.build();
+    }
 
-	protected <R> List<R> forEachParallel(final FunctionEx<T, R, Exception> action,
-			final Consumer<WebApplicationException> exceptions) {
+    protected <R> List<R> forEachParallel(final FunctionEx<T, R, Exception> action,
+            final Consumer<WebApplicationException> exceptions) {
 
-		if (clients == null || clients.length == 0)
-			return Collections.emptyList();
+        if (clients == null || clients.length == 0)
+            return Collections.emptyList();
 
-		// Start the parallel threads
-		final List<Future<R>> futures = new ArrayList<>(clients.length);
-		for (final T client : this)
-			futures.add(executorService.submit(() -> action.apply(client)));
+        // Start the parallel threads
+        final List<Future<R>> futures = new ArrayList<>(clients.length);
+        for (final T client : this)
+            futures.add(executorService.submit(() -> action.apply(client)));
 
-		// Get the results
-		final List<R> results = new ArrayList<>(clients.length);
-		for (Future<R> future : futures) {
-			if (future == null)
-				continue;
-			try {
-				results.add(future.get());
-			} catch (ExecutionException e) {
-				exceptions.accept(ensureWebApplicationException(e.getCause()));
-			} catch (InterruptedException e) {
-				exceptions.accept(new WebApplicationException(e));
-			}
-		}
-		return results;
-	}
+        // Get the results
+        final List<R> results = new ArrayList<>(clients.length);
+        for (Future<R> future : futures) {
+            if (future == null)
+                continue;
+            try {
+                results.add(future.get());
+            } catch (ExecutionException e) {
+                exceptions.accept(ensureWebApplicationException(e.getCause()));
+            } catch (InterruptedException e) {
+                exceptions.accept(new WebApplicationException(e));
+            }
+        }
+        return results;
+    }
 
-	protected <R> List<R> forEachParallel(final FunctionEx<T, R, Exception> action, final Logger logger) {
-		final MultiWebApplicationException.Builder errors = MultiWebApplicationException.of(logger);
-		final List<R> results = forEachParallel(action, errors::add);
-		if (errors.isEmpty())
-			return results;
-		throw errors.build();
-	}
+    protected <R> List<R> forEachParallel(final FunctionEx<T, R, Exception> action, final Logger logger) {
+        final MultiWebApplicationException.Builder errors = MultiWebApplicationException.of(logger);
+        final List<R> results = forEachParallel(action, errors::add);
+        if (errors.isEmpty())
+            return results;
+        throw errors.build();
+    }
 }

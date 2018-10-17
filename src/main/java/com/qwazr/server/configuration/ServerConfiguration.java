@@ -81,7 +81,8 @@ public class ServerConfiguration implements ConfigurationProperties {
             for (Map<?, ?> props : propertiesMaps)
                 if (props != null)
                     props.forEach((key, value) -> {
-                        if (key != null && value != null) properties.put(key.toString(), value.toString());
+                        if (key != null && value != null)
+                            properties.put(key.toString(), value.toString());
                     });
         }
 
@@ -118,8 +119,9 @@ public class ServerConfiguration implements ConfigurationProperties {
                 getStringProperty(WEBAPP_AUTHENTICATION, null), getStringProperty(WEBAPP_REALM, null));
         webServiceConnector = new WebConnector(publicAddress, getIntegerProperty(WEBSERVICE_PORT, null), 9091,
                 getStringProperty(WEBSERVICE_AUTHENTICATION, null), getStringProperty(WEBSERVICE_REALM, null));
-        multicastConnector = new WebConnector(getStringProperty(MULTICAST_ADDR, null),
-                getIntegerProperty(MULTICAST_PORT, null), 9091, null, null);
+        multicastConnector =
+                new WebConnector(getStringProperty(MULTICAST_ADDR, null), getIntegerProperty(MULTICAST_PORT, null),
+                        9091, null, null);
 
         // Collect the master address.
         final LinkedHashSet<String> set = new LinkedHashSet<>();
@@ -137,7 +139,7 @@ public class ServerConfiguration implements ConfigurationProperties {
      * List the configuration files
      *
      * @return a list with the found configuration files
-     * @throws IOException
+     * @throws IOException if any I/O error occurs
      */
     public Collection<Path> getEtcFiles() throws IOException {
         if (etcDirectories == null)
@@ -166,7 +168,7 @@ public class ServerConfiguration implements ConfigurationProperties {
     }
 
     protected static void fillStringListProperty(final String value, final String separatorChars, final boolean trim,
-                                                 final Consumer<String> consumer) {
+            final Consumer<String> consumer) {
         if (value == null)
             return;
         final String[] parts = StringUtils.split(value, separatorChars);
@@ -221,7 +223,7 @@ public class ServerConfiguration implements ConfigurationProperties {
         public final String addressPort;
 
         private WebConnector(final String address, final Integer port, final int defaulPort,
-                             final String authentication, final String realm) {
+                final String authentication, final String realm) {
             this.address = address;
             this.authentication = authentication;
             this.realm = realm;
