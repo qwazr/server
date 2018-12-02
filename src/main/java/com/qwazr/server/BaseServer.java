@@ -25,16 +25,16 @@ import java.util.concurrent.TimeUnit;
 
 public interface BaseServer {
 
-	GenericServer getServer();
+    GenericServer getServer();
 
-	default void start() throws JMException, ServletException, IOException {
-		getServer().start(true);
-	}
+    default void start() throws JMException, ServletException, IOException {
+        getServer().start(true);
+    }
 
-	default void stop() {
-		getServer().stopAll();
-		if (SystemUtils.IS_OS_WINDOWS) // Gracefull shutdown on Windows
-			ThreadUtils.sleep(10, TimeUnit.SECONDS);
-	}
+    default void stop() {
+        getServer().close();
+        if (SystemUtils.IS_OS_WINDOWS) // Gracefull shutdown on Windows
+            ThreadUtils.sleep(10, TimeUnit.SECONDS);
+    }
 
 }

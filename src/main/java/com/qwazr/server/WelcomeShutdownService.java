@@ -29,31 +29,31 @@ import java.util.logging.Logger;
 @Singleton
 public class WelcomeShutdownService extends WelcomeService {
 
-	static final private Logger LOGGER = LoggerUtils.getLogger(WelcomeShutdownService.class);
+    static final private Logger LOGGER = LoggerUtils.getLogger(WelcomeShutdownService.class);
 
-	@DELETE
-	@Path("/shutdown")
-	public void shutdown() {
-		new ShutdownThread(getContextAttribute(GenericServer.class));
-	}
+    @DELETE
+    @Path("/shutdown")
+    public void shutdown() {
+        new ShutdownThread(getContextAttribute(GenericServer.class));
+    }
 
-	private static class ShutdownThread implements Runnable {
+    private static class ShutdownThread implements Runnable {
 
-		private final GenericServer server;
+        private final GenericServer server;
 
-		private ShutdownThread(GenericServer server) {
-			this.server = server;
-			new Thread(this).start();
-		}
+        private ShutdownThread(GenericServer server) {
+            this.server = server;
+            new Thread(this).start();
+        }
 
-		@Override
-		public void run() {
-			try {
-				Thread.sleep(5000);
-				server.stopAll();
-			} catch (InterruptedException e) {
-				LOGGER.log(Level.WARNING, e, e::getMessage);
-			}
-		}
-	}
+        @Override
+        public void run() {
+            try {
+                Thread.sleep(5000);
+                server.close();
+            } catch (InterruptedException e) {
+                LOGGER.log(Level.WARNING, e, e::getMessage);
+            }
+        }
+    }
 }

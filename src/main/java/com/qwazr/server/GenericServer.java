@@ -61,7 +61,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class GenericServer {
+public class GenericServer implements AutoCloseable {
 
     final private ExecutorService executorService;
     final private ServletContainer servletContainer;
@@ -179,7 +179,16 @@ public class GenericServer {
         undertows.add(undertow);
     }
 
-    public synchronized void stopAll() {
+    /**
+     * Uses close()
+     */
+    @Deprecated
+    public void stopAll() {
+        close();
+    }
+
+    @Override
+    public synchronized void close() {
 
         LOGGER.info("The server is stopping...");
 
@@ -212,11 +221,14 @@ public class GenericServer {
             }
         }
 
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(2, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            LOGGER.log(Level.WARNING, e, () -> "Executor shutdown failed: " + e.getMessage());
+        if (!executorService.isTerminated()) {
+            if (!executorService.isShutdown())
+                executorService.shutdown();
+            try {
+                executorService.awaitTermination(2, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                LOGGER.log(Level.WARNING, e, () -> "Executor shutdown failed: " + e.getMessage());
+            }
         }
 
         // Unregister MBeans
@@ -324,7 +336,7 @@ public class GenericServer {
         startHttpServer(configuration.webServiceConnector, webServiceContext, webServiceAccessLogger);
 
         if (shutdownHook)
-            Runtime.getRuntime().addShutdownHook(new Thread(this::stopAll));
+            Runtime.getRuntime().addShutdownHook(new Thread(this::close));
 
         executeListener(startedListeners, null);
 
