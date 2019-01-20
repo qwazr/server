@@ -40,15 +40,19 @@ public class AsyncServiceTest {
 
     @Test
     public void testAsync() throws ExecutionException, InterruptedException {
-        Client client = ClientBuilder.newClient();
-        final String randomTest = RandomUtils.alphanumeric(10);
-        final String returnedString = client.target("http://localhost:9091/async")
-                .queryParam("test", randomTest)
-                .request()
-                .async()
-                .get(String.class)
-                .get();
-        Assert.assertEquals(randomTest, returnedString);
+        final Client client = ClientBuilder.newClient();
+        try {
+            final String randomTest = RandomUtils.alphanumeric(10);
+            final String returnedString = client.target("http://localhost:9091/async")
+                    .queryParam("test", randomTest)
+                    .request()
+                    .async()
+                    .get(String.class)
+                    .get();
+            Assert.assertEquals(randomTest, returnedString);
+        } finally {
+            client.close();
+        }
     }
 
     @AfterClass

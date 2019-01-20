@@ -18,38 +18,37 @@ package com.qwazr.server;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.net.URISyntaxException;
 
 public class RemoteServiceTest {
 
-	@Test
-	public void builderAndEquality() throws IOException, URISyntaxException {
-		RemoteService rs1 = RemoteService.of()
-				.setHost("birdie")
-				.setPort(9091)
-				.setTimeout(1234)
-				.setPath("avatar")
-				.setUsername("jake")
-				.setPassword("suly")
-				.build();
-		Assert.assertNotNull(rs1);
+    @Test
+    public void builderAndEquality() throws URISyntaxException {
+        RemoteService rs1 = RemoteService.of()
+                .setHost("birdie")
+                .setPort(9091)
+                .setTimeout(1234)
+                .setPath("avatar")
+                .setUsername("jake")
+                .setPassword("suly")
+                .build();
+        Assert.assertNotNull(rs1);
 
-		RemoteService rs2 = RemoteService.of("http://jake:suly@birdie:9091/avatar").setTimeout(1234).build();
-		Assert.assertEquals(rs1, rs2);
+        RemoteService rs2 = RemoteService.of("http://jake:suly@birdie:9091/avatar").setTimeout(1234).build();
+        Assert.assertEquals(rs1, rs2);
 
-		RemoteService rs3 = RemoteService.of("http://jake:suly@birdie:9091/avatar?timeout=1234").build();
-		Assert.assertEquals(rs1, rs3);
+        RemoteService rs3 = RemoteService.of("http://jake:suly@birdie:9091/avatar?timeout=1234").build();
+        Assert.assertEquals(rs1, rs3);
 
-		RemoteService rsA = RemoteService.of("http://jake:suly@birdie:9091/avatar?timeout=1235").build();
-		Assert.assertNotEquals(rs1, rsA);
+        RemoteService rsA = RemoteService.of("http://jake:suly@birdie:9091/avatar?timeout=1235").build();
+        Assert.assertNotEquals(rs1, rsA);
 
-		RemoteService rsB = RemoteService.of("http://jake:suly@birdie:9092/avatar?timeout=1234").build();
-		Assert.assertNotEquals(rs1, rsB);
+        RemoteService rsB = RemoteService.of("http://jake:suly@birdie:9092/avatar?timeout=1234").build();
+        Assert.assertNotEquals(rs1, rsB);
 
-		RemoteService rsC = RemoteService.of("http://jake:suly@example:9091/avatar?timeout=1234").build();
-		Assert.assertNotEquals(rs1, rsC);
+        RemoteService rsC = RemoteService.of("http://jake:suly@example:9091/avatar?timeout=1234").build();
+        Assert.assertNotEquals(rs1, rsC);
 
-	}
+    }
 
 }
