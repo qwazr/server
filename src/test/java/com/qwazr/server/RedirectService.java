@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2018 Emmanuel Keller / QWAZR
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,23 +15,26 @@
  */
 package com.qwazr.server;
 
-import com.qwazr.utils.concurrent.ThreadUtils;
-import org.glassfish.jersey.server.ManagedAsync;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
-import java.util.concurrent.TimeUnit;
+import javax.ws.rs.Produces;
+import javax.ws.rs.RedirectionException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.net.URI;
 
 @Path("/")
-public class AsyncService {
+public class RedirectService {
 
-    @Path("/async")
-    @GET
-    @ManagedAsync
-    public String async(@QueryParam("test") String test) {
-        ThreadUtils.sleep(3, TimeUnit.SECONDS);
-        return test;
+    private final URI redirect;
+
+    RedirectService(String redirect) {
+        this.redirect = URI.create(redirect + "/redirect");
     }
 
+    @GET
+    @Produces(value = { MediaType.TEXT_PLAIN })
+    public String welcome() {
+        throw new RedirectionException(Response.temporaryRedirect(this.redirect).build());
+    }
 }
