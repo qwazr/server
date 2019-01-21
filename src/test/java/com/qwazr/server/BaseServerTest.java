@@ -26,20 +26,20 @@ import java.util.List;
 
 public class BaseServerTest {
 
-	final List<Client> clients = new ArrayList<>();
+    final List<Client> clients = new ArrayList<>();
 
-	public Client getClient(Object... components) {
-		final Client client =
-				ClientBuilder.newClient().register(JacksonJsonProvider.class).register(JacksonSmileProvider.class);
-		for (Object component : components)
-			client.register(component);
-		clients.add(client);
-		return client;
-	}
+    public Client getClient(Object... components) {
+        final Client client =
+                ClientBuilder.newClient().register(JacksonJsonProvider.class).register(JacksonSmileProvider.class);
+        for (Object component : components)
+            client.register(component);
+        clients.add(client);
+        return client;
+    }
 
-	@After
-	public void cleanup() {
-		clients.forEach(Client::close);
-	}
+    @After
+    public void cleanup() {
+        clients.forEach(Client::close);
+    }
 
 }
