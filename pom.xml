@@ -22,7 +22,7 @@
   </scm>
 
   <properties>
-    <undertow.version>2.0.16.Final</undertow.version>
+    <undertow.version>2.0.17.Final</undertow.version>
     <xnio.version>3.6.5.Final</xnio.version>
   </properties>
 
