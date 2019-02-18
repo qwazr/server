@@ -20,18 +20,24 @@ import org.junit.Test;
 
 public class LogParamTest {
 
-	@Test
-	public void timeTaken() throws InterruptedException {
-		LogContext logContext = new LogContext(ctx -> {
-		});
-		logContext.nanoStartTime = System.nanoTime();
-		logContext.nanoEndTime = logContext.nanoStartTime + 1234511111L;
-		Assert.assertEquals("1234", LogParam.TIME_TAKEN.supplier.apply(logContext));
+    @Test
+    public void timeTaken() throws InterruptedException {
+        LogContext logContext = new LogContext(ctx -> {
+        });
+        logContext.nanoStartTime = System.nanoTime();
+        Thread.sleep(1500);
+        logContext.nanoEndTime = System.nanoTime();
+        final int time = Integer.valueOf(LogParam.TIME_TAKEN.supplier.apply(logContext));
+        Assert.assertTrue("False time value: " + time, time >= 1000 && time <= 3000);
+    }
 
-		logContext.nanoStartTime = System.nanoTime();
-		Thread.sleep(1500);
-		logContext.nanoEndTime = System.nanoTime();
-		final int time = Integer.valueOf(LogParam.TIME_TAKEN.supplier.apply(logContext));
-		Assert.assertTrue("False time value: " + time, time >= 1000 && time <= 3000);
-	}
+    @Test
+    public void testNanoMs() {
+        LogContext logContext = new LogContext(ctx -> {
+        });
+        logContext.nanoStartTime = System.nanoTime();
+        logContext.nanoEndTime = logContext.nanoStartTime + 123_456_511_111L;
+        Assert.assertEquals("123456", LogParam.TIME_TAKEN.supplier.apply(logContext));
+
+    }
 }

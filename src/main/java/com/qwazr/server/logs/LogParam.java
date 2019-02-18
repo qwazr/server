@@ -57,7 +57,7 @@ public enum LogParam {
     TIME(13, "time", ctx -> getTime(ctx.logDateTime)),
 
     TIME_TAKEN(14, "time-taken", ctx -> Integer.toString(
-            ctx.nanoStartTime == -1 ? 0 : (int) (ctx.nanoEndTime - ctx.nanoStartTime) / 1_000_000)),
+            ctx.nanoStartTime == -1 ? 0 : (int) ((ctx.nanoEndTime - ctx.nanoStartTime) / 1_000_000))),
 
     CS_BYTES(15, "cs-bytes", ctx -> Long.toString(ctx.exchange.getRequestContentLength())),
 
@@ -69,23 +69,12 @@ public enum LogParam {
 
     final Function<LogContext, String> supplier;
 
-    public final static List<LogParam> DEFAULT_PARAMS = Collections.unmodifiableList(Arrays.asList(
-            DATE,
-            TIME,
-            C_IP,
-            S_IP,
-            CS_METHOD,
-            CS_URI_STEM,
-            CS_URI_QUERY,
-            SC_STATUS,
-            CS_REFERER,
-            CS_USER_AGENT,
-            CS_BYTES,
-            SC_BYTES,
-            TIME_TAKEN,
-            CS_HOST));
+    public final static List<LogParam> DEFAULT_PARAMS = Collections.unmodifiableList(
+            Arrays.asList(DATE, TIME, C_IP, S_IP, CS_METHOD, CS_URI_STEM, CS_URI_QUERY, SC_STATUS, CS_REFERER,
+                    CS_USER_AGENT, CS_BYTES, SC_BYTES, TIME_TAKEN, CS_HOST));
 
-    public final static String DEFAULT_MESSAGE = "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}";
+    public final static String DEFAULT_MESSAGE =
+            "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}";
 
     LogParam(int pos, String name, Function<LogContext, String> supplier) {
         this.pos = pos;
