@@ -1,17 +1,10 @@
 language: java
 jdk:
-  - oraclejdk8
-  - oraclejdk9
-  - oraclejdk10
+  - openjdk11
 sudo: false
 cache:
   directories:
   - $HOME/.m2
-addons:
-  apt:
-    packages:
-      - oracle-java8-installer
-      - oracle-java9-installer
 
 install: mvn install -DskipTests=true -Dgpg.skip=true -Dmaven.javadoc.skip=true -B -V -U
 after_success:
