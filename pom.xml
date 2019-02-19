@@ -23,27 +23,7 @@
 
   <properties>
     <undertow.version>2.0.17.Final</undertow.version>
-    <xnio.version>3.6.5.Final</xnio.version>
   </properties>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.jboss.xnio</groupId>
-        <artifactId>xnio-nio</artifactId>
-        <version>${xnio.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.xnio</groupId>
-        <artifactId>xnio-api</artifactId>
-        <version>${xnio.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.threads</groupId>
-        <artifactId>jboss-threads</artifactId>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <dependencies>
     <dependency>
