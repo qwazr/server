@@ -3,7 +3,7 @@
 
   <artifactId>qwazr-server</artifactId>
   <name>QWAZR Server</name>
-  <version>1.4.2-SNAPSHOT</version>
+  <version>1.4.2</version>
   <packaging>jar</packaging>
 
   <parent>
