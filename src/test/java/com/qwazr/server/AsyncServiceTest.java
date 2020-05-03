@@ -25,6 +25,7 @@ import javax.management.JMException;
 import javax.servlet.ServletException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
@@ -50,6 +51,24 @@ public class AsyncServiceTest {
                     .get(String.class)
                     .get();
             Assert.assertEquals(randomTest, returnedString);
+        } finally {
+            client.close();
+        }
+    }
+
+    @Test
+    public void testCors() {
+        final Client client = ClientBuilder.newClient();
+        try (final Response response = client.target("http://localhost:9091/async")
+                .queryParam("test", "test")
+                .request()
+                .get()) {
+            Assert.assertEquals(response.getHeaderString("Access-Control-Allow-Origin"), "*");
+            Assert.assertEquals(response.getHeaderString("Access-Control-Allow-Credentials"), "true");
+            Assert.assertEquals(response.getHeaderString("Access-Control-Allow-Headers"),
+                    "origin, content-type, accept, authorization");
+            Assert.assertEquals(response.getHeaderString("Access-Control-Allow-Methods"),
+                    "GET, POST, PUT, DELETE, OPTIONS, HEAD");
         } finally {
             client.close();
         }

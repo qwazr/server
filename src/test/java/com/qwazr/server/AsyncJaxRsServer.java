@@ -28,7 +28,7 @@ public class AsyncJaxRsServer implements BaseServer {
         final GenericServerBuilder builder = GenericServer.of(ServerConfiguration.of().build());
 
         builder.getWebServiceContext()
-                .jaxrs(ApplicationBuilder.of("/*").loadServices().singletons(new AsyncService()));
+                .jaxrs(ApplicationBuilder.of("/*").loadServices().singletons(new AsyncService(), new CorsFilter()));
 
         server = builder.build();
     }
