@@ -87,7 +87,7 @@ public interface JsonExceptionMapper<T extends Exception> extends ExceptionMappe
         }
     }
 
-    class Generic implements JsonExceptionMapper<Exception> {
+    class Generic implements JsonExceptionMapper<Exception>, ExceptionMapper<Exception> {
 
         private final static Logger LOGGER = LoggerUtils.getLogger(Generic.class);
 
@@ -98,11 +98,12 @@ public interface JsonExceptionMapper<T extends Exception> extends ExceptionMappe
 
         @Override
         public JsonError getJsonError(final long errorTime, final Exception exception) {
-            return new JsonError(errorTime, 500, exception.getMessage());
+            return new JsonError(errorTime, 500, exception.getMessage());   
         }
     }
 
-    class WebApplication implements JsonExceptionMapper<WebApplicationException> {
+    class WebApplication
+            implements JsonExceptionMapper<WebApplicationException>, ExceptionMapper<WebApplicationException> {
 
         private final static Logger LOGGER = LoggerUtils.getLogger(WebApplication.class);
 
