@@ -259,7 +259,7 @@ public class GenericServer implements AutoCloseable {
     private void startHttpServer(final ServerConfiguration.WebConnector connector, final ServletContextBuilder context,
             final AccessLogger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
 
-        if (context == null || context.getServlets().isEmpty())
+        if (context == null || (context.getServlets().isEmpty() && context.getFilters().isEmpty()))
             return;
 
         context.setIdentityManager(getIdentityManager(connector));

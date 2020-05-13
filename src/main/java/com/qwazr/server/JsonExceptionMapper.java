@@ -98,7 +98,7 @@ public interface JsonExceptionMapper<T extends Exception> extends ExceptionMappe
 
         @Override
         public JsonError getJsonError(final long errorTime, final Exception exception) {
-            return new JsonError(errorTime, 500, exception.getMessage());   
+            return new JsonError(errorTime, 500, exception.getMessage());
         }
     }
 
