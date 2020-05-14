@@ -33,53 +33,53 @@ import java.util.Map;
 
 public class SessionManagerTest {
 
-	private SimpleServer server1;
-	private SimpleServer server2;
+    private SimpleServer server1;
+    private SimpleServer server2;
 
-	static Path sessionDir;
+    static Path sessionDir;
 
-	@Before
-	public void setup() throws IOException {
-		sessionDir = Files.createTempDirectory("sessionTest");
-	}
+    @Before
+    public void setup() throws IOException {
+        sessionDir = Files.createTempDirectory("sessionTest");
+    }
 
-	@After
-	public void cleanup() {
-		if (server1 != null)
-			server1.stop();
-		if (server2 != null)
-			server2.stop();
-	}
+    @After
+    public void cleanup() {
+        if (server1 != null)
+            server1.stop();
+        if (server2 != null)
+            server2.stop();
+    }
 
-	private SimpleServer startNewServer() throws IOException, ServletException, JMException {
-		final SimpleServer server = new SimpleServer(new InFileSessionPersistenceManager(sessionDir), null);
-		Assert.assertNotNull(server.getServer());
-		Assert.assertTrue(Files.exists(sessionDir));
-		server.start();
-		return server;
-	}
+    private SimpleServer startNewServer() throws IOException, ServletException, JMException {
+        final SimpleServer server = new SimpleServer(new InFileSessionPersistenceManager(sessionDir), null);
+        Assert.assertNotNull(server.getServer());
+        Assert.assertTrue(Files.exists(sessionDir));
+        server.start();
+        return server;
+    }
 
-	@Test
-	public void test() throws ReflectiveOperationException, JMException, ServletException, IOException {
+    @Test
+    public void test() throws JMException, ServletException, IOException {
 
-		final WebTarget target = ClientBuilder.newClient().target("http://localhost:9090");
+        final WebTarget target = ClientBuilder.newClient().target("http://localhost:9090");
 
-		server1 = startNewServer();
-		Map<String, NewCookie> cookies = target.path("/test_bis").request().get().getCookies();
+        server1 = startNewServer();
+        Map<String, NewCookie> cookies = target.path("/test_bis").request().get().getCookies();
 
-		String firstSessionId = SimpleServlet.sessionId;
-		Assert.assertNotNull(firstSessionId);
-		server1.stop();
-		server1 = null;
+        String firstSessionId = SimpleServlet.sessionId;
+        Assert.assertNotNull(firstSessionId);
+        server1.stop();
+        server1 = null;
 
-		server2 = startNewServer();
-		Invocation.Builder builder = target.path("/test_bis").request();
-		cookies.forEach((k, c) -> builder.cookie(c.toCookie()));
-		Assert.assertEquals(200, builder.get().getStatus());
-		Assert.assertEquals(firstSessionId, SimpleServlet.lastSessionAttribute);
+        server2 = startNewServer();
+        Invocation.Builder builder = target.path("/test_bis").request();
+        cookies.forEach((k, c) -> builder.cookie(c.toCookie()));
+        Assert.assertEquals(200, builder.get().getStatus());
+        Assert.assertEquals(firstSessionId, SimpleServlet.lastSessionAttribute);
 
-		server2.stop();
-		server2 = null;
-	}
+        server2.stop();
+        server2 = null;
+    }
 
 }

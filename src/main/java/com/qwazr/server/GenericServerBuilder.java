@@ -40,7 +40,7 @@ public class GenericServerBuilder {
     Collection<GenericServer.Listener> shutdownListeners;
 
     GenericServerBuilder(final ServerConfiguration configuration, final ExecutorService executorService,
-                         final ClassLoader classLoader, final ConstructorParameters constructorParameters) {
+            final ClassLoader classLoader, final ConstructorParameters constructorParameters) {
         this.configuration = configuration;
         this.executorService = executorService;
         this.classLoader = classLoader == null ? Thread.currentThread().getContextClassLoader() : classLoader;
@@ -134,12 +134,13 @@ public class GenericServerBuilder {
     }
 
     public GenericServerBuilder webAppAccessLogger(Logger logger, Level level, String logMessage,
-                                                   LogParam... logParams) {
+            LogParam... logParams) {
         return webAppAccessLogger(new AccessLogger.Jul(logger, level, logMessage, logParams));
     }
 
     public GenericServerBuilder webAppAccessLogger(Logger logger) {
-        return webAppAccessLogger(logger, Level.INFO, LogParam.DEFAULT_MESSAGE, LogParam.DEFAULT_PARAMS.toArray(new LogParam[0]));
+        return webAppAccessLogger(logger, Level.INFO, LogParam.DEFAULT_MESSAGE,
+                LogParam.DEFAULT_PARAMS.toArray(new LogParam[0]));
     }
 
     public GenericServerBuilder webServiceAccessLogger(AccessLogger accessLogger) {
@@ -148,16 +149,17 @@ public class GenericServerBuilder {
     }
 
     public GenericServerBuilder webServiceAccessLogger(Logger logger, Level level, String logMessage,
-                                                       LogParam... logParams) {
+            LogParam... logParams) {
         return webServiceAccessLogger(new AccessLogger.Jul(logger, level, logMessage, logParams));
     }
 
     public GenericServerBuilder webServiceAccessLogger(Logger logger) {
-        return webServiceAccessLogger(logger, Level.INFO, LogParam.DEFAULT_MESSAGE, LogParam.DEFAULT_PARAMS.toArray(new LogParam[0]));
+        return webServiceAccessLogger(logger, Level.INFO, LogParam.DEFAULT_MESSAGE,
+                LogParam.DEFAULT_PARAMS.toArray(new LogParam[0]));
     }
 
     public GenericServerBuilder defaultMultipartConfig(String location, long maxFileSize, long maxRequestSize,
-                                                       int fileSizeThreshold) {
+            int fileSizeThreshold) {
         webAppContext.setDefaultMultipartConfig(location, maxFileSize, maxRequestSize, fileSizeThreshold);
         return this;
     }

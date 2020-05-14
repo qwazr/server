@@ -34,81 +34,81 @@ import java.util.Map;
 
 public class InFileSessionPersistenceManagerTest {
 
-	private static InFileSessionPersistenceManager sessionManager;
+    private static InFileSessionPersistenceManager sessionManager;
 
-	private final static String DEPLOYMENT_NAME = "test";
+    private final static String DEPLOYMENT_NAME = "test";
 
-	@BeforeClass
-	public static void setup() throws IOException {
-		final Path sessionDir = Files.createTempDirectory("qwazrserver-infiletest");
-		sessionManager = new InFileSessionPersistenceManager(sessionDir);
-	}
+    @BeforeClass
+    public static void setup() throws IOException {
+        final Path sessionDir = Files.createTempDirectory("qwazrserver-infiletest");
+        sessionManager = new InFileSessionPersistenceManager(sessionDir);
+    }
 
-	@AfterClass
-	public static void cleanup() {
-		sessionManager.clear(DEPLOYMENT_NAME);
-	}
+    @AfterClass
+    public static void cleanup() {
+        sessionManager.clear(DEPLOYMENT_NAME);
+    }
 
-	void checkSession(Map<String, SessionPersistenceManager.PersistentSession> writeSessions,
-			Map<String, SessionPersistenceManager.PersistentSession> readSessions) {
-		Assert.assertEquals(writeSessions.size(), readSessions.size());
-		writeSessions.forEach((sessionId, writeSession) -> {
-			final SessionPersistenceManager.PersistentSession readSession = readSessions.get(sessionId);
-			Assert.assertNotNull(readSession);
-			Assert.assertEquals(writeSession.getExpiration(), readSession.getExpiration());
-			Assert.assertTrue(CollectionsUtils.equals(writeSession.getSessionData(), readSession.getSessionData()));
-		});
-	}
+    void checkSession(Map<String, SessionPersistenceManager.PersistentSession> writeSessions,
+            Map<String, SessionPersistenceManager.PersistentSession> readSessions) {
+        Assert.assertEquals(writeSessions.size(), readSessions.size());
+        writeSessions.forEach((sessionId, writeSession) -> {
+            final SessionPersistenceManager.PersistentSession readSession = readSessions.get(sessionId);
+            Assert.assertNotNull(readSession);
+            Assert.assertEquals(writeSession.getExpiration(), readSession.getExpiration());
+            Assert.assertTrue(CollectionsUtils.equals(writeSession.getSessionData(), readSession.getSessionData()));
+        });
+    }
 
-	@Test
-	public void sessionTest() throws IOException {
+    @Test
+    public void sessionTest() {
 
-		// Session holder
-		final Map<String, SessionPersistenceManager.PersistentSession> writeSessions = new HashMap<>();
+        // Session holder
+        final Map<String, SessionPersistenceManager.PersistentSession> writeSessions = new HashMap<>();
 
-		// Valid session
-		final Map<String, Object> validAttributes = new HashMap<>();
-		validAttributes.put("user", RandomUtils.alphanumeric(10));
-		validAttributes.put("id", RandomUtils.nextInt());
-		validAttributes.put("date", RandomUtils.nextPastDate(1, 10));
-		validAttributes.put("NonSerializable", new NonSerializable());
-		validAttributes.put("SerializableWithBug", new SerializableWithBug());
+        // Valid session
+        final Map<String, Object> validAttributes = new HashMap<>();
+        validAttributes.put("user", RandomUtils.alphanumeric(10));
+        validAttributes.put("id", RandomUtils.nextInt());
+        validAttributes.put("date", RandomUtils.nextPastDate(1, 10));
+        validAttributes.put("NonSerializable", new NonSerializable());
+        validAttributes.put("SerializableWithBug", new SerializableWithBug());
 
-		final String validSessionId = RandomUtils.alphanumeric(10);
-		final Date validExpirationDate = RandomUtils.nextFutureDate(1, 10);
-		writeSessions.put(validSessionId,
-				new SessionPersistenceManager.PersistentSession(validExpirationDate, validAttributes));
+        final String validSessionId = RandomUtils.alphanumeric(10);
+        final Date validExpirationDate = RandomUtils.nextFutureDate(1, 10);
+        writeSessions.put(validSessionId,
+                new SessionPersistenceManager.PersistentSession(validExpirationDate, validAttributes));
 
-		// Expired session
-		final Map<String, Object> expiredAttributes = new HashMap<>();
-		expiredAttributes.put("user", RandomUtils.alphanumeric(10));
-		final String expiredSessionId = RandomUtils.alphanumeric(12);
-		final Date expiredExpirationDate = RandomUtils.nextPastDate(1, 10);
-		writeSessions.put(expiredSessionId,
-				new SessionPersistenceManager.PersistentSession(expiredExpirationDate, expiredAttributes));
+        // Expired session
+        final Map<String, Object> expiredAttributes = new HashMap<>();
+        expiredAttributes.put("user", RandomUtils.alphanumeric(10));
+        final String expiredSessionId = RandomUtils.alphanumeric(12);
+        final Date expiredExpirationDate = RandomUtils.nextPastDate(1, 10);
+        writeSessions.put(expiredSessionId,
+                new SessionPersistenceManager.PersistentSession(expiredExpirationDate, expiredAttributes));
 
-		// Write and read sessions
-		sessionManager.persistSessions(DEPLOYMENT_NAME, writeSessions);
+        // Write and read sessions
+        sessionManager.persistSessions(DEPLOYMENT_NAME, writeSessions);
 
-		final Map<String, SessionPersistenceManager.PersistentSession> readSessions =
-				sessionManager.loadSessionAttributes(DEPLOYMENT_NAME, null);
+        final Map<String, SessionPersistenceManager.PersistentSession> readSessions =
+                sessionManager.loadSessionAttributes(DEPLOYMENT_NAME, null);
 
-		// Remove non serializable
-		validAttributes.remove("NonSerializable");
-		validAttributes.remove("SerializableWithBug");
-		// Remove expired
-		writeSessions.remove(expiredSessionId);
+        // Remove non serializable
+        validAttributes.remove("NonSerializable");
+        validAttributes.remove("SerializableWithBug");
+        // Remove expired
+        writeSessions.remove(expiredSessionId);
 
-		checkSession(writeSessions, readSessions);
-	}
+        checkSession(writeSessions, readSessions);
+    }
 
-	public static class NonSerializable {
+    public static class NonSerializable {
 
-	}
+    }
 
-	public static class SerializableWithBug implements Serializable {
+    public static class SerializableWithBug implements Serializable {
 
-		final NonSerializable object = new NonSerializable();
+        final NonSerializable object = new NonSerializable();
 
-	}
+    }
 }

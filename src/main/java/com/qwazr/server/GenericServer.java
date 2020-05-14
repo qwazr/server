@@ -27,9 +27,11 @@ import io.undertow.UndertowOptions;
 import io.undertow.security.idm.IdentityManager;
 import io.undertow.server.HttpHandler;
 import io.undertow.servlet.Servlets;
+import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
 import io.undertow.servlet.api.LoginConfig;
 import io.undertow.servlet.api.ServletContainer;
+import io.undertow.servlet.api.SessionPersistenceManager;
 import org.apache.commons.lang3.SystemUtils;
 
 import javax.management.InstanceNotFoundException;
@@ -247,11 +249,12 @@ public class GenericServer implements AutoCloseable {
         LOGGER.info("The server is stopped.");
     }
 
-    private IdentityManager getIdentityManager(final ServerConfiguration.WebConnector connector) throws IOException {
+    private void applyIdentityManager(final ServerConfiguration.WebConnector connector,
+            final DeploymentInfo deploymentInfo) throws IOException {
         if (identityManagerProvider == null)
-            return null;
-        return identityManagerProvider.getIdentityManager(
-                connector == null || connector.realm == null ? null : connector.realm);
+            return;
+        deploymentInfo.setIdentityManager(identityManagerProvider.getIdentityManager(
+                connector == null || connector.realm == null ? null : connector.realm));
     }
 
     private final static AtomicInteger serverCounter = new AtomicInteger();
@@ -262,8 +265,7 @@ public class GenericServer implements AutoCloseable {
         if (context == null || (context.getServlets().isEmpty() && context.getFilters().isEmpty()))
             return;
 
-        context.setIdentityManager(getIdentityManager(connector));
-
+        applyIdentityManager(connector, context);
         contextAttributes.forEach(context::addServletContextAttribute);
 
         if (context.getIdentityManager() != null && !StringUtils.isEmpty(connector.authentication)) {
@@ -280,12 +282,11 @@ public class GenericServer implements AutoCloseable {
 
         LOGGER.info(() -> "Start the connector " + configuration.listenAddress + ":" + connector.port);
 
-        HttpHandler httpHandler = manager.start();
+        final HttpHandler httpHandlerFromStart = manager.start();
         final LogMetricsHandler logMetricsHandler =
-                new LogMetricsHandler(httpHandler, configuration.listenAddress, connector.port, context.jmxName,
-                        accessLogger);
+                new LogMetricsHandler(httpHandlerFromStart, configuration.listenAddress, connector.port,
+                        context.jmxName, accessLogger);
         deploymentManagers.add(manager);
-        httpHandler = logMetricsHandler;
 
         final Undertow.Builder servletBuilder = Undertow.builder()
                 .addHttpListener(connector.port, configuration.listenAddress)
@@ -293,7 +294,7 @@ public class GenericServer implements AutoCloseable {
                 .setServerOption(UndertowOptions.RECORD_REQUEST_START_TIME, true)
                 .setServerOption(UndertowOptions.ENABLE_STATISTICS, true)
                 .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
-                .setHandler(httpHandler);
+                .setHandler(logMetricsHandler);
         start(servletBuilder.build());
 
         // Register MBeans
@@ -371,9 +372,11 @@ public class GenericServer implements AutoCloseable {
             new MultipartConfigElement(SystemUtils.getJavaIoTmpDir().getAbsolutePath());
 
     public interface IdentityManagerProvider {
-
         IdentityManager getIdentityManager(String realm) throws IOException;
+    }
 
+    public interface SessionPersistenceManagerProvider {
+        SessionPersistenceManager getSessionPersistenceManager(String realm) throws IOException;
     }
 
     public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
