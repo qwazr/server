@@ -31,97 +31,97 @@ import java.util.logging.Logger;
 
 public class UdpServerThread extends Thread {
 
-	private static final Logger LOGGER = LoggerUtils.getLogger(UdpServerThread.class);
+    private static final Logger LOGGER = LoggerUtils.getLogger(UdpServerThread.class);
 
-	private final PacketListener[] packetListeners;
+    private final PacketListener[] packetListeners;
 
-	private final AtomicBoolean isShutdown;
+    private final AtomicBoolean isShutdown;
 
-	private final InetSocketAddress socketAddress;
-	private final InetAddress multicastGroupAddress;
-	private final Integer multicastPort;
-	private volatile DatagramSocket datagramSocket;
+    private final InetSocketAddress socketAddress;
+    private final InetAddress multicastGroupAddress;
+    private final Integer multicastPort;
+    private volatile DatagramSocket datagramSocket;
 
-	private UdpServerThread(final InetSocketAddress socketAddress, final InetAddress multicastGroupAddress,
-			final Integer multicastPort, final Collection<PacketListener> packetListeners) {
-		super();
-		setName("UDP Server");
-		setDaemon(true);
-		this.isShutdown = new AtomicBoolean(false);
-		this.socketAddress = socketAddress;
-		this.multicastGroupAddress = multicastGroupAddress;
-		this.multicastPort = multicastPort;
-		this.packetListeners = packetListeners.toArray(new PacketListener[packetListeners.size()]);
-		this.datagramSocket = null;
-	}
+    private UdpServerThread(final InetSocketAddress socketAddress, final InetAddress multicastGroupAddress,
+            final Integer multicastPort, final Collection<PacketListener> packetListeners) {
+        super();
+        setName("UDP Server");
+        setDaemon(true);
+        this.isShutdown = new AtomicBoolean(false);
+        this.socketAddress = socketAddress;
+        this.multicastGroupAddress = multicastGroupAddress;
+        this.multicastPort = multicastPort;
+        this.packetListeners = packetListeners.toArray(new PacketListener[0]);
+        this.datagramSocket = null;
+    }
 
-	UdpServerThread(final InetSocketAddress socketAddress, final Collection<PacketListener> packetListeners) {
-		this(socketAddress, null, null, packetListeners);
-	}
+    UdpServerThread(final InetSocketAddress socketAddress, final Collection<PacketListener> packetListeners) {
+        this(socketAddress, null, null, packetListeners);
+    }
 
-	UdpServerThread(final String multicastGroupAddress, final int multicastPort,
-			final Collection<PacketListener> packetListeners) throws UnknownHostException {
-		this(null, InetAddress.getByName(multicastGroupAddress), multicastPort, packetListeners);
-	}
+    UdpServerThread(final String multicastGroupAddress, final int multicastPort,
+            final Collection<PacketListener> packetListeners) throws UnknownHostException {
+        this(null, InetAddress.getByName(multicastGroupAddress), multicastPort, packetListeners);
+    }
 
-	@Override
-	public void run() {
-		try (final DatagramSocket socket = multicastGroupAddress != null ?
-				new MulticastSocket(multicastPort) :
-				new DatagramSocket(socketAddress)) {
-			this.datagramSocket = socket;
-			if (multicastGroupAddress != null)
-				((MulticastSocket) socket).joinGroup(multicastGroupAddress);
-			LOGGER.info(() -> "UDP Server started: " + socket.getLocalSocketAddress());
-			while (!isShutdown.get()) {
-				final byte[] dataBuffer = new byte[65536];
-				final DatagramPacket datagramPacket = new DatagramPacket(dataBuffer, dataBuffer.length);
-				socket.receive(datagramPacket);
-				for (PacketListener packetListener : packetListeners) {
-					try {
-						packetListener.acceptPacket(datagramPacket);
-					} catch (Exception e) {
-						LOGGER.log(Level.WARNING, e.getMessage(), e);
-					}
-				}
-			}
-		} catch (IOException e) {
-			if (!isShutdown.get())
-				throw new RuntimeException("Error on UDP server " + socketAddress, e);
-		} finally {
-			LOGGER.info(() -> "UDP Server exit: " + socketAddress);
-		}
-	}
+    @Override
+    public void run() {
+        try (final DatagramSocket socket = multicastGroupAddress != null ?
+                new MulticastSocket(multicastPort) :
+                new DatagramSocket(socketAddress)) {
+            this.datagramSocket = socket;
+            if (multicastGroupAddress != null)
+                ((MulticastSocket) socket).joinGroup(multicastGroupAddress);
+            LOGGER.info(() -> "UDP Server started: " + socket.getLocalSocketAddress());
+            while (!isShutdown.get()) {
+                final byte[] dataBuffer = new byte[65536];
+                final DatagramPacket datagramPacket = new DatagramPacket(dataBuffer, dataBuffer.length);
+                socket.receive(datagramPacket);
+                for (PacketListener packetListener : packetListeners) {
+                    try {
+                        packetListener.acceptPacket(datagramPacket);
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, e.getMessage(), e);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            if (!isShutdown.get())
+                throw new RuntimeException("Error on UDP server " + socketAddress, e);
+        } finally {
+            LOGGER.info(() -> "UDP Server exit: " + socketAddress);
+        }
+    }
 
-	/**
-	 * Start or restart the thread if it is stopped
-	 */
-	synchronized void checkStarted() throws UnknownHostException {
-		if (isAlive())
-			return;
-		this.start();
-	}
+    /**
+     * Start or restart the thread if it is stopped
+     */
+    synchronized void checkStarted() {
+        if (isAlive())
+            return;
+        this.start();
+    }
 
-	void shutdown() throws InterruptedException {
-		isShutdown.set(true);
-		if (datagramSocket != null) {
-			if (multicastGroupAddress != null) {
-				try {
-					((MulticastSocket) datagramSocket).leaveGroup(multicastGroupAddress);
-				} catch (IOException e) {
-					LOGGER.log(Level.WARNING, e.getMessage(), e);
-				}
-			}
-			if (datagramSocket.isConnected())
-				datagramSocket.disconnect();
-			if (!datagramSocket.isClosed())
-				datagramSocket.close();
-			datagramSocket = null;
-		}
-	}
+    void shutdown() {
+        isShutdown.set(true);
+        if (datagramSocket != null) {
+            if (multicastGroupAddress != null) {
+                try {
+                    ((MulticastSocket) datagramSocket).leaveGroup(multicastGroupAddress);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, e.getMessage(), e);
+                }
+            }
+            if (datagramSocket.isConnected())
+                datagramSocket.disconnect();
+            if (!datagramSocket.isClosed())
+                datagramSocket.close();
+            datagramSocket = null;
+        }
+    }
 
-	public interface PacketListener {
+    public interface PacketListener {
 
-		void acceptPacket(final DatagramPacket packet) throws Exception;
-	}
+        void acceptPacket(final DatagramPacket packet);
+    }
 }

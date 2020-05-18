@@ -196,13 +196,8 @@ public class GenericServer implements AutoCloseable {
 
         executeListener(shutdownListeners, LOGGER);
 
-        if (udpServer != null) {
-            try {
-                udpServer.shutdown();
-            } catch (InterruptedException e) {
-                LOGGER.log(Level.WARNING, e.getMessage(), e);
-            }
-        }
+        if (udpServer != null)
+            udpServer.shutdown();
 
         for (final DeploymentManager manager : deploymentManagers) {
             try {
@@ -350,7 +345,7 @@ public class GenericServer implements AutoCloseable {
 
     @FunctionalInterface
     public interface Listener {
-        void accept(GenericServer server) throws Exception;
+        void accept(GenericServer server);
     }
 
     private void executeListener(final Collection<Listener> listeners, final Logger logger) {
@@ -372,11 +367,11 @@ public class GenericServer implements AutoCloseable {
             new MultipartConfigElement(SystemUtils.getJavaIoTmpDir().getAbsolutePath());
 
     public interface IdentityManagerProvider {
-        IdentityManager getIdentityManager(String realm) throws IOException;
+        IdentityManager getIdentityManager(String realm);
     }
 
     public interface SessionPersistenceManagerProvider {
-        SessionPersistenceManager getSessionPersistenceManager(String realm) throws IOException;
+        SessionPersistenceManager getSessionPersistenceManager(String realm);
     }
 
     public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,

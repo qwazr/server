@@ -23,8 +23,6 @@ import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,11 +33,8 @@ import java.util.Set;
 public abstract class RestApplication extends Application {
 
     public static final List<Class<?>> JSON_CLASSES =
-            Collections.unmodifiableList(Arrays.asList(JacksonConfig.class,
-                    JacksonJsonProvider.class,
-                    JacksonSmileProvider.class,
-                    JsonMappingExceptionMapper.class,
-                    WebApplicationExceptionMapper.class));
+            List.of(JacksonConfig.class, JacksonJsonProvider.class, JacksonSmileProvider.class,
+                    JsonMappingExceptionMapper.class, WebApplicationExceptionMapper.class);
 
     @Context
     private ServletContext context;

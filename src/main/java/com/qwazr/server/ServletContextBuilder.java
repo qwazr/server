@@ -211,7 +211,7 @@ public class ServletContextBuilder extends DeploymentInfo {
 
     public ServletContextBuilder servlets(final Class<? extends Servlet>... servletClasses) {
         if (servletClasses != null)
-            for (Class<? extends Servlet> servletClass : servletClasses)
+            for (final Class<? extends Servlet> servletClass : servletClasses)
                 servlet(servletClass);
         return this;
     }

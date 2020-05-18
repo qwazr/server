@@ -1,5 +1,5 @@
-/**
- * Copyright 2017 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2017-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.form.FormParserFactory;
 import io.undertow.servlet.api.DeploymentInfo;
 
+import javax.ws.rs.NotSupportedException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
@@ -33,89 +34,93 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class HostnameAuthenticationMechanism implements AuthenticationMechanism {
 
-	@FunctionalInterface
-	public interface PrincipalResolver {
-		String get(InetAddress inetAddress);
-	}
+    @FunctionalInterface
+    public interface PrincipalResolver {
+        String get(InetAddress inetAddress);
+    }
 
-	static final String NAME = "HOSTNAME";
+    static final String NAME = "HOSTNAME";
 
-	private final IdentityManager identityManager;
+    private final IdentityManager identityManager;
 
-	private final PrincipalResolver principalResolver;
+    private final PrincipalResolver principalResolver;
 
-	HostnameAuthenticationMechanism(IdentityManager identityManager, PrincipalResolver principalResolver) {
-		this.identityManager = identityManager;
-		this.principalResolver = principalResolver;
-	}
+    HostnameAuthenticationMechanism(IdentityManager identityManager, PrincipalResolver principalResolver) {
+        this.identityManager = identityManager;
+        this.principalResolver = principalResolver;
+    }
 
-	@Override
-	public AuthenticationMechanismOutcome authenticate(HttpServerExchange exchange, SecurityContext securityContext) {
-		final String principal = principalResolver.get(exchange.getSourceAddress().getAddress());
-		if (principal == null)
-			return AuthenticationMechanismOutcome.NOT_ATTEMPTED;
-		final Account account = identityManager.verify(principal, ExternalCredential.INSTANCE);
-		if (account == null)
-			return AuthenticationMechanismOutcome.NOT_AUTHENTICATED;
-		securityContext.authenticationComplete(account, NAME, false);
-		return AuthenticationMechanismOutcome.AUTHENTICATED;
-	}
+    @Override
+    public AuthenticationMechanismOutcome authenticate(HttpServerExchange exchange, SecurityContext securityContext) {
+        final String principal = principalResolver.get(exchange.getSourceAddress().getAddress());
+        if (principal == null)
+            return AuthenticationMechanismOutcome.NOT_ATTEMPTED;
+        final Account account = identityManager.verify(principal, ExternalCredential.INSTANCE);
+        if (account == null)
+            return AuthenticationMechanismOutcome.NOT_AUTHENTICATED;
+        securityContext.authenticationComplete(account, NAME, false);
+        return AuthenticationMechanismOutcome.AUTHENTICATED;
+    }
 
-	@Override
-	public ChallengeResult sendChallenge(HttpServerExchange exchange, SecurityContext securityContext) {
-		return ChallengeResult.NOT_SENT;
-	}
+    @Override
+    public ChallengeResult sendChallenge(HttpServerExchange exchange, SecurityContext securityContext) {
+        return ChallengeResult.NOT_SENT;
+    }
 
-	static void register(DeploymentInfo deploymentInfo, PrincipalResolver principalResolver) {
-		deploymentInfo.addAuthenticationMechanism(NAME,
-				new Factory(deploymentInfo.getIdentityManager(), principalResolver));
-	}
+    static void register(DeploymentInfo deploymentInfo, PrincipalResolver principalResolver) {
+        deploymentInfo.addAuthenticationMechanism(NAME, new Factory(principalResolver));
+    }
 
-	public static final class Factory implements AuthenticationMechanismFactory {
+    public static final class Factory implements AuthenticationMechanismFactory {
 
-		private final IdentityManager identityManager;
-		private final PrincipalResolver principalResolver;
+        private final PrincipalResolver principalResolver;
 
-		public Factory(final IdentityManager identityManager, final PrincipalResolver principalResolver) {
-			this.identityManager = identityManager;
-			this.principalResolver = principalResolver;
-		}
+        public Factory(final PrincipalResolver principalResolver) {
+            this.principalResolver = principalResolver;
+        }
 
-		@Override
-		public AuthenticationMechanism create(String mechanismName, FormParserFactory formParserFactory,
-				Map<String, String> properties) {
-			return new HostnameAuthenticationMechanism(identityManager, principalResolver);
-		}
-	}
+        @Override
+        @Deprecated
+        public AuthenticationMechanism create(String mechanismName, FormParserFactory formParserFactory,
+                Map<String, String> properties) {
+            throw new NotSupportedException();
+        }
 
-	public static class MapPrincipalResolver implements PrincipalResolver {
+        @Override
+        public AuthenticationMechanism create(String mechanismName, IdentityManager identityManager,
+                FormParserFactory formParserFactory, Map<String, String> properties) {
+            return new HostnameAuthenticationMechanism(identityManager, principalResolver);
+        }
+    }
 
-		private final Map<InetAddress, String> addressMap;
+    public static class MapPrincipalResolver implements PrincipalResolver {
 
-		protected MapPrincipalResolver(final Map<InetAddress, String> addressMap) {
-			this.addressMap = addressMap;
-		}
+        private final Map<InetAddress, String> addressMap;
 
-		public MapPrincipalResolver() {
-			this(new ConcurrentHashMap<>());
-		}
+        protected MapPrincipalResolver(final Map<InetAddress, String> addressMap) {
+            this.addressMap = addressMap;
+        }
 
-		public void put(final String host, final String principal) throws UnknownHostException {
-			Objects.requireNonNull(host, "The host parameter is missing");
-			Objects.requireNonNull(principal, "The principal parameter is missing");
-			for (InetAddress inetAddress : InetAddress.getAllByName(host))
-				addressMap.put(inetAddress, principal);
-		}
+        public MapPrincipalResolver() {
+            this(new ConcurrentHashMap<>());
+        }
 
-		public void remove(final String host) throws UnknownHostException {
-			Objects.requireNonNull(host, "The host parameter is missing");
-			for (InetAddress inetAddress : InetAddress.getAllByName(host))
-				addressMap.remove(inetAddress);
-		}
+        public void put(final String host, final String principal) throws UnknownHostException {
+            Objects.requireNonNull(host, "The host parameter is missing");
+            Objects.requireNonNull(principal, "The principal parameter is missing");
+            for (InetAddress inetAddress : InetAddress.getAllByName(host))
+                addressMap.put(inetAddress, principal);
+        }
 
-		@Override
-		public String get(final InetAddress inetAddress) {
-			return addressMap.get(inetAddress);
-		}
-	}
+        public void remove(final String host) throws UnknownHostException {
+            Objects.requireNonNull(host, "The host parameter is missing");
+            for (InetAddress inetAddress : InetAddress.getAllByName(host))
+                addressMap.remove(inetAddress);
+        }
+
+        @Override
+        public String get(final InetAddress inetAddress) {
+            return addressMap.get(inetAddress);
+        }
+    }
 }

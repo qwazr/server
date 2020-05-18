@@ -21,8 +21,6 @@ import io.undertow.security.idm.Account;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -69,9 +67,9 @@ public enum LogParam {
 
     final Function<LogContext, String> supplier;
 
-    public final static List<LogParam> DEFAULT_PARAMS = Collections.unmodifiableList(
-            Arrays.asList(DATE, TIME, C_IP, S_IP, CS_METHOD, CS_URI_STEM, CS_URI_QUERY, SC_STATUS, CS_REFERER,
-                    CS_USER_AGENT, CS_BYTES, SC_BYTES, TIME_TAKEN, CS_HOST));
+    public final static List<LogParam> DEFAULT_PARAMS =
+            List.of(DATE, TIME, C_IP, S_IP, CS_METHOD, CS_URI_STEM, CS_URI_QUERY, SC_STATUS, CS_REFERER, CS_USER_AGENT,
+                    CS_BYTES, SC_BYTES, TIME_TAKEN, CS_HOST);
 
     public final static String DEFAULT_MESSAGE =
             "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}";

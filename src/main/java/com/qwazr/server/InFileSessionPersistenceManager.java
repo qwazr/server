@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2018 Emmanuel Keller / QWAZR
+ * Copyright 2015-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 
     private void writeSessionAttribute(final ObjectOutputStream draftOut, final ObjectOutputStream sessionOut,
             final String attribute, final Object object) {
-        if (attribute == null || object == null || !(object instanceof Serializable))
+        if (attribute == null || !(object instanceof Serializable))
             return;
         // First we try to write it to the draftOutputStream
         try {
@@ -138,11 +138,13 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
                 try (final ObjectInputStream in = new ObjectInputStream(fileInputStream)) {
                     final Date expDate = new Date(in.readLong());
                     final HashMap<String, Object> sessionData = new HashMap<>();
-                    try {
-                        for (; ; )
+                    while (true) {
+                        try {
                             readSessionAttribute(in, sessionData);
-                    } catch (EOFException e) {
-                        ;// Ok we reached the end of the file
+                        } catch (EOFException e) {
+                            // Ok we reached the end of the file
+                            break;
+                        }
                     }
                     return new PersistentSession(expDate, sessionData);
                 }
@@ -159,7 +161,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
         try {
             sessionData.put(attribute, in.readObject());
         } catch (ClassNotFoundException | NotSerializableException e) {
-            LOGGER.log(Level.WARNING, e, () -> "The attribute " + attribute + " cannot be deserialized");
+            LOGGER.log(Level.WARNING, e, () -> "The attribute " + attribute + " cannot be de-serialized");
         }
     }
 

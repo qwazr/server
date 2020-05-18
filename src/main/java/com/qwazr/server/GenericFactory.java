@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Emmanuel Keller / QWAZR
+ * Copyright 2017-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,39 +23,39 @@ import java.util.function.Supplier;
 
 public interface GenericFactory<T> extends InstanceFactory<T> {
 
-	static <T> GenericFactory<T> fromInstance(final T instance) {
-		return new FromInstance<>(instance);
-	}
+    static <T> GenericFactory<T> fromInstance(final T instance) {
+        return new FromInstance<>(instance);
+    }
 
-	static <T> GenericFactory<T> fromSupplier(final Supplier<T> supplier) {
-		return new FromSupplier<>(supplier);
-	}
+    static <T> GenericFactory<T> fromSupplier(final Supplier<T> supplier) {
+        return new FromSupplier<>(supplier);
+    }
 
-	final class FromInstance<T> implements GenericFactory<T> {
+    final class FromInstance<T> implements GenericFactory<T> {
 
-		protected final T instance;
+        protected final T instance;
 
-		private FromInstance(final T instance) {
-			this.instance = instance;
-		}
+        private FromInstance(final T instance) {
+            this.instance = instance;
+        }
 
-		@Override
-		public InstanceHandle<T> createInstance() throws InstantiationException {
-			return new ImmediateInstanceHandle<>(instance);
-		}
-	}
+        @Override
+        public InstanceHandle<T> createInstance() {
+            return new ImmediateInstanceHandle<>(instance);
+        }
+    }
 
-	final class FromSupplier<T> implements GenericFactory<T> {
+    final class FromSupplier<T> implements GenericFactory<T> {
 
-		private final Supplier<T> supplier;
+        private final Supplier<T> supplier;
 
-		private FromSupplier(Supplier<T> supplier) {
-			this.supplier = supplier;
-		}
+        private FromSupplier(Supplier<T> supplier) {
+            this.supplier = supplier;
+        }
 
-		@Override
-		public InstanceHandle<T> createInstance() throws InstantiationException {
-			return new ImmediateInstanceHandle<>(supplier.get());
-		}
-	}
+        @Override
+        public InstanceHandle<T> createInstance() {
+            return new ImmediateInstanceHandle<>(supplier.get());
+        }
+    }
 }

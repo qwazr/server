@@ -17,42 +17,41 @@ package com.qwazr.server;
 
 import org.apache.commons.fileupload.RequestContext;
 
-import java.io.IOException;
 import java.io.InputStream;
 
 public class StreamRequestContext implements RequestContext {
 
-	private final String contentType;
-	private final int contentLength;
-	private final String encoding;
-	private final InputStream inputStream;
+    private final String contentType;
+    private final int contentLength;
+    private final String encoding;
+    private final InputStream inputStream;
 
-	public StreamRequestContext(final String contentType, final long contentLength, final String encoding,
-			final InputStream inputStream) {
-		this.contentType = contentType;
-		this.contentLength = (int) contentLength;
-		this.encoding = encoding;
-		this.inputStream = inputStream;
-	}
+    public StreamRequestContext(final String contentType, final long contentLength, final String encoding,
+            final InputStream inputStream) {
+        this.contentType = contentType;
+        this.contentLength = (int) contentLength;
+        this.encoding = encoding;
+        this.inputStream = inputStream;
+    }
 
-	@Override
-	public String getCharacterEncoding() {
-		return encoding;
-	}
+    @Override
+    public String getCharacterEncoding() {
+        return encoding;
+    }
 
-	@Override
-	public String getContentType() {
-		return contentType;
-	}
+    @Override
+    public String getContentType() {
+        return contentType;
+    }
 
-	@Override
-	@Deprecated
-	public int getContentLength() {
-		return contentLength;
-	}
+    @Override
+    @Deprecated
+    public int getContentLength() {
+        return contentLength;
+    }
 
-	@Override
-	public InputStream getInputStream() throws IOException {
-		return inputStream;
-	}
+    @Override
+    public InputStream getInputStream() {
+        return inputStream;
+    }
 }
