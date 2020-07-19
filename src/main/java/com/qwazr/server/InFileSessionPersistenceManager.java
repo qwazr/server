@@ -18,9 +18,17 @@ package com.qwazr.server;
 import com.qwazr.utils.FileUtils;
 import com.qwazr.utils.LoggerUtils;
 import io.undertow.servlet.api.SessionPersistenceManager;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.NotSerializableException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import org.apache.commons.io.output.NullOutputStream;
 
-import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Date;
@@ -59,7 +67,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
     }
 
     private void writeSession(final Path deploymentDir, final String sessionId,
-            final PersistentSession persistentSession) {
+                              final PersistentSession persistentSession) {
         final Date expDate = persistentSession.getExpiration();
         if (expDate == null)
             return; // No expiry date? no serialization
@@ -81,7 +89,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
     }
 
     private void writeSessionAttribute(final ObjectOutputStream draftOut, final ObjectOutputStream sessionOut,
-            final String attribute, final Object object) {
+                                       final String attribute, final Object object) {
         if (attribute == null || !(object instanceof Serializable))
             return;
         // First we try to write it to the draftOutputStream
@@ -105,7 +113,7 @@ public class InFileSessionPersistenceManager implements SessionPersistenceManage
 
     @Override
     public Map<String, PersistentSession> loadSessionAttributes(final String deploymentName,
-            final ClassLoader classLoader) {
+                                                                final ClassLoader classLoader) {
         final Path deploymentDir = sessionDir.resolve(deploymentName);
         if (!Files.exists(deploymentDir) || !Files.isDirectory(deploymentDir))
             return null;
