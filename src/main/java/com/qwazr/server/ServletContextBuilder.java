@@ -1,5 +1,5 @@
-/**
- * s * Copyright 2015-2017 Emmanuel Keller / QWAZR
+/*
+ * s * Copyright 2015-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.qwazr.server;
 
 import com.qwazr.utils.AnnotationsUtils;
 import com.qwazr.utils.StringUtils;
+import com.qwazr.utils.reflection.ConstructorParameters;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.FilterInfo;
 import io.undertow.servlet.api.HttpMethodSecurityInfo;
@@ -25,10 +26,11 @@ import io.undertow.servlet.api.SecurityInfo;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSecurityInfo;
 import io.undertow.servlet.api.TransportGuaranteeType;
-import org.apache.commons.lang3.SystemUtils;
-import org.glassfish.jersey.servlet.ServletContainer;
-import org.glassfish.jersey.servlet.ServletProperties;
-
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
 import javax.servlet.MultipartConfigElement;
@@ -42,28 +44,49 @@ import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import org.apache.commons.lang3.SystemUtils;
+import org.glassfish.jersey.servlet.ServletContainer;
+import org.glassfish.jersey.servlet.ServletProperties;
 
 /**
  * Build a deployment descriptor and add defaultMultipartConfig concept
  */
 public class ServletContextBuilder extends DeploymentInfo {
 
-    final String jmxName;
-    MultipartConfigElement defaultMultipartConfig;
-    final LinkedHashSet<String> endPoints;
+    private final String jmxName;
+    private MultipartConfigElement defaultMultipartConfig;
+    private final LinkedHashSet<String> endPoints;
+    private final ConstructorParameters constructorParameters;
 
-    ServletContextBuilder(ClassLoader classLoader, String contextPath, String defaultEncoding, String contextName,
-            String jmxName) {
+    ServletContextBuilder(final ClassLoader classLoader,
+                          final ConstructorParameters constructorParameters,
+                          final String contextPath,
+                          final String defaultEncoding,
+                          final String contextName,
+                          final String jmxName) {
         setClassLoader(classLoader);
+        this.constructorParameters = constructorParameters;
         setContextPath(contextPath == null ? "/" : contextPath);
         setDefaultEncoding(defaultEncoding == null ? "UTF-8" : defaultEncoding);
         setDeploymentName(contextName);
         this.jmxName = jmxName;
         this.endPoints = new LinkedHashSet<>();
+    }
+
+    public WebappBuilder getWebappBuilder() {
+        return new WebappBuilder(this);
+    }
+
+    public ConstructorParameters getConstructorParameters() {
+        return constructorParameters;
+    }
+
+    public String getJmxName() {
+        return jmxName;
+    }
+
+    public Set<String> getEndPoints() {
+        return endPoints;
     }
 
     public ServletContextBuilder setDefaultMultipartConfig(final MultipartConfigElement defaultMultipartConfig) {
@@ -72,7 +95,7 @@ public class ServletContextBuilder extends DeploymentInfo {
     }
 
     public ServletContextBuilder setDefaultMultipartConfig(String location, long maxFileSize, long maxRequestSize,
-            int fileSizeThreshold) {
+                                                           int fileSizeThreshold) {
         return setDefaultMultipartConfig(new MultipartConfigElement(
                 StringUtils.isEmpty(location) ? SystemUtils.getJavaIoTmpDir().getAbsolutePath() : location, maxFileSize,
                 maxRequestSize, fileSizeThreshold));
@@ -100,24 +123,24 @@ public class ServletContextBuilder extends DeploymentInfo {
     }
 
     public <T extends Servlet> ServletContextBuilder servlet(final String name, final Class<T> servletClass,
-            final String... urlPatterns) {
+                                                             final String... urlPatterns) {
         return servlet(name, servletClass, null, urlPatterns);
     }
 
     public <T extends Servlet> ServletContextBuilder servlet(final String name, final Class<T> servletClass,
-            final Supplier<T> servletSupplier) {
+                                                             final Supplier<T> servletSupplier) {
         return servlet(name, servletClass, GenericFactory.fromSupplier(servletSupplier));
     }
 
     static <T extends Servlet> ServletInfo servletInfo(final String name, final Class<T> servletClass,
-            final GenericFactory<T> instanceFactory) {
+                                                       final GenericFactory<T> instanceFactory) {
         return instanceFactory == null ?
                 new ServletInfo(name, servletClass) :
                 new ServletInfo(name, servletClass, instanceFactory);
     }
 
     public <T extends Servlet> ServletContextBuilder servlet(final String name, final Class<T> servletClass,
-            final GenericFactory<T> instanceFactory, final String... urlPatterns) {
+                                                             final GenericFactory<T> instanceFactory, final String... urlPatterns) {
 
         final ServletInfo servletInfo;
 
@@ -187,20 +210,20 @@ public class ServletContextBuilder extends DeploymentInfo {
 
     private static SecurityInfo.EmptyRoleSemantic get(ServletSecurity.EmptyRoleSemantic emptyRoleSemantic) {
         switch (emptyRoleSemantic) {
-        case PERMIT:
-            return SecurityInfo.EmptyRoleSemantic.PERMIT;
-        case DENY:
-            return SecurityInfo.EmptyRoleSemantic.DENY;
+            case PERMIT:
+                return SecurityInfo.EmptyRoleSemantic.PERMIT;
+            case DENY:
+                return SecurityInfo.EmptyRoleSemantic.DENY;
         }
         return null;
     }
 
     private static TransportGuaranteeType get(final ServletSecurity.TransportGuarantee transportGuarantee) {
         switch (transportGuarantee) {
-        case CONFIDENTIAL:
-            return TransportGuaranteeType.CONFIDENTIAL;
-        case NONE:
-            return TransportGuaranteeType.NONE;
+            case CONFIDENTIAL:
+                return TransportGuaranteeType.CONFIDENTIAL;
+            case NONE:
+                return TransportGuaranteeType.NONE;
         }
         return null;
     }
@@ -217,7 +240,7 @@ public class ServletContextBuilder extends DeploymentInfo {
     }
 
     public ServletContextBuilder jaxrs(final String name, final Class<? extends Application> applicationClass,
-            final Consumer<ServletInfo> servletInfoHook) {
+                                       final Consumer<ServletInfo> servletInfoHook) {
         final ServletInfo servletInfo = new ServletInfo(StringUtils.isEmpty(name) ? applicationClass.getName() : name,
                 ServletContainer.class).addInitParam(ServletProperties.JAXRS_APPLICATION_CLASS,
                 applicationClass.getName());
@@ -234,7 +257,7 @@ public class ServletContextBuilder extends DeploymentInfo {
     }
 
     public ServletContextBuilder jaxrs(final Class<? extends Application> applicationClass,
-            final Consumer<ServletInfo> servletInfoHook) {
+                                       final Consumer<ServletInfo> servletInfoHook) {
         return jaxrs(null, applicationClass, servletInfoHook);
     }
 
@@ -243,7 +266,7 @@ public class ServletContextBuilder extends DeploymentInfo {
     }
 
     public ServletContextBuilder jaxrs(final String name, final ApplicationBuilder applicationBuilder,
-            final Consumer<ServletInfo> servletInfoHook) {
+                                       final Consumer<ServletInfo> servletInfoHook) {
         final JaxRsServlet jaxRsServlet = new JaxRsServlet(applicationBuilder.build());
         final ServletInfo servletInfo = new ServletInfo(
                 StringUtils.isEmpty(name) ? applicationBuilder.getClass() + "@" + applicationBuilder.hashCode() : name,
@@ -261,7 +284,7 @@ public class ServletContextBuilder extends DeploymentInfo {
     }
 
     public ServletContextBuilder jaxrs(final ApplicationBuilder applicationBuilder,
-            final Consumer<ServletInfo> servletInfoHook) {
+                                       final Consumer<ServletInfo> servletInfoHook) {
         return jaxrs(null, applicationBuilder, servletInfoHook);
     }
 
@@ -275,12 +298,12 @@ public class ServletContextBuilder extends DeploymentInfo {
     }
 
     public <T extends Filter> ServletContextBuilder filter(final String name, final Class<T> filterClass,
-            final Supplier<T> filterSupplier, final String... urlPatterns) {
+                                                           final Supplier<T> filterSupplier, final String... urlPatterns) {
         return filter(name, filterClass, GenericFactory.fromSupplier(filterSupplier), urlPatterns);
     }
 
     public <T extends Filter> ServletContextBuilder filter(String filterName, final Class<T> filterClass,
-            final GenericFactory<T> instanceFactory, final String... urlPatterns) {
+                                                           final GenericFactory<T> instanceFactory, final String... urlPatterns) {
 
         // WebServlet annotation
         final WebFilter webFilter = AnnotationsUtils.getFirstAnnotation(filterClass, WebFilter.class);
@@ -321,13 +344,13 @@ public class ServletContextBuilder extends DeploymentInfo {
     }
 
     public ServletContextBuilder urlFilterMapping(final String filterName, final String urlMapping,
-            final DispatcherType dispatcher) {
+                                                  final DispatcherType dispatcher) {
         addFilterUrlMapping(filterName, urlMapping, dispatcher);
         return this;
     }
 
     public ServletContextBuilder servletFilterMapping(final String filterName, final String servletName,
-            final DispatcherType dispatcher) {
+                                                      final DispatcherType dispatcher) {
         addFilterServletNameMapping(filterName, servletName, dispatcher);
         return this;
     }

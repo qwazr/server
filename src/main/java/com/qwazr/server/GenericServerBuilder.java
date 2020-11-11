@@ -8,6 +8,8 @@ import io.undertow.server.session.SessionListener;
 import io.undertow.servlet.api.SessionPersistenceManager;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -40,14 +42,14 @@ public class GenericServerBuilder {
     Collection<GenericServer.Listener> shutdownListeners;
 
     GenericServerBuilder(final ServerConfiguration configuration, final ExecutorService executorService,
-            final ClassLoader classLoader, final ConstructorParameters constructorParameters) {
+                         final ClassLoader classLoader, final ConstructorParameters constructorParameters) {
         this.configuration = configuration;
         this.executorService = executorService;
         this.classLoader = classLoader == null ? Thread.currentThread().getContextClassLoader() : classLoader;
         this.constructorParameters =
                 constructorParameters == null ? ConstructorParameters.withConcurrentMap() : constructorParameters;
-        this.webAppContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT", "WEBAPP");
-        this.webServiceContext = new ServletContextBuilder(this.classLoader, "/", "UTF-8", "ROOT", "WEBSERVICE");
+        this.webAppContext = new ServletContextBuilder(this.classLoader, this.constructorParameters, "/", "UTF-8", "ROOT", "WEBAPP");
+        this.webServiceContext = new ServletContextBuilder(this.classLoader, this.constructorParameters, "/", "UTF-8", "ROOT", "WEBSERVICE");
     }
 
     public ServerConfiguration getConfiguration() {
@@ -112,6 +114,13 @@ public class GenericServerBuilder {
         return this;
     }
 
+    public GenericServerBuilder persistSessions(final Path persistenceDirectory) throws IOException {
+        if (!Files.exists(persistenceDirectory))
+            Files.createDirectory(persistenceDirectory);
+        sessionPersistenceManager(new InFileSessionPersistenceManager(persistenceDirectory));
+        return this;
+    }
+
     public GenericServerBuilder identityManagerProvider(final GenericServer.IdentityManagerProvider provider) {
         identityManagerProvider = provider;
         return this;
@@ -134,7 +143,7 @@ public class GenericServerBuilder {
     }
 
     public GenericServerBuilder webAppAccessLogger(Logger logger, Level level, String logMessage,
-            LogParam... logParams) {
+                                                   LogParam... logParams) {
         return webAppAccessLogger(new AccessLogger.Jul(logger, level, logMessage, logParams));
     }
 
@@ -149,7 +158,7 @@ public class GenericServerBuilder {
     }
 
     public GenericServerBuilder webServiceAccessLogger(Logger logger, Level level, String logMessage,
-            LogParam... logParams) {
+                                                       LogParam... logParams) {
         return webServiceAccessLogger(new AccessLogger.Jul(logger, level, logMessage, logParams));
     }
 
@@ -159,7 +168,7 @@ public class GenericServerBuilder {
     }
 
     public GenericServerBuilder defaultMultipartConfig(String location, long maxFileSize, long maxRequestSize,
-            int fileSizeThreshold) {
+                                                       int fileSizeThreshold) {
         webAppContext.setDefaultMultipartConfig(location, maxFileSize, maxRequestSize, fileSizeThreshold);
         return this;
     }

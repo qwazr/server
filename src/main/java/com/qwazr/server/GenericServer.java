@@ -103,9 +103,9 @@ public class GenericServer implements AutoCloseable {
         this.servletContainer = Servlets.newContainer();
         this.webAppContext = builder.webAppContext;
         this.webServiceContext = builder.webServiceContext;
-        this.webAppEndPoints = webAppContext == null ? null : Collections.unmodifiableSet(webAppContext.endPoints);
+        this.webAppEndPoints = webAppContext == null ? null : Collections.unmodifiableSet(webAppContext.getEndPoints());
         this.webServiceEndPoints =
-                webServiceContext == null ? null : Collections.unmodifiableSet(webServiceContext.endPoints);
+                webServiceContext == null ? null : Collections.unmodifiableSet(webServiceContext.getEndPoints());
         builder.contextAttribute(this);
         this.contextAttributes = new LinkedHashMap<>(builder.contextAttributes);
         this.undertows = new ArrayList<>();
@@ -161,7 +161,7 @@ public class GenericServer implements AutoCloseable {
     }
 
     private static UdpServerThread buildUdpServer(final GenericServerBuilder builder,
-            final ServerConfiguration configuration) throws IOException {
+                                                  final ServerConfiguration configuration) throws IOException {
 
         if (builder.packetListeners == null || builder.packetListeners.isEmpty())
             return null;
@@ -245,17 +245,18 @@ public class GenericServer implements AutoCloseable {
     }
 
     private void applyIdentityManager(final ServerConfiguration.WebConnector connector,
-            final DeploymentInfo deploymentInfo) throws IOException {
+                                      final DeploymentInfo deploymentInfo) {
         if (identityManagerProvider == null)
             return;
-        deploymentInfo.setIdentityManager(identityManagerProvider.getIdentityManager(
-                connector == null || connector.realm == null ? null : connector.realm));
+        deploymentInfo.setIdentityManager(
+                identityManagerProvider.getIdentityManager(connector == null ? null : connector.realm)
+        );
     }
 
     private final static AtomicInteger serverCounter = new AtomicInteger();
 
     private void startHttpServer(final ServerConfiguration.WebConnector connector, final ServletContextBuilder context,
-            final AccessLogger accessLogger) throws IOException, ServletException, OperationsException, MBeanException {
+                                 final AccessLogger accessLogger) throws ServletException, OperationsException, MBeanException {
 
         if (context == null || (context.getServlets().isEmpty() && context.getFilters().isEmpty()))
             return;
@@ -280,7 +281,7 @@ public class GenericServer implements AutoCloseable {
         final HttpHandler httpHandlerFromStart = manager.start();
         final LogMetricsHandler logMetricsHandler =
                 new LogMetricsHandler(httpHandlerFromStart, configuration.listenAddress, connector.port,
-                        context.jmxName, accessLogger);
+                        context.getJmxName(), accessLogger);
         deploymentManagers.add(manager);
 
         final Undertow.Builder servletBuilder = Undertow.builder()
@@ -296,9 +297,9 @@ public class GenericServer implements AutoCloseable {
         final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         final Hashtable<String, String> props = new Hashtable<>();
         props.put("type", "connector");
-        props.put("name", context.jmxName);
+        props.put("name", context.getJmxName());
         final ObjectName name =
-                new ObjectName("com.qwazr.server." + serverCounter.incrementAndGet() + "." + context.jmxName, props);
+                new ObjectName("com.qwazr.server." + serverCounter.incrementAndGet() + "." + context.getJmxName(), props);
         mbs.registerMBean(logMetricsHandler, name);
         registeredObjectNames.add(name);
         connectorsStatistics.add(logMetricsHandler);
@@ -375,12 +376,12 @@ public class GenericServer implements AutoCloseable {
     }
 
     public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
-            ClassLoader classLoader, ConstructorParameters constructorParameters) {
+                                          ClassLoader classLoader, ConstructorParameters constructorParameters) {
         return new GenericServerBuilder(config, executorService, classLoader, constructorParameters);
     }
 
     public static GenericServerBuilder of(ServerConfiguration config, ExecutorService executorService,
-            ClassLoader classLoader) {
+                                          ClassLoader classLoader) {
         return of(config, executorService, classLoader, null);
     }
 

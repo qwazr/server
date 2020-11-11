@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Emmanuel Keller / QWAZR
+ * Copyright 2017-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,25 +32,25 @@ import java.util.Map;
 @Singleton
 public class LoadedService extends AbstractServiceImpl {
 
-	public final static String SERVICE_NAME = "loaded";
+    public final static String SERVICE_NAME = "loaded";
 
-	public final static String TEXT = RandomUtils.alphanumeric(10);
+    public final static String TEXT = RandomUtils.alphanumeric(10);
 
-	@GET
-	public String load(@QueryParam("properties") Boolean properties, @QueryParam("env") Boolean env) {
-		return TEXT;
-	}
+    @GET
+    public String load(@QueryParam("properties") Boolean properties, @QueryParam("env") Boolean env) {
+        return TEXT;
+    }
 
-	@Path("/map")
-	@GET
-	@Produces({ MediaType.APPLICATION_JSON, SmileMediaTypes.APPLICATION_JACKSON_SMILE })
-	public Map<String, String> getMap() {
-		final HashMap<String, String> map = new HashMap<>();
-		map.put(SERVICE_NAME, TEXT);
-		return map;
-	}
+    @Path("/map")
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, SmileMediaTypes.APPLICATION_JACKSON_SMILE})
+    public Map<String, String> getMap() {
+        final HashMap<String, String> map = new HashMap<>();
+        map.put(SERVICE_NAME, TEXT);
+        return map;
+    }
 
-	final static GenericType<Map<String, String>> mapType = new GenericType<Map<String, String>>() {
-	};
+    final static GenericType<Map<String, String>> mapType = new GenericType<>() {
+    };
 
 }

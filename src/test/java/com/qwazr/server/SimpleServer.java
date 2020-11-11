@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Emmanuel Keller / QWAZR
+ * Copyright 2016-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,60 +27,61 @@ import java.util.logging.Logger;
 
 public class SimpleServer implements BaseServer {
 
-	public final static String CONTEXT_ATTRIBUTE_TEST = "test";
+    public final static String CONTEXT_ATTRIBUTE_TEST = "test";
 
-	public final String contextAttribute = RandomUtils.alphanumeric(5);
+    public final String contextAttribute = RandomUtils.alphanumeric(5);
 
-	private GenericServer server;
+    private final GenericServer server;
 
-	private final Logger accessLogger = LoggerUtils.getLogger(SimpleServer.class);
-	public final LogHandler logHandler = new LogHandler();
+    private static final Logger accessLogger = LoggerUtils.getLogger(SimpleServer.class);
 
-	SimpleServer(SessionPersistenceManager sessionManager, ServerConfiguration serverConfiguration) throws IOException {
+    public final LogHandler logHandler = new LogHandler();
 
-		GenericServerBuilder builder =
-				GenericServer.of(serverConfiguration == null ? ServerConfiguration.of().build() : serverConfiguration)
-						.contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute);
+    SimpleServer(SessionPersistenceManager sessionManager, ServerConfiguration serverConfiguration) throws IOException {
 
-		accessLogger.addHandler(logHandler);
-		builder.webAppAccessLogger(accessLogger);
-		builder.webServiceAccessLogger(accessLogger);
+        final GenericServerBuilder builder =
+                GenericServer.of(serverConfiguration == null ? ServerConfiguration.of().build() : serverConfiguration)
+                        .contextAttribute(CONTEXT_ATTRIBUTE_TEST, contextAttribute);
 
-		builder.getWebAppContext().servlet(SimpleServlet.class, "test_bis").filter(SimpleFilter.class);
+        accessLogger.addHandler(logHandler);
+        builder.webAppAccessLogger(accessLogger);
+        builder.webServiceAccessLogger(accessLogger);
 
-		builder.getWebServiceContext()
-				.jaxrs(ApplicationBuilder.of("/*")
-						.classes(RestApplication.JSON_CLASSES)
-						.loadServices()
-						.singletons(new WelcomeShutdownService(), new ErrorService()));
+        builder.getWebAppContext().servlet(SimpleServlet.class, "test_bis").filter(SimpleFilter.class);
 
-		if (sessionManager != null)
-			builder.sessionPersistenceManager(sessionManager);
+        builder.getWebServiceContext()
+                .jaxrs(ApplicationBuilder.of("/*")
+                        .classes(RestApplication.JSON_CLASSES)
+                        .loadServices()
+                        .singletons(new WelcomeShutdownService(), new ErrorService()));
 
-		server = builder.build();
-	}
+        if (sessionManager != null)
+            builder.sessionPersistenceManager(sessionManager);
 
-	@Override
-	public GenericServer getServer() {
-		return server;
-	}
+        server = builder.build();
+    }
 
-	public class LogHandler extends Handler {
+    @Override
+    public GenericServer getServer() {
+        return server;
+    }
 
-		public LogRecord lastRecord;
+    public static class LogHandler extends Handler {
 
-		@Override
-		public void publish(LogRecord record) {
-			lastRecord = record;
-		}
+        public LogRecord lastRecord;
 
-		@Override
-		public void flush() {
-		}
+        @Override
+        public void publish(LogRecord record) {
+            lastRecord = record;
+        }
 
-		@Override
-		public void close() throws SecurityException {
-		}
-	}
+        @Override
+        public void flush() {
+        }
+
+        @Override
+        public void close() throws SecurityException {
+        }
+    }
 
 }

@@ -40,7 +40,7 @@ public class ApplicationBuilder {
 
 	final Map<String, Object> properties = new LinkedHashMap<>();
 
-	volatile ResourceConfig cache;
+	private volatile ResourceConfig cache;
 
 	public static ApplicationBuilder of(String... applicationPaths) {
 		return new ApplicationBuilder(applicationPaths);

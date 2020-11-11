@@ -17,8 +17,6 @@ package com.qwazr.server.configuration;
 
 import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.StringUtils;
-import org.apache.commons.net.util.SubnetUtils;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -45,7 +43,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
+import org.apache.commons.net.util.SubnetUtils;
 
 public class ServerConfiguration implements ConfigurationProperties {
 
@@ -55,9 +53,6 @@ public class ServerConfiguration implements ConfigurationProperties {
 
     public final Path dataDirectory;
     public final Path tempDirectory;
-
-    public final Set<Path> etcDirectories;
-    public final Predicate<Path> etcFileFilter;
 
     public final String publicAddress;
     public final String listenAddress;
@@ -69,22 +64,10 @@ public class ServerConfiguration implements ConfigurationProperties {
     public final Set<String> masters;
     public final Set<String> groups;
 
-    public ServerConfiguration(final String... args) throws IOException {
-        this(System.getenv(), System.getProperties(), argsToMap(args));
-    }
-
-    protected ServerConfiguration(final Map<?, ?>... propertiesMaps) throws IOException {
+    private ServerConfiguration(final Map<String, String> props) throws IOException {
 
         // Merge the maps.
-        properties = new HashMap<>();
-        if (propertiesMaps != null) {
-            for (Map<?, ?> props : propertiesMaps)
-                if (props != null)
-                    props.forEach((key, value) -> {
-                        if (key != null && value != null)
-                            properties.put(key.toString(), value.toString());
-                    });
-        }
+        properties = new HashMap<>(props);
 
         //Set the data directory
         dataDirectory = getDataDirectory(getStringProperty(QWAZR_DATA, null));
@@ -103,10 +86,6 @@ public class ServerConfiguration implements ConfigurationProperties {
             throw new IOException("The temp directory does not exists: " + tempDirectory.toAbsolutePath());
         if (!Files.isDirectory(tempDirectory))
             throw new IOException("The temp directory is not a directory: " + tempDirectory.toAbsolutePath());
-
-        //Set the configuration directories
-        etcDirectories = getEtcDirectories(getStringProperty(QWAZR_ETC_DIR, null));
-        etcFileFilter = buildEtcFileFilter(getStringProperty(QWAZR_ETC, null));
 
         //Set the listen address
         listenAddress = findListenAddress(getStringProperty(LISTEN_ADDR, null));
@@ -135,26 +114,6 @@ public class ServerConfiguration implements ConfigurationProperties {
         this.groups = buildSet(getStringProperty(QWAZR_GROUPS, null), ",; \t", true);
     }
 
-    /**
-     * List the configuration files
-     *
-     * @return a list with the found configuration files
-     * @throws IOException if any I/O error occurs
-     */
-    public Collection<Path> getEtcFiles() throws IOException {
-        if (etcDirectories == null)
-            return Collections.emptyList();
-        final Set<Path> etcPaths = new LinkedHashSet<>();
-        for (final Path etcDirectory : etcDirectories) {
-            if (Files.exists(etcDirectory) && Files.isDirectory(etcDirectory)) {
-                try (final Stream<Path> stream = Files.list(etcDirectory)) {
-                    stream.filter(etcFileFilter).forEach(etcPaths::add);
-                }
-            }
-        }
-        return etcPaths;
-    }
-
     public String getStringProperty(final String propName, final String defaultValue) {
         final Object o = properties.get(propName);
         return o == null ? defaultValue : o.toString();
@@ -168,7 +127,7 @@ public class ServerConfiguration implements ConfigurationProperties {
     }
 
     protected static void fillStringListProperty(final String value, final String separatorChars, final boolean trim,
-            final Consumer<String> consumer) {
+                                                 final Consumer<String> consumer) {
         if (value == null)
             return;
         final String[] parts = StringUtils.split(value, separatorChars);
@@ -223,7 +182,7 @@ public class ServerConfiguration implements ConfigurationProperties {
         public final String addressPort;
 
         private WebConnector(final String address, final Integer port, final int defaulPort,
-                final String authentication, final String realm) {
+                             final String authentication, final String realm) {
             this.address = address;
             this.authentication = authentication;
             this.realm = realm;
@@ -362,27 +321,36 @@ public class ServerConfiguration implements ConfigurationProperties {
     }
 
     public static Builder of() {
-        return of(null);
-    }
-
-    public static Builder of(Map<String, String> map) {
-        return new Builder(map);
+        return new Builder();
     }
 
     public static class Builder {
 
-        protected final Map<String, String> map;
+        private final Map<String, String> map;
         private final Set<String> masters;
         private final Set<String> groups;
-        private final Set<String> etcFilters;
-        private final Set<String> etcDirectories;
 
-        protected Builder(Map<String, String> map) {
-            this.map = map == null ? new HashMap<>() : new HashMap<>(map);
+        protected Builder() {
+            this.map = new HashMap<>();
             this.masters = new LinkedHashSet<>();
             this.groups = new LinkedHashSet<>();
-            this.etcFilters = new LinkedHashSet<>();
-            this.etcDirectories = new LinkedHashSet<>();
+        }
+
+        public Builder applyEnvironmentVariables() {
+            map.putAll(System.getenv());
+            return this;
+        }
+
+        public Builder applySystemProperties() {
+            System.getProperties().forEach((key, value) -> {
+                if (key != null && value != null) map.put(key.toString(), value.toString());
+            });
+            return this;
+        }
+
+        public Builder applyCommandLineArgs(final String... args) throws IOException {
+            map.putAll(argsToMap(args));
+            return this;
         }
 
         public Builder data(final Path path) {
@@ -430,32 +398,6 @@ public class ServerConfiguration implements ConfigurationProperties {
         public Builder group(final Collection<String> groups) {
             if (groups != null)
                 this.groups.addAll(groups);
-            return this;
-        }
-
-        public Builder etcFilter(final String... etcFilters) {
-            if (etcFilters != null)
-                Collections.addAll(this.etcFilters, etcFilters);
-            return this;
-        }
-
-        public Builder etcFilter(final Collection<String> etcFilters) {
-            if (etcFilters != null)
-                this.etcFilters.addAll(etcFilters);
-            return this;
-        }
-
-        public Builder etcDirectory(Path... etcDirectories) {
-            if (etcDirectories != null)
-                for (Path etcDirectory : etcDirectories)
-                    this.etcDirectories.add(etcDirectory.toAbsolutePath().toString());
-            return this;
-        }
-
-        public Builder etcDirectory(final Collection<Path> etcDirectories) {
-            if (etcDirectories != null)
-                for (Path etcDirectory : etcDirectories)
-                    this.etcDirectories.add(etcDirectory.toAbsolutePath().toString());
             return this;
         }
 
@@ -507,20 +449,16 @@ public class ServerConfiguration implements ConfigurationProperties {
             return this;
         }
 
-        public Map<String, String> finalMap() {
+        private Map<String, String> finalizeMap() {
             if (!masters.isEmpty())
                 map.put(QWAZR_MASTERS, StringUtils.join(masters, ','));
             if (!groups.isEmpty())
                 map.put(QWAZR_GROUPS, StringUtils.join(groups, ','));
-            if (!etcFilters.isEmpty())
-                map.put(QWAZR_ETC, StringUtils.join(etcFilters, ','));
-            if (!etcDirectories.isEmpty())
-                map.put(QWAZR_ETC_DIR, StringUtils.join(etcDirectories, File.pathSeparatorChar));
             return map;
         }
 
         public ServerConfiguration build() throws IOException {
-            return new ServerConfiguration(finalMap());
+            return new ServerConfiguration(finalizeMap());
         }
 
     }

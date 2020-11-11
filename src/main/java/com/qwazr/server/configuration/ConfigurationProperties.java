@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.server.configuration;
 
 public interface ConfigurationProperties {
@@ -32,17 +32,6 @@ public interface ConfigurationProperties {
 	 * The default value is "{QWAZR_DATA}/tmp"
 	 */
 	String QWAZR_TEMP = "QWAZR_TEMP";
-
-	/**
-	 * The configuration directory
-	 * The default value is "etc" (relative to the working directory)
-	 */
-	String QWAZR_ETC_DIR = "QWAZR_ETC_DIR";
-
-	/**
-	 * A wildcard filter for configuration files
-	 */
-	String QWAZR_ETC = "QWAZR_ETC";
 
 	/**
 	 * The hostname or address uses for the listening socket.
