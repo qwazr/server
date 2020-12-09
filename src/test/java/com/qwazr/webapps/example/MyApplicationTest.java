@@ -35,9 +35,9 @@ public class MyApplicationTest {
         final WebTarget target = ClientBuilder.newClient().target("http://localhost:8081");
 
         final String html = target.path("/test").request(MediaType.TEXT_HTML_TYPE).get(String.class);
-        Assert.assertEquals("<html>Hello World</html>\n", html);
+        Assert.assertEquals("<html>Hello World</html>\r\n", html);
 
-        final String css = target.path("webjars/bootstrap/4.5.2/css/bootstrap.css")
+        final String css = target.path("webjars/bootstrap/4.5.3/css/bootstrap.css")
                 .request(MediaType.TEXT_HTML_TYPE)
                 .get(String.class);
         Assert.assertTrue(css.contains("bootstrap"));
