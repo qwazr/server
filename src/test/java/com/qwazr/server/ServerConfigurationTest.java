@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Properties;
 import org.junit.Assert;
@@ -45,7 +44,16 @@ public class ServerConfigurationTest {
         checkConnector(config.multicastConnector, multicastPort == null ? null : config.publicAddress, multicastPort);
     }
 
-    private static final Path dataDir = Paths.get("src/test/data").toAbsolutePath();
+    private static final Path dataDir;
+
+    static {
+        try {
+            dataDir = Files.createTempDirectory("ServerConfigurationTest");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static final Path tempDir = dataDir.resolve("temp").toAbsolutePath();
 
     @Before
