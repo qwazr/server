@@ -9,3 +9,4 @@ buildNumber.properties
 .mvn/timing.properties
 .idea
 qwazr-server.iml
+.DS_Store

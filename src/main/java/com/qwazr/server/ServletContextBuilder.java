@@ -27,6 +27,7 @@ import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSecurityInfo;
 import io.undertow.servlet.api.TransportGuaranteeType;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -297,13 +298,18 @@ public class ServletContextBuilder extends DeploymentInfo {
         return this;
     }
 
-    public <T extends Filter> ServletContextBuilder filter(final String name, final Class<T> filterClass,
-                                                           final Supplier<T> filterSupplier, final String... urlPatterns) {
-        return filter(name, filterClass, GenericFactory.fromSupplier(filterSupplier), urlPatterns);
+    public <T extends Filter> ServletContextBuilder filter(final String name,
+                                                           final Class<T> filterClass,
+                                                           final Supplier<T> filterSupplier,
+                                                           final String... urlPatterns) {
+        return filter(name, filterClass, GenericFactory.fromSupplier(filterSupplier), null, urlPatterns);
     }
 
-    public <T extends Filter> ServletContextBuilder filter(String filterName, final Class<T> filterClass,
-                                                           final GenericFactory<T> instanceFactory, final String... urlPatterns) {
+    public <T extends Filter> ServletContextBuilder filter(String filterName,
+                                                           final Class<T> filterClass,
+                                                           final GenericFactory<T> instanceFactory,
+                                                           final Map<String, String> initParams,
+                                                           final String... urlPatterns) {
 
         // WebServlet annotation
         final WebFilter webFilter = AnnotationsUtils.getFirstAnnotation(filterClass, WebFilter.class);
@@ -326,7 +332,10 @@ public class ServletContextBuilder extends DeploymentInfo {
             for (String servletName : webFilter.servletNames())
                 for (DispatcherType dispatcherType : webFilter.dispatcherTypes())
                     servletFilterMapping(filterName, servletName, dispatcherType);
+        }
 
+        if (initParams != null) {
+            initParams.forEach(filterInfo::addInitParam);
         }
 
         if (urlPatterns.length > 0)
@@ -336,7 +345,7 @@ public class ServletContextBuilder extends DeploymentInfo {
     }
 
     public <T extends Filter> ServletContextBuilder filter(final String name, final Class<T> filterClass) {
-        return filter(name, filterClass, (GenericFactory<T>) null);
+        return filter(name, filterClass, (GenericFactory<T>) null, null);
     }
 
     public ServletContextBuilder filter(final Class<? extends Filter> filterClass) {

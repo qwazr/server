@@ -26,6 +26,7 @@ import io.undertow.servlet.api.ServletInfo;
 import java.util.Collection;
 import java.util.EventListener;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import javax.activation.MimetypesFileTypeMap;
 import javax.servlet.DispatcherType;
@@ -159,15 +160,24 @@ public class WebappBuilder {
         return registerServlet(servletClass, (GenericFactory<T>) null);
     }
 
-    public <T extends Filter> WebappBuilder registerFilter(final String urlPathes, final Class<T> filterClass,
-                                                           final GenericFactory<T> filterFactory) {
+    public <T extends Filter> WebappBuilder registerFilter(final String urlPathes,
+                                                           final Class<T> filterClass,
+                                                           final GenericFactory<T> filterFactory,
+                                                           final Map<String, String> initParams) {
         final String filterName = filterClass.getName() + '@' + urlPathes;
-        context.filter(filterName, filterClass, filterFactory);
+        context.filter(filterName, filterClass, filterFactory, initParams);
         if (urlPathes != null) {
             String[] urlPaths = StringUtils.split(urlPathes);
             for (String urlPath : urlPaths)
                 context.urlFilterMapping(filterName, urlPath, DispatcherType.REQUEST);
         }
+        return this;
+    }
+
+    public <T extends Filter> WebappBuilder registerFilter(final String urlPath,
+                                                           final Class<T> filterClass,
+                                                           final Map<String, String> initParams) {
+        registerFilter(urlPath, filterClass, null, initParams);
         return this;
     }
 
