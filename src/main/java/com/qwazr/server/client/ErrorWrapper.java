@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Emmanuel Keller / QWAZR
+ * Copyright 2017-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,44 +22,44 @@ import javax.ws.rs.WebApplicationException;
 
 public class ErrorWrapper {
 
-	public static int noError(WebApplicationException e, int... statusCodes) {
-		final int sc = e.getResponse().getStatus();
-		for (int statusCode : statusCodes)
-			if (sc == statusCode)
-				return sc;
-		throw e;
-	}
+    public static int noError(WebApplicationException e, int... statusCodes) {
+        final int sc = e.getResponse().getStatus();
+        for (int statusCode : statusCodes)
+            if (sc == statusCode)
+                return sc;
+        throw e;
+    }
 
-	public static int noError(ServerException e, int... statusCodes) {
-		final int sc = e.getStatusCode();
-		for (int statusCode : statusCodes)
-			if (sc == statusCode)
-				return sc;
-		throw e;
-	}
+    public static int noError(ServerException e, int... statusCodes) {
+        final int sc = e.getStatusCode();
+        for (int statusCode : statusCodes)
+            if (sc == statusCode)
+                return sc;
+        throw e;
+    }
 
-	public static boolean noError(Runnable runnable, int... statusCode) {
-		try {
-			runnable.run();
-			return true;
-		} catch (WebApplicationException e) {
-			noError(e, statusCode);
-			return false;
-		} catch (ServerException e) {
-			noError(e, statusCode);
-			return false;
-		}
-	}
+    public static boolean noError(Runnable runnable, int... statusCode) {
+        try {
+            runnable.run();
+            return true;
+        } catch (WebApplicationException e) {
+            noError(e, statusCode);
+            return false;
+        } catch (ServerException e) {
+            noError(e, statusCode);
+            return false;
+        }
+    }
 
-	public static <T, E extends Exception> T bypass(CallableEx<T, E> callable, int... statusCode) throws E {
-		try {
-			return callable.call();
-		} catch (WebApplicationException e) {
-			noError(e, statusCode);
-			return null;
-		} catch (ServerException e) {
-			noError(e, statusCode);
-			return null;
-		}
-	}
+    public static <T, E extends Exception> T bypass(CallableEx<T, E> callable, int... statusCode) throws E {
+        try {
+            return callable.call();
+        } catch (WebApplicationException e) {
+            noError(e, statusCode);
+            return null;
+        } catch (ServerException e) {
+            noError(e, statusCode);
+            return null;
+        }
+    }
 }

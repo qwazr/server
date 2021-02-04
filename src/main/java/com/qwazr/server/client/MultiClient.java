@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ public class MultiClient<T> implements Iterable<T> {
     }
 
     protected <R> R firstRandomSuccess(final FunctionEx<T, R, Exception> action,
-            final Consumer<WebApplicationException> exceptions) {
+                                       final Consumer<WebApplicationException> exceptions) {
         if (clients == null || clients.length == 0)
             return null;
         for (final T client : this) {
@@ -86,7 +86,7 @@ public class MultiClient<T> implements Iterable<T> {
     }
 
     protected <R> List<R> forEachParallel(final FunctionEx<T, R, Exception> action,
-            final Consumer<WebApplicationException> exceptions) {
+                                          final Consumer<WebApplicationException> exceptions) {
 
         if (clients == null || clients.length == 0)
             return Collections.emptyList();

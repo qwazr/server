@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,46 +29,46 @@ import java.util.Objects;
 
 public class JsonClient implements Closeable {
 
-	private final static int DEFAULT_TIMEOUT;
+    private final static int DEFAULT_TIMEOUT;
 
-	static {
-		String s = System.getProperty("com.qwazr.server.client.default_timeout");
-		DEFAULT_TIMEOUT = s == null ? 60000 : Integer.parseInt(s);
-	}
+    static {
+        String s = System.getProperty("com.qwazr.server.client.default_timeout");
+        DEFAULT_TIMEOUT = s == null ? 60000 : Integer.parseInt(s);
+    }
 
-	protected final RemoteService remote;
+    protected final RemoteService remote;
 
-	final protected Client client;
+    final protected Client client;
 
-	protected JsonClient(final RemoteService remote) {
-		this.remote = Objects.requireNonNull(remote, "The remote parameter is null");
+    protected JsonClient(final RemoteService remote) {
+        this.remote = Objects.requireNonNull(remote, "The remote parameter is null");
 
-		final ClientConfig clientConfig = new ClientConfig();
-		clientConfig.register(JacksonJsonProvider.class).register(JacksonSmileProvider.class);
+        final ClientConfig clientConfig = new ClientConfig();
+        clientConfig.register(JacksonJsonProvider.class).register(JacksonSmileProvider.class);
 
-		if (remote.isCredential()) {
-			final HttpAuthenticationFeature feature = HttpAuthenticationFeature.basicBuilder()
-					.nonPreemptive()
-					.credentials(remote.username, remote.password)
-					.build();
-			clientConfig.register(feature);
-		}
+        if (remote.isCredential()) {
+            final HttpAuthenticationFeature feature = HttpAuthenticationFeature.basicBuilder()
+                    .nonPreemptive()
+                    .credentials(remote.username, remote.password)
+                    .build();
+            clientConfig.register(feature);
+        }
 
-		final int timeout = remote.timeout != null ? remote.timeout : DEFAULT_TIMEOUT;
+        final int timeout = remote.timeout != null ? remote.timeout : DEFAULT_TIMEOUT;
 
-		client = ClientBuilder.newClient(clientConfig);
-		client.property(ClientProperties.CONNECT_TIMEOUT, timeout);
-		client.property(ClientProperties.READ_TIMEOUT, timeout);
+        client = ClientBuilder.newClient(clientConfig);
+        client.property(ClientProperties.CONNECT_TIMEOUT, timeout);
+        client.property(ClientProperties.READ_TIMEOUT, timeout);
 
-	}
+    }
 
-	public void close() {
-		client.close();
-	}
+    public void close() {
+        client.close();
+    }
 
-	@Override
-	public String toString() {
-		return remote.toString();
-	}
+    @Override
+    public String toString() {
+        return remote.toString();
+    }
 
 }

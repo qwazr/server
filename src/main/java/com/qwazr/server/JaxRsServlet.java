@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 class JaxRsServlet extends ServletContainer {
 
 	final ResourceConfig resourceConfig;
-	
+
 	JaxRsServlet(ResourceConfig resourceConfig) {
 		super(resourceConfig);
 		this.resourceConfig = resourceConfig;

@@ -82,13 +82,13 @@ public class HostnameAuthenticationMechanism implements AuthenticationMechanism 
         @Override
         @Deprecated
         public AuthenticationMechanism create(String mechanismName, FormParserFactory formParserFactory,
-                Map<String, String> properties) {
+                                              Map<String, String> properties) {
             throw new NotSupportedException();
         }
 
         @Override
         public AuthenticationMechanism create(String mechanismName, IdentityManager identityManager,
-                FormParserFactory formParserFactory, Map<String, String> properties) {
+                                              FormParserFactory formParserFactory, Map<String, String> properties) {
             return new HostnameAuthenticationMechanism(identityManager, principalResolver);
         }
     }

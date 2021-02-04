@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,72 +27,72 @@ import java.util.logging.Logger;
 
 public class MultiWebApplicationException extends WebApplicationException {
 
-	private final Collection<WebApplicationException> causes;
+    private final Collection<WebApplicationException> causes;
 
-	MultiWebApplicationException(final String message, final int status,
-			final Collection<WebApplicationException> exceptions) {
-		super(message, status);
-		this.causes = exceptions == null ? null : Collections.unmodifiableCollection(exceptions);
-	}
+    MultiWebApplicationException(final String message, final int status,
+                                 final Collection<WebApplicationException> exceptions) {
+        super(message, status);
+        this.causes = exceptions == null ? null : Collections.unmodifiableCollection(exceptions);
+    }
 
-	public Collection<WebApplicationException> getCauses() {
-		return causes;
-	}
+    public Collection<WebApplicationException> getCauses() {
+        return causes;
+    }
 
-	public static Builder of(Logger logger) {
-		return new Builder(logger);
-	}
+    public static Builder of(Logger logger) {
+        return new Builder(logger);
+    }
 
-	public static class Builder {
+    public static class Builder {
 
-		private final Logger logger;
-		private Set<WebApplicationException> exceptions;
-		private Set<String> messages;
+        private final Logger logger;
+        private Set<WebApplicationException> exceptions;
+        private Set<String> messages;
 
-		Builder(Logger logger) {
-			this.logger = logger;
-		}
+        Builder(Logger logger) {
+            this.logger = logger;
+        }
 
-		public Builder add(WebApplicationException exception) {
-			if (exception == null)
-				return this;
-			if (logger != null)
-				logger.log(Level.WARNING, exception, exception::getMessage);
-			if (exceptions == null)
-				exceptions = new HashSet<>();
-			exceptions.add(exception);
-			message(exception.getMessage());
-			return this;
-		}
+        public Builder add(WebApplicationException exception) {
+            if (exception == null)
+                return this;
+            if (logger != null)
+                logger.log(Level.WARNING, exception, exception::getMessage);
+            if (exceptions == null)
+                exceptions = new HashSet<>();
+            exceptions.add(exception);
+            message(exception.getMessage());
+            return this;
+        }
 
-		public Builder message(String message) {
-			if (message == null || StringUtils.isBlank(message))
-				return this;
-			if (messages == null)
-				messages = new HashSet<>();
-			messages.add(message);
-			return this;
-		}
+        public Builder message(String message) {
+            if (message == null || StringUtils.isBlank(message))
+                return this;
+            if (messages == null)
+                messages = new HashSet<>();
+            messages.add(message);
+            return this;
+        }
 
-		public boolean isEmpty() {
-			return exceptions == null || exceptions.isEmpty();
-		}
+        public boolean isEmpty() {
+            return exceptions == null || exceptions.isEmpty();
+        }
 
-		public MultiWebApplicationException build() {
-			final String message = messages == null ? StringUtils.EMPTY : StringUtils.joinWith(" - ", messages);
-			final int status;
-			if (exceptions == null)
-				status = 500;
-			else {
-				final Set<Integer> statusSet = new HashSet<>();
-				int st = 500;
-				for (WebApplicationException e : exceptions) {
-					st = e.getResponse().getStatus();
-					statusSet.add(st);
-				}
-				status = statusSet.size() == 1 ? st : 500;
-			}
-			return new MultiWebApplicationException(message, status, exceptions);
-		}
-	}
+        public MultiWebApplicationException build() {
+            final String message = messages == null ? StringUtils.EMPTY : StringUtils.joinWith(" - ", messages);
+            final int status;
+            if (exceptions == null)
+                status = 500;
+            else {
+                final Set<Integer> statusSet = new HashSet<>();
+                int st = 500;
+                for (WebApplicationException e : exceptions) {
+                    st = e.getResponse().getStatus();
+                    statusSet.add(st);
+                }
+                status = statusSet.size() == 1 ? st : 500;
+            }
+            return new MultiWebApplicationException(message, status, exceptions);
+        }
+    }
 }

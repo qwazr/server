@@ -65,7 +65,7 @@ public interface JsonExceptionMapper<T extends Exception> extends ExceptionMappe
 
         @JsonCreator
         JsonError(@JsonProperty("time") final long time, @JsonProperty("status") final int status,
-                @JsonProperty("message") final String message) {
+                  @JsonProperty("message") final String message) {
             this.time = time;
             this.status = status;
             this.message = message;

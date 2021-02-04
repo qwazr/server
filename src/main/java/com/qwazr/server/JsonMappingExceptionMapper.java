@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,11 +24,11 @@ import javax.ws.rs.ext.ExceptionMapper;
 
 public class JsonMappingExceptionMapper implements ExceptionMapper<JsonMappingException> {
 
-	@Context
-	private HttpHeaders headers;
+    @Context
+    private HttpHeaders headers;
 
-	@Override
-	public Response toResponse(final JsonMappingException exception) {
-		return ServerException.toResponse(headers, exception);
-	}
+    @Override
+    public Response toResponse(final JsonMappingException exception) {
+        return ServerException.toResponse(headers, exception);
+    }
 }

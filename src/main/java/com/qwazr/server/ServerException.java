@@ -15,10 +15,7 @@
  */
 package com.qwazr.server;
 
-import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
 import com.qwazr.utils.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.HttpHeaders;
@@ -28,6 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class ServerException extends RuntimeException {
 
@@ -144,7 +142,7 @@ public class ServerException extends RuntimeException {
         if (webApplicationExceptionPos != -1)
             status = ((WebApplicationException) ExceptionUtils.getThrowableList(throwable)
                     .get(webApplicationExceptionPos)).getResponse().getStatus();
-        
+
         if (StringUtils.isBlank(message)) {
             message = throwable.getMessage();
             if (StringUtils.isBlank(message))
@@ -194,6 +192,9 @@ public class ServerException extends RuntimeException {
         return of(e).warnIfCause(logger).getHtmlException(logger == null);
     }
 
+    public static final String APPLICATION_JACKSON_SMILE = "application/x-jackson-smile";
+    public static final MediaType APPLICATION_JACKSON_SMILE_TYPE = MediaType.valueOf(APPLICATION_JACKSON_SMILE);
+
     public static WebApplicationException from(final WebApplicationException webAppException) {
         final Response response = webAppException.getResponse();
         if (response == null)
@@ -205,7 +206,7 @@ public class ServerException extends RuntimeException {
         if (type.isCompatible(MediaType.TEXT_PLAIN_TYPE) || type.isCompatible(MediaType.TEXT_HTML_TYPE)) {
             message = response.readEntity(String.class);
         } else if (type.isCompatible(MediaType.APPLICATION_JSON_TYPE) ||
-                type.isCompatible(SmileMediaTypes.APPLICATION_JACKSON_SMILE_TYPE)) {
+                type.isCompatible(APPLICATION_JACKSON_SMILE_TYPE)) {
             try {
                 message = response.readEntity(JsonExceptionResponse.class).message;
             } catch (ProcessingException e) {

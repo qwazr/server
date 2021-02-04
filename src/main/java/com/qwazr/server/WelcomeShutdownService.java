@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2020 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,14 @@
 package com.qwazr.server;
 
 import com.qwazr.utils.LoggerUtils;
-
-import javax.annotation.security.RolesAllowed;
-import javax.inject.Singleton;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.security.RolesAllowed;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.Path;
 
 @RolesAllowed("welcome")
 @Path("/")
-@Singleton
 public class WelcomeShutdownService extends WelcomeService {
 
     static final private Logger LOGGER = LoggerUtils.getLogger(WelcomeShutdownService.class);
